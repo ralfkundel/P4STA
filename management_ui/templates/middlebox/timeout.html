@@ -1,0 +1,77 @@
+<!--
+# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->
+
+<!DOCTYPE html>
+{% load static %}
+{% load management_ui %}
+{% if inside_ajax == False %}
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="shortcut icon" type="image/x-icon" href="{% static 'includes/favicon.ico' %}"/>
+	<link rel="stylesheet" href="{% static 'includes/bootstrap.min.css' %}">
+	<link rel="stylesheet" href="{% static 'includes/P4STA_style.css' %}">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+	<script src="{% static 'includes/jquery.min.js' %}"></script>
+	<script src="{% static 'includes/popper.min.js' %}"></script>
+	<script src="{% static 'includes/bootstrap.min.js' %}"></script>
+	<script type="text/javascript">
+			$(document).ready(function(){
+			$('[data-toggle="tooltip"]').tooltip(); 
+		});
+	</script>
+<style>
+	body {overflow-x: hidden;}
+</style>
+{% include "middlebox/navbar.html"%}
+
+
+{% endif %}
+
+<script>
+{% if inside_ajax == False %}
+	window.onload = function() {
+		$("#modal_timeout").modal();
+	}
+{% else %}
+	$(document).ajaxComplete(function() {
+		$("#modal_timeout").modal();
+	});
+{% endif %}
+</script>
+
+
+<!-- Modal -->
+<div class="modal fade" id="modal_timeout" tabindex="-1" role="dialog" aria-labelledby="modal_label" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Timeout</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        {{error}}
+      </div>
+      <div class="modal-footer">
+	<button type="button" class="btn btn-primary" data-dismiss="modal"">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+

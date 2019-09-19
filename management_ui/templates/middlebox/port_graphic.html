@@ -1,0 +1,59 @@
+<!--
+# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->
+
+	var server_y = 65;
+	var client_y = 255;
+	var ctx = c.getContext("2d");
+	ctx.font = "20px Segoe UI";
+	ctx.beginPath();
+	ctx.moveTo(90, 20);
+	ctx.lineTo(240, 20);
+	ctx.moveTo(240, 20);
+	ctx.lineTo(240, 320);
+	ctx.moveTo(240, 320);
+	ctx.lineTo(90, 320);
+	ctx.moveTo(90, 320);
+	ctx.lineTo(90, 20);
+	ctx.moveTo(90, 60);
+	ctx.lineTo(60, 60);
+	ctx.fillText("G1", 0, 65);
+	{% for server in loadgen_servers %}
+		ctx.fillText("{{ server.real_port }}", 100, {% widthratio forloop.counter0 1 20 %} + 65);
+	{% endfor %}
+	
+	ctx.fillText("<--->", 140, 65);
+	ctx.fillText("{{ dut1_real }}", 195, 65);
+	ctx.moveTo(90, 250);
+	ctx.lineTo(60, 250);
+	ctx.fillText("G2", 0, 255);
+	{% for client in loadgen_clients %}
+		ctx.fillText("{{ client.real_port }}", 100 , {% widthratio forloop.counter0 1 20 %} + 255);
+	{% endfor %}
+
+	ctx.fillText("<--->", 140, 255);
+	ctx.fillText("{{ dut2_real }}", 195, 255);
+	ctx.moveTo(240,60);
+	ctx.lineTo(300, 60);
+	ctx.moveTo(300,60);
+	ctx.lineTo(300, 250);
+	ctx.moveTo(300,250);
+	ctx.lineTo(240, 250);
+	ctx.fillText("P4 Dev", 140, 160);
+	ctx.fillText("DUT", 310, 160);
+    ctx.moveTo(165,320);
+    ctx.lineTo(165,350);
+    ctx.fillText("{{ ext_host_real }}", 145, 310);
+    ctx.fillText("external host", 120, 375);
+	ctx.stroke();

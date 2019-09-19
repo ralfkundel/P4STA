@@ -1,0 +1,53 @@
+{
+  "available_loadgens": [
+    "iperf3"
+  ],
+  "dut1": "",
+  "dut1_real": "",
+  "dut1_speed": "",
+  "dut2": "",
+  "dut2_real": "",
+  "dut2_speed": "",
+  "dut_1_duplicate": "NONE",
+  "dut_2_duplicate": "NONE",
+  "dut_2_use_port": "checked",
+  "ext_host": "",
+  "ext_host_if": "",
+  "ext_host_real": "",
+  "ext_host_speed": "",
+  "ext_host_ssh": "",
+  "ext_host_user": "",
+  "forwarding_mode": "2",
+  "loadgen_servers": [
+    {
+      "id": 1,
+      "loadgen_iface": "",
+      "loadgen_ip": "",
+      "loadgen_mac": "",
+      "p4_port": "",
+      "real_port": "",
+      "speed": "",
+      "ssh_ip": "",
+      "ssh_user": ""
+    }
+  ],
+  "loadgen_clients": [
+    {
+      "id": 1,
+      "loadgen_iface": "",
+      "loadgen_ip": "",
+      "loadgen_mac": "",
+      "p4_port": "",
+      "real_port": "",
+      "speed": "",
+      "ssh_ip": "",
+      "ssh_user": ""
+    }
+  ],
+  "multicast": "20",
+  "program": "middlebox_v8",
+  "selected_loadgen": "iperf3",
+  "selected_target": "bmv2",
+  "p4_dev_ssh": "",
+  "p4_dev_user": ""
+}

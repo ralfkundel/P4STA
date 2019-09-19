@@ -1,0 +1,151 @@
+<!--
+# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->
+
+{% load static %}
+<head>
+<script src="{% static 'includes/dygraph.js' %}"></script>
+<link rel="stylesheet" href="{% static 'includes/dygraph.css' %}"/>
+<script>
+  new Dygraph(document.getElementById("latency_interactive"),
+              {{latencies}},
+              {
+				showRangeSelector: true,
+				title: 'Latency of DUT',
+				xlabel: 'Packets',
+				ylabel: 'Latency [' + '{{unit}}' + ']',
+				labels: ['x', 'Latency [' + '{{unit}}' + ']']
+              });
+</script>
+</head>
+
+<body>
+
+{% if display == True %}
+
+<div class="row">
+	<div class="col-md-4"><u><h5><b>Results from external host for every {{threshold}}. packet: </b></h5></u></div>
+	<div class="col-md-2"><b>L4 modes: </b>{% if cfg.stamp_tcp == "checked" %}TCP {% endif %}{% if cfg.stamp_udp == "checked" %}UDP {% endif %}</div>
+	<div class="col-md-2"><p><b>File ID: </b>{{ filename }}</p></div>
+	<div class="col-md-2"><p><b>Created:</b> {{time}}</p></div>
+	<div class="col-md-2">
+		<a class="btn btn-primary" href="/downloadExtResults/" role="button">Download</a>
+	</div>
+</div>
+<hr/>
+<div class="row">
+	<div class="col-md-12"><p><b>Total throughput: </b>{{ total_throughput }} <b>megabytes</b></p></div>
+</div>
+<div class="row">
+	<div class="col-md-6"><p><b>Received raw packets: </b>{{ raw_packets }}</p></div>
+	<div class="col-md-6"><p><b>Packets with timestamps: </b>{{ processed_packets }}</p></div>
+</div>
+<hr/>
+<div class="row">
+	<div class="col-md-6"><p><b>Average latency: </b>{{ average_latency.0.0 }} <b>{{ average_latency.1 }}</b></p></div>
+	<div class="col-md-6"><p><b>Latency range: </b>{{ latency_range.0.0 }} <b>{{ latency_range.1 }}</b></p></div>
+</div>
+<div class="row">
+	<div class="col-md-6"><p><b>Minumum latency: </b>{{ min_latency.0.0 }} <b>{{ min_latency.1 }}</b></p></div>
+	<div class="col-md-6"><p><b>Maximum latency: </b>{{ max_latency.0.0 }} <b>{{ max_latency.1 }}</b></p></div>
+</div>
+<div class="row">
+	<div class="col-md-6"><p><b>Latency Standard Deviation: </b>{{ latency_std_deviation.0.0 }} <b>{{ latency_std_deviation.1 }}</b></p></div>
+	<div class="col-md-6"><p class="math"><b>Latency Variance (σ<sup>2</sup>): </b>{{ latency_variance.0 }} <b>{{ latency_variance.1 }}</b></p></div>
+</div>
+<hr/>
+<div class="row">
+	<div class="col-md-6"><p><b>Minumum IPDV: </b>{{ min_ipdv.0.0 }} <b>{{ min_ipdv.1 }}</b></p></div>
+	<div class="col-md-6"><p><b>Maximum IPDV: </b>{{ max_ipdv.0.0 }} <b>{{ max_ipdv.1 }}</b></p></div>
+</div>
+<div class="row">
+	<div class="col-md-6"><p><b>IPDV range: </b>{{ ipdv_range.0.0 }} <b>{{ ipdv_range.1 }}</b></p></div>
+	<div class="col-md-6"><p><b>Average IPDV: </b>{{ ave_ipdv.0.0 }} <b>{{ ave_ipdv.1 }} and for absolute values ("jitter"):</b> {{ave_abs_ipdv.0.0}} <b>{{ave_abs_ipdv.1}}</b></p></div>
+</div>
+<hr/>
+<div class="row">
+	<div class="col-md-6"><p><b>Minumum PDV: </b>{{ min_pdv.0.0 }} <b>{{ min_pdv.1 }}</b></p></div>
+	<div class="col-md-6"><p><b>Maximum PDV: </b>{{ max_pdv.0.0 }} <b>{{ max_pdv.1 }}</b></p></div>
+</div>
+<div class="row">
+	<div class="col-md-6"><p><b>PDV range: </b>{{ pdv_range.0.0 }} <b>{{ pdv_range.1 }}</b></p></div>
+	<div class="col-md-6"><p><b>Average PDV: </b>{{ ave_pdv.0.0 }} <b>{{ ave_pdv.1 }}</b></p></div>
+</div>
+<hr/>
+<div class="row">
+	<div class="col-md-6"><p><b>Minumum rate jitter: </b>{{ min_rate_jitter }} <b>pps</b></div>
+	<div class="col-md-6"><p><b>Maximum rate jitter: </b>{{ max_rate_jitter }} <b>pps</b></p></div>
+</div>
+<div class="row">
+	<div class="col-md-6"><p><b>Rate jitter range: </b>{{ rate_jitter_range }} <b>pps</b></p></div>
+	<div class="col-md-6"><p><b>Average rate jitter: </b>{{ ave_packet_sec }} <b>pps</b></p></div>
+</div>
+
+{% if processed_packets != 0 %}
+<hr/>
+<p><h5>
+	<b><u>Latency</u></b>
+	<i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="The time a packet needed to go through the device under test"></i>
+</h5></p>
+
+<div id="latency_interactive" style="width:100%; height:500px;"></div>
+<div style="margin-top:10px;"></div>
+<div class="row">
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}latency.svg" style="width: 100%; height: 100%"/></div>
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}latency_sec.svg" style="width: 100%; height: 100%"/ ></div>
+</div>
+<div class="row">
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}latency_y0.svg" style="width: 100%; height: 100%"/></div>
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}latency_sec_y0.svg" style="width: 100%; height: 100%"/ ></div>
+</div>
+<div class="row">
+	<div class="col-md-3"></div>
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}latency_bar.svg" style="width: 100%; height: 100%"/ ></div>
+	<div class="col-md-3"></div>
+</div>
+<hr/>
+<p><h5>
+<b><u>IPDV</u></b>
+<i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="Inter-Packet Delay Variation: The difference in delay between two packets"></i>
+</h5></p>
+<div class="row">
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}ipdv.svg" style="width: 100%; height: 100%"/ ></div>
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}ipdv_sec.svg" style="width: 100%; height: 100%"/ ></div>
+</div>
+<hr/>
+<p><h5>
+<b><u>PDV</u></b>
+<i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="Packet Delay Variation: The difference to the minimum delay"></i>
+</h5></p>
+<div class="row">
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}pdv.svg" style="width: 100%; height: 100%"/ ></div>
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}pdv_sec.svg" style="width: 100%; height: 100%"/ ></div>
+</div>
+<hr/>
+<p><h5>
+<b><u>Throughput</u></b>
+<i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="Throughput at external host differs from the actual throughput at the DUT because of multicast threshold!"></i>
+</h5></p>
+<div class="row">
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}speed.svg" style="width: 100%; height: 100%"/ ></div>
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}packet_rate.svg" style="width: 100%; height: 100%"/ ></div>
+</div>
+
+{% endif %}
+{% endif %}
+{% if display == False %}
+<p>No csv files found!</p>
+<p>Sure you started end stopped an external host session? As well it's important that you select at least one flow to dupliacte.</p>
+{% endif %}
+</body>

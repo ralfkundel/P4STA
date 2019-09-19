@@ -1,0 +1,201 @@
+<!--
+# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->
+
+<body>
+
+<div class="row">
+	<div class="col-md-2"><u><b>Results from switch: </b></u></div>
+	<div class="col-md-2"><b>L4 modes: </b>{% if stamp_tcp == "checked" %}TCP {% endif %}{% if stamp_udp == "checked" %}UDP {% endif %}</div>
+	<div class="col-md-2"><p><b>File ID: </b>{{ filename }}</p></div>
+	<div class="col-md-2"><p><b>Created:</b> {{time}}</p></div>
+	<div class="col-md-2"></div>
+	<div class="col-md-2">
+		<a class="btn btn-primary" href="/downloadSwitch/" role="button">Download</a>
+	</div>
+</div>
+<hr/>
+
+	<p><u>Measured for TCP-Packets and only for selected flows:</u></p>
+
+	<p><b>Average Latency: </b>{{ average.0.0 }} <b>{{ average.1 }}</b></p>
+	<p><b>Minimum Latency: </b>{{ min_delta.0.0 }} <b>{{ min_delta.1 }}</b> &emsp; <b>Maximum Latency: </b>{{ max_delta.0.0 }} <b>{{ max_delta.1 }}</b> &emsp; <b>Range: </b>{{range.0.0}} <b>{{range.1}}</b></p>
+
+	<hr />
+{% if dut1 != dut2 %}
+	<p><u>Measured for  <b>all</b> packets per DUT-port:</u></p>
+	
+	<p>Packetloss between port {{dut1_real}} and {{dut2_real}}<b>: {{packet_loss_1}} packets, {{packet_loss_1_percent}}% (total: {{dut1_num_egress_packets}})</b></p>
+	<p>Packetloss between port {{dut2_real}} and {{dut1_real}}<b>: {{packet_loss_2}} packets, {{packet_loss_2_percent}}% (total: {{dut2_num_egress_packets}})</b></p>
+
+{% if packet_loss_1 < 0 or packet_loss_2 < 0 or packet_loss_stamped_1 < 0 or packet_loss_stamped_2 < 0 %}
+<hr/>
+<p><i>A negative packetloss results of a DUT which communicates itself with the hosts, e.g. if it's a router which sends ARPs to every host.</i></p>
+{% endif %}
+	<hr />
+	<p><u>Packetloss for <b>timestamped</b> packets:</u></p>
+	<p>Packetloss between port {{dut1_real}} and {{dut2_real}}<b>: {{packet_loss_stamped_1}} packets, {{packet_loss_stamped_1_percent}}% (total: {{dut1_num_egress_stamped_packets}})</b></p>
+	<p>Packetloss between port {{dut2_real}} and {{dut1_real}}<b>: {{packet_loss_stamped_2}} packets, {{packet_loss_stamped_2_percent}}% (total: {{dut2_num_egress_stamped_packets}})</b></p>
+
+{% else %}
+<p><u>Measured for  <b>all</b> packets:</u></p>
+<p>Packetloss for port {{dut1_real}}<b>: {{packet_loss_1}} packets, {{packet_loss_1_percent}}% (total: {% if dut1_num_egress_packets > dut1_num_ingress_packets %}{{dut1_num_egress_packets}}{% else %}{{dut1_num_ingress_packets}}{% endif%} )</b></p>
+
+<p><u>Measured for  <b>stamped</b> packets only:</u></p>
+<p>Packetloss for port {{dut1_real}}<b>: {{packet_loss_stamped_1}} packets, {{packet_loss_1_stamped_percent}}% (total: {% if dut1_num_egress_stamped_packets > dut1_num_ingress_stamped_packets %}{{dut1_num_egress_stamped_packets}}{% else %}{{dut1_num_ingress_stamped_packets}}{% endif%} )</b></p>
+
+
+{% endif %}
+<hr/>
+<div class="custom-control custom-switch">
+  <input type="checkbox" class="custom-control-input" id="tableSwitch" onchange="changeTable(this);">
+  <label class="custom-control-label" for="tableSwitch">Show for duplicated packets only</label>
+</div>
+<span id="changeable_table">
+<p><u>Measured for  <b>all</b> packets per DUT-port:</u></p>
+	<div class="table-responsive">
+		<table class="table table-bordered table-striped table-highlight">
+			<thead>
+				<th><center>Ingress-Pipeline</center></th>
+				<th><center>Egress-Pipeline</center></th>
+			</thead>
+		</table>
+		<table class="table table-bordered table-striped table-highlight">
+			<thead>
+				<th>Ingoing Port</th>
+				<th>Throughput (GBytes)</th>
+				<th>Throughput (Packets)</th>
+				<th>Average Packetsize (Bytes)</th>
+				<th></th>
+				<th>Throughput (GBytes)</th>
+				<th>Throughput (Packets)</th>
+				<th>Average Packetsize (Bytes)</th>
+				<th>Outgoing Port</th>
+			<thead>
+			<tbody>
+				{% for loadgen_server in loadgen_servers %}
+				{% if forloop.first %}
+				<tr>
+					<td>{{loadgen_server.real_port}}</td>
+					<td>{{ loadgen_server.throughput_gbyte_ingress }}</td>
+					<td>{{loadgen_server.num_ingress_packets}}</td>
+					<td>{{ loadgen_server.avg_packet_size_ingress }}</td>
+					<td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right"></i></center></td>
+					<td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{ dut1_throughput_gbyte_egress }}</td>
+					<td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{dut1_num_egress_packets}}</td>
+					<td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{ dut1_avg_packet_size_egress }}</td>
+					<td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{dut1_real}}</td>
+				</tr>
+				{% else %}
+				<tr>
+					<td>{{loadgen_server.real_port}}</td>
+					<td>{{ loadgen_server.throughput_gbyte_ingress }}</td>
+					<td>{{loadgen_server.num_ingress_packets}}</td>
+					<td>{{ loadgen_server.avg_packet_size_ingress }}</td>
+				</tr>
+				{% endif %}
+				{% endfor %}
+				{% if loadgen_clients|length == 0 %}
+				<tr><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td></tr>
+				{% endif %}
+				{% for loadgen_client in loadgen_clients %}
+				{% if forloop.first %}
+				<tr>
+					<td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_real}}</td>
+					<td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle"><!---{% widthratio dut2_num_ingress_bytes 1000000000 1 %}-->{{dut2_throughput_gbyte_ingress}}</td>
+					<td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_num_ingress_packets}}</td>
+					<td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{ dut2_avg_packet_size_ingress }}</td>
+					<td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right" ></i></center></td>	
+					<td>{{loadgen_client.throughput_gbyte_egress}}</td>
+					<td>{{loadgen_client.num_egress_packets}}</td>
+					<td>{{ loadgen_client.avg_packet_size_egress }}</td>
+					<td>{{loadgen_client.real_port}}</td>
+				</tr>
+				{% else %}
+				<tr>
+					<td>{{loadgen_client.throughput_gbyte_egress}}</td>
+					<td>{{loadgen_client.num_egress_packets}}</td>
+					<td>{{ loadgen_client.avg_packet_size_egress }}</td>
+					<td>{{loadgen_client.real_port}}</td>
+				</tr>
+				{% endif %}
+				{% endfor %}
+
+				{% for loadgen_client in loadgen_clients %}
+				{% if forloop.first %}
+				<tr style="border-top: 2px solid #000;">
+					<td>{{loadgen_client.real_port}}</td>
+					<td>{{loadgen_client.throughput_gbyte_ingress}}</td>
+					<td>{{loadgen_client.num_ingress_packets}}</td>
+					<td>{{ loadgen_client.avg_packet_size_ingress }}</td>
+					<td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right"></i></center></td>
+					<td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_throughput_gbyte_egress}}</td>
+					<td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_num_egress_packets}}</td>
+					<td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{ dut2_avg_packet_size_egress }}</td>
+					<td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_real}}</td>
+				</tr>
+				{% else %}
+				<tr>
+					<td>{{loadgen_client.real_port}}</td>
+					<td>{{loadgen_client.throughput_gbyte_ingress}}</td>
+					<td>{{loadgen_client.num_ingress_packets}}</td>
+					<td>{{ loadgen_client.avg_packet_size_ingress }}</td>
+				</tr>
+				{% endif %}
+				{% endfor %}
+
+				{% for loadgen_server in loadgen_servers %}
+				{% if forloop.first %}
+				<tr>
+					<td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{dut1_real}}</td>
+					<td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{ dut1_throughput_gbyte_ingress }}</td>
+					<td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{dut1_num_ingress_packets}}</td>
+					<td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{ dut1_avg_packet_size_ingress }}</td>
+					<td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right" ></i></center></td>	
+					<td>{{ loadgen_server.throughput_gbyte_egress }}</td>
+					<td>{{loadgen_server.num_egress_packets}}</td>
+					<td>{{ loadgen_server.avg_packet_size_egress }}</td>
+					<td>{{loadgen_server.real_port}}</td>
+				</tr>
+				{% else %}
+				<tr>
+					<td>{{ loadgen_server.throughput_gbyte_egress }}</td>
+					<td>{{loadgen_server.num_egress_packets}}</td>
+					<td>{{ loadgen_server.avg_packet_size_egress }}</td>
+					<td>{{loadgen_server.real_port}}</td>
+				</tr>
+				{% endif %}
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+</span id="changeable_table">
+
+<script>
+
+function changeTable(status) {
+	var table_1 = '<p><u>Measured for  <b>all</b> packets per DUT-port:</u></p><div class="table-responsive"><table class="table table-bordered table-striped table-highlight"><thead><th><center>Ingress-Pipeline</center></th><th><center>Egress-Pipeline</center></th></thead></table><table class="table table-bordered table-striped table-highlight"><thead><th>Ingoing Port</th><th>Throughput (GBytes)</th><th>Throughput (Packets)</th><th>Average Packetsize (Bytes)</th><th></th><th>Throughput (GBytes)</th><th>Throughput (Packets)</th><th>Average Packetsize (Bytes)</th><th>Outgoing Port</th><thead><tbody>{% for loadgen_server in loadgen_servers %}{% if forloop.first %}<tr><td>{{loadgen_server.real_port}}</td><td>{{ loadgen_server.throughput_gbyte_ingress }}</td><td>{{loadgen_server.num_ingress_packets}}</td><td>{{ loadgen_server.avg_packet_size_ingress }}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right"></i></center></td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{ dut1_throughput_gbyte_egress }}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{dut1_num_egress_packets}}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{ dut1_avg_packet_size_egress }}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{dut1_real}}</td></tr>{% else %}<tr><td>{{loadgen_server.real_port}}</td><td>{{ loadgen_server.throughput_gbyte_ingress }}</td><td>{{loadgen_server.num_ingress_packets}}</td><td>{{ loadgen_server.avg_packet_size_ingress }}</td></tr>{% endif %}{% endfor %}{% if loadgen_clients|length == 0 %}<tr><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td></tr>{% endif %}{% for loadgen_client in loadgen_clients %}{% if forloop.first %}<tr><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_real}}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle"><!---{% widthratio dut2_num_ingress_bytes 1000000000 1 %}-->{{dut2_throughput_gbyte_ingress}}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_num_ingress_packets}}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{ dut2_avg_packet_size_ingress }}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right" ></i></center></td><td>{{loadgen_client.throughput_gbyte_egress}}</td><td>{{loadgen_client.num_egress_packets}}</td><td>{{ loadgen_client.avg_packet_size_egress }}</td><td>{{loadgen_client.real_port}}</td></tr>{% else %}<tr><td>{{loadgen_client.throughput_gbyte_egress}}</td><td>{{loadgen_client.num_egress_packets}}</td><td>{{ loadgen_client.avg_packet_size_egress }}</td><td>{{loadgen_client.real_port}}</td></tr>{% endif %}{% endfor %}{% for loadgen_client in loadgen_clients %}{% if forloop.first %}<tr style="border-top: 2px solid #000;"><td>{{loadgen_client.real_port}}</td><td>{{loadgen_client.throughput_gbyte_ingress}}</td><td>{{loadgen_client.num_ingress_packets}}</td><td>{{ loadgen_client.avg_packet_size_ingress }}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right"></i></center></td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_throughput_gbyte_egress}}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_num_egress_packets}}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{ dut2_avg_packet_size_egress }}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_real}}</td></tr>{% else %}<tr><td>{{loadgen_client.real_port}}</td><td>{{loadgen_client.throughput_gbyte_ingress}}</td><td>{{loadgen_client.num_ingress_packets}}</td><td>{{ loadgen_client.avg_packet_size_ingress }}</td></tr>{% endif %}{% endfor %}{% for loadgen_server in loadgen_servers %}{% if forloop.first %}<tr><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{dut1_real}}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{ dut1_throughput_gbyte_ingress }}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{dut1_num_ingress_packets}}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{ dut1_avg_packet_size_ingress }}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right" ></i></center></td><td>{{ loadgen_server.throughput_gbyte_egress }}</td><td>{{loadgen_server.num_egress_packets}}</td><td>{{ loadgen_server.avg_packet_size_egress }}</td><td>{{loadgen_server.real_port}}</td></tr>{% else %}<tr><td>{{ loadgen_server.throughput_gbyte_egress }}</td><td>{{loadgen_server.num_egress_packets}}</td><td>{{ loadgen_server.avg_packet_size_egress }}</td><td>{{loadgen_server.real_port}}</td></tr>{% endif %}{% endfor %}</tbody></table></div>';
+
+	var table_2 = '<p><u>Measured only for <b>stamped</b> packets per DUT-port:</u></p><div class="table-responsive"><table class="table table-bordered table-striped table-highlight"><thead><th><center>Ingress-Pipeline</center></th><th><center>Egress-Pipeline</center></th></thead></table><table class="table table-bordered table-striped table-highlight"><thead><th>Ingoing Port</th><th>Throughput (GBytes)</th><th>Throughput (Packets)</th><th>Average Packetsize (Bytes)</th><th></th><th>Throughput (GBytes)</th><th>Throughput (Packets)</th><th>Average Packetsize (Bytes)</th><th>Outgoing Port</th><thead><tbody id>{% for loadgen_server in loadgen_servers %}{% if forloop.first %}<tr><td>{{loadgen_server.real_port}}</td><td>{{ loadgen_server.throughput_gbyte_ingress_stamped }}</td><td>{{loadgen_server.num_ingress_stamped_packets}}</td><td>{{ loadgen_server.avg_packet_size_ingress_stamped }}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right"></i></center></td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{ dut1_throughput_gbyte_egress_stamped }}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{dut1_num_egress_stamped_packets}}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{ dut1_avg_packet_size_egress_stamped }}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{dut1_real}}</td></tr>{% else %}<tr><td>{{loadgen_server.real_port}}</td><td>{{ loadgen_server.throughput_gbyte_ingress_stamped }}</td><td>{{loadgen_server.num_ingress_stamped_packets}}</td><td>{{ loadgen_server.avg_packet_size_ingress_stamped }}</td></tr>{% endif %}{% endfor %}{% if loadgen_clients|length == 0 %}<tr><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td><td><hr/></td></tr>{% endif %}{% for loadgen_client in loadgen_clients %}{% if forloop.first %}<tr><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_real}}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_throughput_gbyte_ingress_stamped}}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_num_ingress_stamped_packets}}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{ dut2_avg_packet_size_ingress_stamped }}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right" ></i></center></td><td>{{loadgen_client.throughput_gbyte_egress_stamped}}</td><td>{{loadgen_client.num_egress_stamped_packets}}</td><td>{{ loadgen_client.avg_packet_size_egress_stamped }}</td><td>{{loadgen_client.real_port}}</td></tr>{% else %}<tr><td>{{loadgen_client.throughput_gbyte_egress_stamped}}</td><td>{{loadgen_client.num_egress_stamped_packets}}</td><td>{{ loadgen_client.avg_packet_size_egress_stamped }}</td><td>{{loadgen_client.real_port}}</td></tr>{% endif %}{% endfor %}{% for loadgen_client in loadgen_clients %}{% if forloop.first %}<tr style="border-top: 2px solid #000;"><td>{{loadgen_client.real_port}}</td><td>{{loadgen_client.throughput_gbyte_ingress_stamped}}</td><td>{{loadgen_client.num_ingress_stamped_packets}}</td><td>{{ loadgen_client.avg_packet_size_ingress_stamped }}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right"></i></center></td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_throughput_gbyte_egress_stamped}}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_num_egress_stamped_packets}}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{ dut2_avg_packet_size_egress_stamped }}</td><td rowspan="{{ loadgen_clients|length }}" style="vertical-align:middle">{{dut2_real}}</td></tr>{% else %}<tr><td>{{loadgen_client.real_port}}</td><td>{{loadgen_client.throughput_gbyte_ingress_stamped}}</td><td>{{loadgen_client.num_ingress_stamped_packets}}</td><td>{{ loadgen_client.avg_packet_size_ingress_stamped }}</td></tr>{% endif %}{% endfor %}{% for loadgen_server in loadgen_servers %}{% if forloop.first %}<tr><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{dut1_real}}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{ dut1_throughput_gbyte_ingress_stamped }}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{dut1_num_ingress_stamped_packets}}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle">{{ dut1_avg_packet_size_ingress_stamped }}</td><td rowspan="{{ loadgen_servers|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right" ></i></center></td><td>{{ loadgen_server.throughput_gbyte_egress_stamped }}</td><td>{{loadgen_server.num_egress_stamped_packets}}</td><td>{{ loadgen_server.avg_packet_size_egress_stamped }}</td><td>{{loadgen_server.real_port}}</td></tr>{% else %}<tr><td>{{ loadgen_server.throughput_gbyte_egress_stamped }}</td><td>{{loadgen_server.num_egress_stamped_packets}}</td><td>{{ loadgen_server.avg_packet_size_egress_stamped }}</td><td>{{loadgen_server.real_port}}</td></tr>{% endif %}{% endfor %}</tbody></table></div>';
+
+	if(status.checked){
+		document.getElementById('changeable_table').innerHTML = table_2;
+	} else {
+		document.getElementById('changeable_table').innerHTML = table_1;
+	}
+}
+</script>
+
+</body>
+

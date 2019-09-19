@@ -1,0 +1,161 @@
+<!--
+# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->
+
+
+<head>
+<style>
+.dot_red {
+  height: 15px;
+  width: 15px;
+  background-color: #F00;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot_green {
+  height: 15px;
+  width: 15px;
+  background-color: #008000;
+  border-radius: 50%;
+  display: inline-block;
+}
+</style>
+</head>
+
+<div style="line-height: normal;">
+<!--  debug: {{sudo_rights}}  -->
+
+
+<p><b><u>P4 Device</u></b></p>
+<p>
+	{% if p4_dev_ssh_ping %}
+		<span class="dot_green" data-toggle="tooltip" data-placement="top" title="SSH IP is reacheably by ping."></span>
+	{% else %}
+		<span class="dot_red" data-toggle="tooltip" data-placement="top" title="SSH IP is not reacheably by ping."></span>
+	{% endif %} 
+	<b>SSH:</b> {{p4_dev_ssh}}
+</p>
+<p>
+{% if p4_dev_compile_status_color %}<span class="dot_green"></span>{% else %}<span class="dot_red"></span>{% endif %}
+{{p4_compile_status}}
+</p>
+{% if p4_dev_ssh_ping %}
+
+<details>
+  <summary><span class={% if p4_dev_needed_sudos_to_add|length > 0 %}"dot_red"{% else %}"dot_green"{% endif %}></span> SUDO RIGHTS {{p4_dev_user}}:</summary>
+  	{% for line in p4_dev_sudo_rights %}
+		&emsp;{{line}}<br>
+	{% endfor %}
+	{% for line in p4_dev_needed_sudos_to_add %}
+		<br><p><i class="fas fa-exclamation"></i>
+		You shoud add to visudo: $USER (ALL : ALL) NOPASSWD:{{line}} *directory may be different*</p>
+	{% endfor %}
+</details>
+{% endif %}
+<hr/>
+<p><b><u>Loadgen Group 1</u></b></p>
+{% for host in loadgen_servers %}
+	{% if forloop.first == False %}--------------------------------------------------------------------------------------{% endif %}
+	<p><b>
+		{% if host.ssh_ping %}
+			<span class="dot_green" data-toggle="tooltip" data-placement="top" title="SSH IP is reacheably by ping."></span>
+		{% else %}
+			<span class="dot_red" data-toggle="tooltip" data-placement="top" title="SSH IP is not reacheably by ping."></span>
+		{% endif %} 
+		SSH:</b> {{host.ssh_ip}} <b> | LOAD PORT </b>{{host.real_port}}<b> IFACE </b>{{host.loadgen_iface}}<b>: IP</b> {{host.fetched_ipv4}}{{host.fetched_prefix}} <b>MAC</b> {{host.fetched_mac}} <b>{% if host.up_state == "up" %}<span style="color: green">UP</span>{% else %}<span style="color: red">DOWN</span>{% endif %}</b>
+		</b></p>
+{% if host.ssh_ping %}
+<details>
+  <summary><span class={% if host.needed_sudos_to_add|length > 0 %}"dot_red"{% else %}"dot_green"{% endif %}></span> SUDO RIGHTS {{host.ssh_user}}:</summary>
+  	{% for line in host.sudo_rights %}
+		&emsp;{{line}}<br>
+	{% endfor %}
+	{% for line in host.needed_sudos_to_add %}
+		<br><p><i class="fas fa-exclamation"></i>
+		You shoud add to visudo: $USER (ALL : ALL) NOPASSWD:{{line}} *directory may be different*</p>
+	{% endfor %}
+
+</details>
+
+<details>
+  <summary>IP ROUTES:</summary>
+	{% for line in host.ip_routes %}
+		&emsp;{{line}}<br>
+	{% endfor %}
+
+</details>
+
+
+{% endif %}	
+{% endfor %}
+
+<hr/>
+<p><b><u>Loadgen Group 2</u></b></p>
+{% for host in loadgen_clients %}
+	{% if forloop.first == False %}--------------------------------------------------------------------------------------{% endif %}
+	<p><b>
+		{% if host.ssh_ping %}
+			<span class="dot_green" data-toggle="tooltip" data-placement="top" title="SSH IP is reacheably by ping."></span>
+		{% else %}
+			<span class="dot_red" data-toggle="tooltip" data-placement="top" title="SSH IP is not reacheably by ping."></span>
+		{% endif %} 
+		SSH:</b> {{host.ssh_ip}} <b> | LOAD PORT </b>{{host.real_port}}<b> IFACE </b>{{host.loadgen_iface}}<b>: IP</b> {{host.fetched_ipv4}}{{host.fetched_prefix}} <b>MAC</b> {{host.fetched_mac}} <b>{% if host.up_state == "up" %}<span style="color: green">UP</span>{% else %}<span style="color: red">DOWN</span>{% endif %}</b>
+	</b></p>
+{% if host.ssh_ping %}
+<details>
+  <summary><span class={% if host.needed_sudos_to_add|length > 0 %}"dot_red"{% else %}"dot_green"{% endif %}></span> SUDO RIGHTS {{host.ssh_user}}:</summary>
+  	{% for line in host.sudo_rights %}
+		&emsp;{{line}}<br>
+	{% endfor %}
+	{% for line in host.needed_sudos_to_add %}
+		<br><p><i class="fas fa-exclamation"></i>
+		You shoud add to visudo: $USER (ALL : ALL) NOPASSWD:{{line}} *directory may be different*</p>
+	{% endfor %}
+</details>
+
+<details>
+  <summary>IP ROUTES:</summary>
+	{% for line in host.ip_routes %}
+		&emsp;{{line}}<br>
+	{% endfor %}
+</details>
+
+{% endif %}
+{% endfor %}
+
+<hr/>
+<p><b><u>External Host</u></b></p>
+	<p><b>
+		{% if ext_host_ssh_ping %}
+			<span class="dot_green" data-toggle="tooltip" data-placement="top" title="SSH IP is reacheably by ping."></span>
+		{% else %}
+			<span class="dot_red" data-toggle="tooltip" data-placement="top" title="SSH IP is not reacheably by ping."></span>
+		{% endif %} 
+		SSH: </b>{{host.ssh_ip}} <b> | LISTEN PORT </b>{{ext_host_real}}<b> IFACE </b>{{ext_host_if}}<b>: IP </b>{{ext_host_fetched_ipv4}}{{ext_host_fetched_prefix}} <b>MAC:</b> {{ext_host_fetched_mac}} <b>{% if ext_host_up_state == "up" %}<span style="color: green">UP</span>{% else %}<span style="color: red">DOWN</span>{% endif %}</b>
+	</b></p>
+{% if ext_host_ssh_ping %}
+<details>
+  <summary><span class={% if ext_host_needed_sudos_to_add|length > 0 %}"dot_red"{% else %}"dot_green"{% endif %}></span> SUDO RIGHTS {{ext_host_user}}:</summary>
+  	{% for line in ext_host_sudo_rights %}
+		&emsp;{{line}}<br>
+	{% endfor %} 
+	{% for line in ext_host_needed_sudos_to_add %}
+		<br><p><i class="fas fa-exclamation"></i>
+		You shoud add to visudo: $USER (ALL : ALL) NOPASSWD:{{line}}</p>
+	{% endfor %}
+</details>
+
+{% endif %}
+</div>
+

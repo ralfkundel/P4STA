@@ -1,0 +1,14 @@
+GitHub/*
+data/*
+/data/config.json
+.idea/*
+results/
+management_ui/generated/*
+!management_ui/generated/.gitkeep
+load_generators/iperf3/results/*.json
+*.pyc
+*.log
+management
+management_ui/static/includes/bootstrap.min.js_v*
+management_ui/static/includes/bootstrap.min.css_v*
+targets/bmv2/data/commands1_middlebox1.txt

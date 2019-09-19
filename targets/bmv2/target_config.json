@@ -1,0 +1,14 @@
+{
+	"target": "bmv2",
+	"cfg_template": "bmv2_config_template.json",
+	"target_driver": "bmv2_middlebox_v8.py",
+	"stamping_capabilities": {"tcp": true, "udp": true},
+	"inputs": 
+	{
+		"input_individual": [
+			{"title": "BMV2 dir", "type": "input", "target_key": "bmv2_dir", "description": "Path of BMV directory, e.g. /home/../behavioral-model"}
+		],
+		"input_table": []
+	},
+	"status_check": {"needed_sudos_to_add": ["/usr/bin/kill", "/usr/bin/killall", "/usr/local/bin/mn", "/p4-timestamping-middlebox/targets/bmv2/scripts/return_ingress.py", "/p4-timestamping-middlebox/targets/bmv2/scripts/netgen.py", "/p4-timestamping-middlebox/targets/bmv2/scripts/start_mininet.sh"]}
+}

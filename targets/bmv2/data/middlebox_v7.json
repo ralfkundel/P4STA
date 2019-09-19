@@ -1,0 +1,3440 @@
+{
+  "header_types" : [
+    {
+      "name" : "scalars_0",
+      "id" : 0,
+      "fields" : [
+        ["tmp", 32, false],
+        ["tmp_0", 32, false],
+        ["tmp_1", 32, false],
+        ["tmp_2", 32, false],
+        ["tmp_3", 32, false],
+        ["tmp_4", 32, false],
+        ["tmp_5", 32, false],
+        ["tmp_6", 32, false],
+        ["tmp_7", 32, false],
+        ["tmp_8", 32, false],
+        ["tmp_9", 32, false],
+        ["tmp_10", 32, false],
+        ["metadata_t._tcp_metadata_tcpLen0", 16, false],
+        ["metadata_t._tcp_metadata_added_timestamp21", 1, false],
+        ["metadata_t._tcp_metadata_threshold_multicast2", 16, false],
+        ["metadata_t._tcp_metadata_multi_counter3", 16, false],
+        ["metadata_t._tcp_metadata_tcpLength4", 16, false],
+        ["metadata_t._tcp_metadata_added_empty_header5", 1, false],
+        ["metadata_t._tcp_metadata_flow_direction6", 1, false],
+        ["metadata_t._timestamp_metadata_delta7", 48, false],
+        ["metadata_t._timestamp_metadata_ave_temp8", 48, false],
+        ["metadata_t._timestamp_metadata_count_temp9", 48, false],
+        ["metadata_t._timestamp_metadata_min_temp10", 32, false],
+        ["metadata_t._timestamp_metadata_max_temp11", 32, false],
+        ["_padding_0", 5, false]
+      ]
+    },
+    {
+      "name" : "standard_metadata",
+      "id" : 1,
+      "fields" : [
+        ["ingress_port", 9, false],
+        ["egress_spec", 9, false],
+        ["egress_port", 9, false],
+        ["clone_spec", 32, false],
+        ["instance_type", 32, false],
+        ["drop", 1, false],
+        ["recirculate_port", 16, false],
+        ["packet_length", 32, false],
+        ["enq_timestamp", 32, false],
+        ["enq_qdepth", 19, false],
+        ["deq_timedelta", 32, false],
+        ["deq_qdepth", 19, false],
+        ["ingress_global_timestamp", 48, false],
+        ["egress_global_timestamp", 48, false],
+        ["lf_field_list", 32, false],
+        ["mcast_grp", 16, false],
+        ["resubmit_flag", 32, false],
+        ["egress_rid", 16, false],
+        ["checksum_error", 1, false],
+        ["recirculate_flag", 32, false],
+        ["parser_error", 32, false],
+        ["_padding", 5, false]
+      ]
+    },
+    {
+      "name" : "ethernet_t",
+      "id" : 2,
+      "fields" : [
+        ["dstAddr", 48, false],
+        ["srcAddr", 48, false],
+        ["etherType", 16, false]
+      ]
+    },
+    {
+      "name" : "ipv4_t",
+      "id" : 3,
+      "fields" : [
+        ["version", 4, false],
+        ["ihl", 4, false],
+        ["diffServ", 8, false],
+        ["paketlen", 16, false],
+        ["id", 16, false],
+        ["flags", 3, false],
+        ["fragOffset", 13, false],
+        ["ttl", 8, false],
+        ["protocol", 8, false],
+        ["header_checksum", 16, false],
+        ["srcAddr", 32, false],
+        ["dstAddr", 32, false]
+      ]
+    },
+    {
+      "name" : "tcp_t",
+      "id" : 4,
+      "fields" : [
+        ["srcPort", 16, false],
+        ["dstPort", 16, false],
+        ["seqNo", 32, false],
+        ["ackNo", 32, false],
+        ["dataOffset", 4, false],
+        ["res", 4, false],
+        ["flags", 8, false],
+        ["window", 16, false],
+        ["checksum", 16, false],
+        ["urgentPtr", 16, false]
+      ]
+    },
+    {
+      "name" : "tcp_options_96bit_t",
+      "id" : 5,
+      "fields" : [
+        ["options", 96, false]
+      ]
+    },
+    {
+      "name" : "tcp_options_128bit_custom_t",
+      "id" : 6,
+      "fields" : [
+        ["myType", 16, false],
+        ["timestamp1", 48, false],
+        ["empty", 16, false],
+        ["timestamp2", 48, false]
+      ]
+    }
+  ],
+  "headers" : [
+    {
+      "name" : "scalars",
+      "id" : 0,
+      "header_type" : "scalars_0",
+      "metadata" : true,
+      "pi_omit" : true
+    },
+    {
+      "name" : "standard_metadata",
+      "id" : 1,
+      "header_type" : "standard_metadata",
+      "metadata" : true,
+      "pi_omit" : true
+    },
+    {
+      "name" : "ethernet",
+      "id" : 2,
+      "header_type" : "ethernet_t",
+      "metadata" : false,
+      "pi_omit" : true
+    },
+    {
+      "name" : "ipv4",
+      "id" : 3,
+      "header_type" : "ipv4_t",
+      "metadata" : false,
+      "pi_omit" : true
+    },
+    {
+      "name" : "tcp",
+      "id" : 4,
+      "header_type" : "tcp_t",
+      "metadata" : false,
+      "pi_omit" : true
+    },
+    {
+      "name" : "tcp_options_96bit",
+      "id" : 5,
+      "header_type" : "tcp_options_96bit_t",
+      "metadata" : false,
+      "pi_omit" : true
+    },
+    {
+      "name" : "tcp_options_128bit_custom",
+      "id" : 6,
+      "header_type" : "tcp_options_128bit_custom_t",
+      "metadata" : false,
+      "pi_omit" : true
+    }
+  ],
+  "header_stacks" : [],
+  "header_union_types" : [],
+  "header_unions" : [],
+  "header_union_stacks" : [],
+  "field_lists" : [],
+  "errors" : [
+    ["NoError", 1],
+    ["PacketTooShort", 2],
+    ["NoMatch", 3],
+    ["StackOutOfBounds", 4],
+    ["HeaderTooShort", 5],
+    ["ParserTimeout", 6]
+  ],
+  "enums" : [],
+  "parsers" : [
+    {
+      "name" : "parser",
+      "id" : 0,
+      "init_state" : "start",
+      "parse_states" : [
+        {
+          "name" : "start",
+          "id" : 0,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "ethernet"
+                }
+              ],
+              "op" : "extract"
+            }
+          ],
+          "transitions" : [
+            {
+              "type" : "hexstr",
+              "value" : "0x0800",
+              "mask" : null,
+              "next_state" : "parse_ipv4"
+            },
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : [
+            {
+              "type" : "field",
+              "value" : ["ethernet", "etherType"]
+            }
+          ]
+        },
+        {
+          "name" : "parse_ipv4",
+          "id" : 1,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "ipv4"
+                }
+              ],
+              "op" : "extract"
+            },
+            {
+              "parameters" : [
+                {
+                  "type" : "field",
+                  "value" : ["scalars", "metadata_t._tcp_metadata_tcpLength4"]
+                },
+                {
+                  "type" : "expression",
+                  "value" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "&",
+                      "left" : {
+                        "type" : "expression",
+                        "value" : {
+                          "op" : "+",
+                          "left" : {
+                            "type" : "field",
+                            "value" : ["ipv4", "paketlen"]
+                          },
+                          "right" : {
+                            "type" : "hexstr",
+                            "value" : "0xffec"
+                          }
+                        }
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0xffff"
+                      }
+                    }
+                  }
+                }
+              ],
+              "op" : "set"
+            }
+          ],
+          "transitions" : [
+            {
+              "type" : "hexstr",
+              "value" : "0x06",
+              "mask" : null,
+              "next_state" : "parse_tcp"
+            },
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : [
+            {
+              "type" : "field",
+              "value" : ["ipv4", "protocol"]
+            }
+          ]
+        },
+        {
+          "name" : "parse_tcp",
+          "id" : 2,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "tcp"
+                }
+              ],
+              "op" : "extract"
+            }
+          ],
+          "transitions" : [
+            {
+              "type" : "hexstr",
+              "value" : "0x08",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_96bit"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x09",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0c",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_96_and_128bit_custom"
+            },
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : [
+            {
+              "type" : "field",
+              "value" : ["tcp", "dataOffset"]
+            }
+          ]
+        },
+        {
+          "name" : "parse_tcp_options_96bit",
+          "id" : 3,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "tcp_options_96bit"
+                }
+              ],
+              "op" : "extract"
+            }
+          ],
+          "transitions" : [
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : []
+        },
+        {
+          "name" : "parse_tcp_options_96_and_128bit_custom",
+          "id" : 4,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "tcp_options_96bit"
+                }
+              ],
+              "op" : "extract"
+            }
+          ],
+          "transitions" : [
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
+            }
+          ],
+          "transition_key" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_96bit", "options"]
+            }
+          ]
+        },
+        {
+          "name" : "parse_tcp_options_128bit_custom",
+          "id" : 5,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "tcp_options_128bit_custom"
+                }
+              ],
+              "op" : "extract"
+            }
+          ],
+          "transitions" : [
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : []
+        }
+      ]
+    }
+  ],
+  "parse_vsets" : [],
+  "deparsers" : [
+    {
+      "name" : "deparser",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "../bmv2_middlebox_v7.p4",
+        "line" : 274,
+        "column" : 8,
+        "source_fragment" : "DeparserImpl"
+      },
+      "order" : ["ethernet", "ipv4", "tcp", "tcp_options_96bit", "tcp_options_128bit_custom"]
+    }
+  ],
+  "meter_arrays" : [],
+  "counter_arrays" : [
+    {
+      "name" : "ingress.ingress_counter",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "../bmv2_middlebox_v7.p4",
+        "line" : 60,
+        "column" : 44,
+        "source_fragment" : "ingress_counter"
+      },
+      "size" : 64,
+      "is_direct" : false
+    },
+    {
+      "name" : "ingress.ingress_stamped_counter",
+      "id" : 1,
+      "source_info" : {
+        "filename" : "../bmv2_middlebox_v7.p4",
+        "line" : 61,
+        "column" : 44,
+        "source_fragment" : "ingress_stamped_counter"
+      },
+      "size" : 64,
+      "is_direct" : false
+    },
+    {
+      "name" : "ingress.c_add_second_timestamp",
+      "id" : 2,
+      "source_info" : {
+        "filename" : "../bmv2_middlebox_v7.p4",
+        "line" : 62,
+        "column" : 43,
+        "source_fragment" : "c_add_second_timestamp"
+      },
+      "size" : 2,
+      "is_direct" : false
+    },
+    {
+      "name" : "egress.egress_counter",
+      "id" : 3,
+      "source_info" : {
+        "filename" : "../bmv2_middlebox_v7.p4",
+        "line" : 227,
+        "column" : 44,
+        "source_fragment" : "egress_counter"
+      },
+      "size" : 64,
+      "is_direct" : false
+    },
+    {
+      "name" : "egress.egress_stamped_counter",
+      "id" : 4,
+      "source_info" : {
+        "filename" : "../bmv2_middlebox_v7.p4",
+        "line" : 228,
+        "column" : 44,
+        "source_fragment" : "egress_stamped_counter"
+      },
+      "size" : 64,
+      "is_direct" : false
+    },
+    {
+      "name" : "egress.c_add_first_timestamp",
+      "id" : 5,
+      "source_info" : {
+        "filename" : "../bmv2_middlebox_v7.p4",
+        "line" : 229,
+        "column" : 43,
+        "source_fragment" : "c_add_first_timestamp"
+      },
+      "size" : 2,
+      "is_direct" : false
+    }
+  ],
+  "register_arrays" : [
+    {
+      "name" : "ingress.time_average",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "../bmv2_middlebox_v7.p4",
+        "line" : 57,
+        "column" : 22,
+        "source_fragment" : "time_average"
+      },
+      "size" : 2,
+      "bitwidth" : 48
+    },
+    {
+      "name" : "ingress.time_delta_min_max",
+      "id" : 1,
+      "source_info" : {
+        "filename" : "../bmv2_middlebox_v7.p4",
+        "line" : 58,
+        "column" : 22,
+        "source_fragment" : "time_delta_min_max"
+      },
+      "size" : 2,
+      "bitwidth" : 32
+    },
+    {
+      "name" : "ingress.multi_counter_r",
+      "id" : 2,
+      "source_info" : {
+        "filename" : "../bmv2_middlebox_v7.p4",
+        "line" : 59,
+        "column" : 22,
+        "source_fragment" : "multi_counter_r"
+      },
+      "size" : 2,
+      "bitwidth" : 16
+    }
+  ],
+  "calculations" : [
+    {
+      "name" : "calc",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "../checksum_16.p4",
+        "line" : 8,
+        "column" : 8,
+        "source_fragment" : "update_checksum(true, { hdr.ipv4.version, hdr.ipv4.ihl, hdr.ipv4.diffServ, ..."
+      },
+      "algo" : "csum16",
+      "input" : [
+        {
+          "type" : "field",
+          "value" : ["ipv4", "version"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "ihl"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "diffServ"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "paketlen"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "id"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "flags"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "fragOffset"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "ttl"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "protocol"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "srcAddr"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "dstAddr"]
+        }
+      ]
+    },
+    {
+      "name" : "calc_0",
+      "id" : 1,
+      "source_info" : {
+        "filename" : "../checksum_16.p4",
+        "line" : 12,
+        "column" : 8,
+        "source_fragment" : "update_checksum_with_payload(hdr.tcp.isValid(), { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, ..."
+      },
+      "algo" : "csum16",
+      "input" : [
+        {
+          "type" : "field",
+          "value" : ["ipv4", "srcAddr"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "dstAddr"]
+        },
+        {
+          "type" : "hexstr",
+          "value" : "0x00",
+          "bitwidth" : 8
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "protocol"]
+        },
+        {
+          "type" : "field",
+          "value" : ["scalars", "metadata_t._tcp_metadata_tcpLength4"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "srcPort"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "dstPort"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "seqNo"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "ackNo"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "dataOffset"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "res"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "flags"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "window"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "urgentPtr"]
+        },
+        {
+          "type" : "header",
+          "value" : "tcp_options_96bit"
+        },
+        {
+          "type" : "header",
+          "value" : "tcp_options_128bit_custom"
+        },
+        {
+          "type" : "payload",
+          "value" : null
+        }
+      ]
+    }
+  ],
+  "learn_lists" : [],
+  "actions" : [
+    {
+      "name" : "NoAction",
+      "id" : 0,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "NoAction",
+      "id" : 1,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "NoAction",
+      "id" : 2,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "NoAction",
+      "id" : 3,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "ingress.send",
+      "id" : 4,
+      "runtime_data" : [
+        {
+          "name" : "egress_port",
+          "bitwidth" : 9
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "egress_spec"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 66,
+            "column" : 2,
+            "source_fragment" : "standard_metadata.egress_spec = egress_port"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.send",
+      "id" : 5,
+      "runtime_data" : [
+        {
+          "name" : "egress_port",
+          "bitwidth" : 9
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "egress_spec"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 66,
+            "column" : 2,
+            "source_fragment" : "standard_metadata.egress_spec = egress_port"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.send",
+      "id" : 6,
+      "runtime_data" : [
+        {
+          "name" : "egress_port",
+          "bitwidth" : 9
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "egress_spec"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 66,
+            "column" : 2,
+            "source_fragment" : "standard_metadata.egress_spec = egress_port"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.no_op",
+      "id" : 7,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "ingress.no_op",
+      "id" : 8,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "ingress.send_to_mc_grp",
+      "id" : 9,
+      "runtime_data" : [
+        {
+          "name" : "grp",
+          "bitwidth" : 16
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "mcast_grp"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 73,
+            "column" : 2,
+            "source_fragment" : "standard_metadata.mcast_grp = grp"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.send_to_mc_grp",
+      "id" : 10,
+      "runtime_data" : [
+        {
+          "name" : "grp",
+          "bitwidth" : 16
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "mcast_grp"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 73,
+            "column" : 2,
+            "source_fragment" : "standard_metadata.mcast_grp = grp"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.add_timestamp2",
+      "id" : 11,
+      "runtime_data" : [
+        {
+          "name" : "threshold",
+          "bitwidth" : 16
+        },
+        {
+          "name" : "direction",
+          "bitwidth" : 1
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._tcp_metadata_threshold_multicast2"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 77,
+            "column" : 2,
+            "source_fragment" : "meta.tcp_metadata.threshold_multicast = (bit<16>)threshold"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "timestamp2"]
+            },
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "ingress_global_timestamp"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 78,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.timestamp2 = (bit<48>)standard_metadata.ingress_global_timestamp"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._tcp_metadata_added_timestamp21"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x01"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 79,
+            "column" : 2,
+            "source_fragment" : "meta.tcp_metadata.added_timestamp2 = 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "-",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["standard_metadata", "ingress_global_timestamp"]
+                      },
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["tcp_options_128bit_custom", "timestamp1"]
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 80,
+            "column" : 2,
+            "source_fragment" : "meta.timestamp_metadata.delta = (bit<48>)standard_metadata.ingress_global_timestamp - hdr.tcp_options_128bit_custom.timestamp1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp8"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp8"]
+                      },
+                      "right" : {
+                        "type" : "expression",
+                        "value" : {
+                          "op" : "&",
+                          "left" : {
+                            "type" : "expression",
+                            "value" : {
+                              "op" : "-",
+                              "left" : {
+                                "type" : "field",
+                                "value" : ["standard_metadata", "ingress_global_timestamp"]
+                              },
+                              "right" : {
+                                "type" : "field",
+                                "value" : ["tcp_options_128bit_custom", "timestamp1"]
+                              }
+                            }
+                          },
+                          "right" : {
+                            "type" : "hexstr",
+                            "value" : "0xffffffffffff"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 81,
+            "column" : 2,
+            "source_fragment" : "meta.timestamp_metadata.ave_temp = meta.timestamp_metadata.ave_temp + (bit<48>)meta.timestamp_metadata.delta"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp9"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp9"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x000000000001"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 82,
+            "column" : 2,
+            "source_fragment" : "meta.timestamp_metadata.count_temp = meta.timestamp_metadata.count_temp + 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._tcp_metadata_flow_direction6"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 1
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 83,
+            "column" : 2,
+            "source_fragment" : "meta.tcp_metadata.flow_direction = direction"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "local",
+                    "value" : 1
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 84,
+            "column" : 31,
+            "source_fragment" : "(bit<32>) direction"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "ingress.c_add_second_timestamp"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 84,
+            "column" : 2,
+            "source_fragment" : "c_add_second_timestamp.count((bit<32>) direction)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.add_timestamp_header",
+      "id" : 12,
+      "runtime_data" : [
+        {
+          "name" : "new_offset",
+          "bitwidth" : 4
+        },
+        {
+          "name" : "direction",
+          "bitwidth" : 1
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "tcp_options_128bit_custom"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 88,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp", "dataOffset"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 89,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp.dataOffset = new_offset"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ipv4", "paketlen"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["ipv4", "paketlen"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x0010"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 90,
+            "column" : 2,
+            "source_fragment" : "hdr.ipv4.paketlen = hdr.ipv4.paketlen + 16w0x10"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "myType"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0f10"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 91,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.myType = 16w0x0f10"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._tcp_metadata_tcpLen0"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["scalars", "metadata_t._tcp_metadata_tcpLen0"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x0010"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 92,
+            "column" : 2,
+            "source_fragment" : "meta.tcp_metadata.tcpLen = meta.tcp_metadata.tcpLen + 16w0x10"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._tcp_metadata_flow_direction6"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 1
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 93,
+            "column" : 2,
+            "source_fragment" : "meta.tcp_metadata.flow_direction = direction"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._tcp_metadata_added_empty_header5"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x01"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 94,
+            "column" : 2,
+            "source_fragment" : "meta.tcp_metadata.added_empty_header = 1"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.count_all_ingress",
+      "id" : 13,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_0"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "ingress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 98,
+            "column" : 24,
+            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "ingress.ingress_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_0"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 98,
+            "column" : 2,
+            "source_fragment" : "ingress_counter.count((bit<32>) standard_metadata.ingress_port)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.count_stamped_ingress",
+      "id" : 14,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_1"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "ingress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 102,
+            "column" : 32,
+            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "ingress.ingress_stamped_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_1"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 102,
+            "column" : 2,
+            "source_fragment" : "ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act",
+      "id" : 15,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp8"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_average"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 189,
+            "column" : 4,
+            "source_fragment" : "time_average.read(meta.timestamp_metadata.ave_temp, 0)"
+          }
+        },
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp9"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_average"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000001"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 190,
+            "column" : 4,
+            "source_fragment" : "time_average.read(meta.timestamp_metadata.count_temp, 1)"
+          }
+        },
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_min_temp10"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_delta_min_max"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 191,
+            "column" : 4,
+            "source_fragment" : "time_delta_min_max.read(meta.timestamp_metadata.min_temp, 0)"
+          }
+        },
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_max_temp11"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_delta_min_max"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000001"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 192,
+            "column" : 4,
+            "source_fragment" : "time_delta_min_max.read(meta.timestamp_metadata.max_temp, 1)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_0",
+      "id" : 16,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_2"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 198,
+            "column" : 34,
+            "source_fragment" : "(bit<32>)meta.timestamp_metadata.delta"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_delta_min_max"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_2"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 198,
+            "column" : 6,
+            "source_fragment" : "time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_1",
+      "id" : 17,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_3"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 202,
+            "column" : 33,
+            "source_fragment" : "(bit<32>)meta.timestamp_metadata.delta"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_delta_min_max"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_3"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 202,
+            "column" : 5,
+            "source_fragment" : "time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_2",
+      "id" : 18,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_average"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp8"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 194,
+            "column" : 4,
+            "source_fragment" : "time_average.write(0, meta.timestamp_metadata.ave_temp)"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_average"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000001"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp9"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 195,
+            "column" : 4,
+            "source_fragment" : "time_average.write(1, meta.timestamp_metadata.count_temp)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_3",
+      "id" : 19,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_4"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 205,
+            "column" : 33,
+            "source_fragment" : "(bit<32>)meta.timestamp_metadata.delta"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_delta_min_max"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000001"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_4"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 205,
+            "column" : 5,
+            "source_fragment" : "time_delta_min_max.write(1, (bit<32>)meta.timestamp_metadata.delta)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_4",
+      "id" : 20,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._tcp_metadata_multi_counter3"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 212,
+            "column" : 6,
+            "source_fragment" : "meta.tcp_metadata.multi_counter = 0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_5"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._tcp_metadata_flow_direction6"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 213,
+            "column" : 29,
+            "source_fragment" : "(bit<32>) meta.tcp_metadata.flow_direction"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.multi_counter_r"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_5"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 213,
+            "column" : 6,
+            "source_fragment" : "multi_counter_r.write( (bit<32>) meta.tcp_metadata.flow_direction, meta.tcp_metadata.multi_counter)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_5",
+      "id" : 21,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._tcp_metadata_multi_counter3"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["scalars", "metadata_t._tcp_metadata_multi_counter3"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x0001"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 215,
+            "column" : 6,
+            "source_fragment" : "meta.tcp_metadata.multi_counter = meta.tcp_metadata.multi_counter + 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_6"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._tcp_metadata_flow_direction6"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 216,
+            "column" : 29,
+            "source_fragment" : "(bit<32>) meta.tcp_metadata.flow_direction"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.multi_counter_r"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_6"]
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._tcp_metadata_multi_counter3"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 216,
+            "column" : 6,
+            "source_fragment" : "multi_counter_r.write( (bit<32>) meta.tcp_metadata.flow_direction, meta.tcp_metadata.multi_counter)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_6",
+      "id" : 22,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_7"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._tcp_metadata_flow_direction6"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 209,
+            "column" : 59,
+            "source_fragment" : "(bit<32>)meta.tcp_metadata.flow_direction"
+          }
+        },
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._tcp_metadata_multi_counter3"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.multi_counter_r"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_7"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 209,
+            "column" : 5,
+            "source_fragment" : "multi_counter_r.read(meta.tcp_metadata.multi_counter, (bit<32>)meta.tcp_metadata.flow_direction)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "NoAction",
+      "id" : 23,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "egress.change_mac",
+      "id" : 24,
+      "runtime_data" : [
+        {
+          "name" : "dst",
+          "bitwidth" : 48
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ethernet", "dstAddr"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 233,
+            "column" : 2,
+            "source_fragment" : "hdr.ethernet.dstAddr = dst"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "egress.add_timestamp1",
+      "id" : 25,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "timestamp1"]
+            },
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "egress_global_timestamp"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 237,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.timestamp1 = (bit<48>)standard_metadata.egress_global_timestamp"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_8"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._tcp_metadata_flow_direction6"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 238,
+            "column" : 30,
+            "source_fragment" : "(bit<32>)meta.tcp_metadata.flow_direction"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "egress.c_add_first_timestamp"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_8"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 238,
+            "column" : 2,
+            "source_fragment" : "c_add_first_timestamp.count((bit<32>)meta.tcp_metadata.flow_direction)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "egress.count_all_egress",
+      "id" : 26,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_9"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "egress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 242,
+            "column" : 23,
+            "source_fragment" : "(bit<32>) standard_metadata.egress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "egress.egress_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_9"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 242,
+            "column" : 2,
+            "source_fragment" : "egress_counter.count((bit<32>) standard_metadata.egress_port)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "egress.count_stamped_egress",
+      "id" : 27,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_10"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "egress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 246,
+            "column" : 31,
+            "source_fragment" : "(bit<32>) standard_metadata.egress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "egress.egress_stamped_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_10"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 246,
+            "column" : 2,
+            "source_fragment" : "egress_stamped_counter.count((bit<32>) standard_metadata.egress_port)"
+          }
+        }
+      ]
+    }
+  ],
+  "pipelines" : [
+    {
+      "name" : "ingress",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "../bmv2_middlebox_v7.p4",
+        "line" : 56,
+        "column" : 8,
+        "source_fragment" : "ingress"
+      },
+      "init_table" : "tbl_count_all_ingress",
+      "tables" : [
+        {
+          "name" : "tbl_count_all_ingress",
+          "id" : 0,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 179,
+            "column" : 2,
+            "source_fragment" : "count_all_ingress()"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [13],
+          "actions" : ["ingress.count_all_ingress"],
+          "base_default_next" : "ingress.t_l1_forwarding",
+          "next_tables" : {
+            "ingress.count_all_ingress" : "ingress.t_l1_forwarding"
+          },
+          "default_entry" : {
+            "action_id" : 13,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "ingress.t_l1_forwarding",
+          "id" : 1,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 106,
+            "column" : 7,
+            "source_fragment" : "t_l1_forwarding"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.ingress_port",
+              "target" : ["standard_metadata", "ingress_port"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 64,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [7, 4],
+          "actions" : ["ingress.no_op", "ingress.send"],
+          "base_default_next" : "ingress.t_l2_forwarding",
+          "next_tables" : {
+            "ingress.no_op" : "ingress.t_l2_forwarding",
+            "ingress.send" : "ingress.t_l2_forwarding"
+          },
+          "default_entry" : {
+            "action_id" : 7,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "ingress.t_l2_forwarding",
+          "id" : 2,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 118,
+            "column" : 7,
+            "source_fragment" : "t_l2_forwarding"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.ingress_port",
+              "target" : ["standard_metadata", "ingress_port"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "hdr.ethernet.dstAddr",
+              "target" : ["ethernet", "dstAddr"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 64,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [8, 5, 9],
+          "actions" : ["ingress.no_op", "ingress.send", "ingress.send_to_mc_grp"],
+          "base_default_next" : "node_5",
+          "next_tables" : {
+            "ingress.no_op" : "node_5",
+            "ingress.send" : "node_5",
+            "ingress.send_to_mc_grp" : "node_5"
+          },
+          "default_entry" : {
+            "action_id" : 8,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "ingress.t_l3_forwarding",
+          "id" : 3,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 132,
+            "column" : 7,
+            "source_fragment" : "t_l3_forwarding"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.ingress_port",
+              "target" : ["standard_metadata", "ingress_port"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "hdr.ipv4.dstAddr",
+              "target" : ["ipv4", "dstAddr"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 64,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [6, 0],
+          "actions" : ["ingress.send", "NoAction"],
+          "base_default_next" : "node_7",
+          "next_tables" : {
+            "ingress.send" : "node_7",
+            "NoAction" : "node_7"
+          },
+          "default_entry" : {
+            "action_id" : 0,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "ingress.t_add_timestamp_header",
+          "id" : 4,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 143,
+            "column" : 7,
+            "source_fragment" : "t_add_timestamp_header"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "hdr.tcp.dataOffset",
+              "target" : ["tcp", "dataOffset"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.egress_spec",
+              "target" : ["standard_metadata", "egress_spec"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 4,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [12, 1],
+          "actions" : ["ingress.add_timestamp_header", "NoAction"],
+          "base_default_next" : "node_9",
+          "next_tables" : {
+            "ingress.add_timestamp_header" : "node_9",
+            "NoAction" : "node_9"
+          },
+          "default_entry" : {
+            "action_id" : 1,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "tbl_count_stamped_ingress",
+          "id" : 5,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 187,
+            "column" : 5,
+            "source_fragment" : "count_stamped_ingress()"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [14],
+          "actions" : ["ingress.count_stamped_ingress"],
+          "base_default_next" : "tbl_act",
+          "next_tables" : {
+            "ingress.count_stamped_ingress" : "tbl_act"
+          },
+          "default_entry" : {
+            "action_id" : 14,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_act",
+          "id" : 6,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 189,
+            "column" : 4,
+            "source_fragment" : "time_average.read(meta.timestamp_metadata.ave_temp, 0); ..."
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [15],
+          "actions" : ["act"],
+          "base_default_next" : "ingress.timestamp2",
+          "next_tables" : {
+            "act" : "ingress.timestamp2"
+          },
+          "default_entry" : {
+            "action_id" : 15,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "ingress.timestamp2",
+          "id" : 7,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 154,
+            "column" : 7,
+            "source_fragment" : "timestamp2"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "hdr.tcp.dataOffset",
+              "target" : ["tcp", "dataOffset"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "hdr.tcp_options_128bit_custom.myType",
+              "target" : ["tcp_options_128bit_custom", "myType"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.ingress_port",
+              "target" : ["standard_metadata", "ingress_port"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 4,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [11, 2],
+          "actions" : ["ingress.add_timestamp2", "NoAction"],
+          "base_default_next" : "tbl_act_0",
+          "next_tables" : {
+            "ingress.add_timestamp2" : "tbl_act_0",
+            "NoAction" : "tbl_act_0"
+          },
+          "default_entry" : {
+            "action_id" : 2,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "tbl_act_0",
+          "id" : 8,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 194,
+            "column" : 4,
+            "source_fragment" : "time_average.write(0, meta.timestamp_metadata.ave_temp); ..."
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [18],
+          "actions" : ["act_2"],
+          "base_default_next" : "node_14",
+          "next_tables" : {
+            "act_2" : "node_14"
+          },
+          "default_entry" : {
+            "action_id" : 18,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_act_1",
+          "id" : 9,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 198,
+            "column" : 6,
+            "source_fragment" : "time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta)"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [16],
+          "actions" : ["act_0"],
+          "base_default_next" : "node_19",
+          "next_tables" : {
+            "act_0" : "node_19"
+          },
+          "default_entry" : {
+            "action_id" : 16,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_act_2",
+          "id" : 10,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 202,
+            "column" : 5,
+            "source_fragment" : "time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta)"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [17],
+          "actions" : ["act_1"],
+          "base_default_next" : "node_19",
+          "next_tables" : {
+            "act_1" : "node_19"
+          },
+          "default_entry" : {
+            "action_id" : 17,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_act_3",
+          "id" : 11,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 205,
+            "column" : 5,
+            "source_fragment" : "time_delta_min_max.write(1, (bit<32>)meta.timestamp_metadata.delta)"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [19],
+          "actions" : ["act_3"],
+          "base_default_next" : "node_21",
+          "next_tables" : {
+            "act_3" : "node_21"
+          },
+          "default_entry" : {
+            "action_id" : 19,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_act_4",
+          "id" : 12,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 209,
+            "column" : 5,
+            "source_fragment" : "multi_counter_r.read(meta.tcp_metadata.multi_counter, (bit<32>)meta.tcp_metadata.flow_direction)"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [22],
+          "actions" : ["act_6"],
+          "base_default_next" : "node_23",
+          "next_tables" : {
+            "act_6" : "node_23"
+          },
+          "default_entry" : {
+            "action_id" : 22,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "ingress.multicast",
+          "id" : 13,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 166,
+            "column" : 7,
+            "source_fragment" : "multicast"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "hdr.tcp.dataOffset",
+              "target" : ["tcp", "dataOffset"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.ingress_port",
+              "target" : ["standard_metadata", "ingress_port"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.egress_spec",
+              "target" : ["standard_metadata", "egress_spec"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 64,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [10, 3],
+          "actions" : ["ingress.send_to_mc_grp", "NoAction"],
+          "base_default_next" : "tbl_act_5",
+          "next_tables" : {
+            "ingress.send_to_mc_grp" : "tbl_act_5",
+            "NoAction" : "tbl_act_5"
+          },
+          "default_entry" : {
+            "action_id" : 3,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "tbl_act_5",
+          "id" : 14,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 212,
+            "column" : 38,
+            "source_fragment" : "= 0; ..."
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [20],
+          "actions" : ["act_4"],
+          "base_default_next" : null,
+          "next_tables" : {
+            "act_4" : null
+          },
+          "default_entry" : {
+            "action_id" : 20,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_act_6",
+          "id" : 15,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 215,
+            "column" : 38,
+            "source_fragment" : "= meta.tcp_metadata.multi_counter + 1; ..."
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [21],
+          "actions" : ["act_5"],
+          "base_default_next" : null,
+          "next_tables" : {
+            "act_5" : null
+          },
+          "default_entry" : {
+            "action_id" : 21,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        }
+      ],
+      "action_profiles" : [],
+      "conditionals" : [
+        {
+          "name" : "node_5",
+          "id" : 0,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 182,
+            "column" : 5,
+            "source_fragment" : "hdr.ipv4.isValid()"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "d2b",
+              "left" : null,
+              "right" : {
+                "type" : "field",
+                "value" : ["ipv4", "$valid$"]
+              }
+            }
+          },
+          "false_next" : null,
+          "true_next" : "ingress.t_l3_forwarding"
+        },
+        {
+          "name" : "node_7",
+          "id" : 1,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 184,
+            "column" : 6,
+            "source_fragment" : "hdr.tcp.isValid()"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "d2b",
+              "left" : null,
+              "right" : {
+                "type" : "field",
+                "value" : ["tcp", "$valid$"]
+              }
+            }
+          },
+          "false_next" : null,
+          "true_next" : "ingress.t_add_timestamp_header"
+        },
+        {
+          "name" : "node_9",
+          "id" : 2,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 186,
+            "column" : 7,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.myType == 16w0x0f10"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "field",
+                "value" : ["tcp_options_128bit_custom", "myType"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x0f10"
+              }
+            }
+          },
+          "true_next" : "tbl_count_stamped_ingress",
+          "false_next" : "tbl_act"
+        },
+        {
+          "name" : "node_14",
+          "id" : 3,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 196,
+            "column" : 7,
+            "source_fragment" : "(bit<48>)meta.timestamp_metadata.min_temp > meta.timestamp_metadata.delta"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : ">",
+              "left" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_min_temp10"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              },
+              "right" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+              }
+            }
+          },
+          "true_next" : "node_15",
+          "false_next" : "node_17"
+        },
+        {
+          "name" : "node_15",
+          "id" : 4,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 197,
+            "column" : 8,
+            "source_fragment" : "meta.timestamp_metadata.delta > 0"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : ">",
+              "left" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x000000000000"
+              }
+            }
+          },
+          "true_next" : "tbl_act_1",
+          "false_next" : "node_19"
+        },
+        {
+          "name" : "node_17",
+          "id" : 5,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 201,
+            "column" : 12,
+            "source_fragment" : "(bit<48>)meta.timestamp_metadata.min_temp == 0"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_min_temp10"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x000000000000"
+              }
+            }
+          },
+          "true_next" : "tbl_act_2",
+          "false_next" : "node_19"
+        },
+        {
+          "name" : "node_19",
+          "id" : 6,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 204,
+            "column" : 7,
+            "source_fragment" : "(bit<48>)meta.timestamp_metadata.max_temp < meta.timestamp_metadata.delta"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "<",
+              "left" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_max_temp11"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              },
+              "right" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+              }
+            }
+          },
+          "true_next" : "tbl_act_3",
+          "false_next" : "node_21"
+        },
+        {
+          "name" : "node_21",
+          "id" : 7,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 208,
+            "column" : 7,
+            "source_fragment" : "meta.tcp_metadata.added_timestamp2 == 1"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._tcp_metadata_added_timestamp21"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x01"
+              }
+            }
+          },
+          "false_next" : null,
+          "true_next" : "tbl_act_4"
+        },
+        {
+          "name" : "node_23",
+          "id" : 8,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 210,
+            "column" : 8,
+            "source_fragment" : "meta.tcp_metadata.multi_counter >= meta.tcp_metadata.threshold_multicast"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : ">=",
+              "left" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._tcp_metadata_multi_counter3"]
+              },
+              "right" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._tcp_metadata_threshold_multicast2"]
+              }
+            }
+          },
+          "true_next" : "ingress.multicast",
+          "false_next" : "tbl_act_6"
+        }
+      ]
+    },
+    {
+      "name" : "egress",
+      "id" : 1,
+      "source_info" : {
+        "filename" : "../bmv2_middlebox_v7.p4",
+        "line" : 225,
+        "column" : 8,
+        "source_fragment" : "egress"
+      },
+      "init_table" : "egress.broadcast_mac",
+      "tables" : [
+        {
+          "name" : "egress.broadcast_mac",
+          "id" : 16,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 250,
+            "column" : 7,
+            "source_fragment" : "broadcast_mac"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.egress_port",
+              "target" : ["standard_metadata", "egress_port"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 32,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [24, 23],
+          "actions" : ["egress.change_mac", "NoAction"],
+          "base_default_next" : "node_30",
+          "next_tables" : {
+            "egress.change_mac" : "node_30",
+            "NoAction" : "node_30"
+          },
+          "default_entry" : {
+            "action_id" : 23,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "tbl_add_timestamp1",
+          "id" : 17,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 264,
+            "column" : 4,
+            "source_fragment" : "add_timestamp1()"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [25],
+          "actions" : ["egress.add_timestamp1"],
+          "base_default_next" : "tbl_count_all_egress",
+          "next_tables" : {
+            "egress.add_timestamp1" : "tbl_count_all_egress"
+          },
+          "default_entry" : {
+            "action_id" : 25,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_count_all_egress",
+          "id" : 18,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 267,
+            "column" : 2,
+            "source_fragment" : "count_all_egress()"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [26],
+          "actions" : ["egress.count_all_egress"],
+          "base_default_next" : "node_34",
+          "next_tables" : {
+            "egress.count_all_egress" : "node_34"
+          },
+          "default_entry" : {
+            "action_id" : 26,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_count_stamped_egress",
+          "id" : 19,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 269,
+            "column" : 3,
+            "source_fragment" : "count_stamped_egress()"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [27],
+          "actions" : ["egress.count_stamped_egress"],
+          "base_default_next" : null,
+          "next_tables" : {
+            "egress.count_stamped_egress" : null
+          },
+          "default_entry" : {
+            "action_id" : 27,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        }
+      ],
+      "action_profiles" : [],
+      "conditionals" : [
+        {
+          "name" : "node_30",
+          "id" : 9,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 262,
+            "column" : 5,
+            "source_fragment" : "hdr.ipv4.isValid()"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "d2b",
+              "left" : null,
+              "right" : {
+                "type" : "field",
+                "value" : ["ipv4", "$valid$"]
+              }
+            }
+          },
+          "true_next" : "node_31",
+          "false_next" : "tbl_count_all_egress"
+        },
+        {
+          "name" : "node_31",
+          "id" : 10,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 263,
+            "column" : 6,
+            "source_fragment" : "meta.tcp_metadata.added_empty_header == 1"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._tcp_metadata_added_empty_header5"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x01"
+              }
+            }
+          },
+          "true_next" : "tbl_add_timestamp1",
+          "false_next" : "tbl_count_all_egress"
+        },
+        {
+          "name" : "node_34",
+          "id" : 11,
+          "source_info" : {
+            "filename" : "../bmv2_middlebox_v7.p4",
+            "line" : 268,
+            "column" : 5,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.myType == 16w0x0f10"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "field",
+                "value" : ["tcp_options_128bit_custom", "myType"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x0f10"
+              }
+            }
+          },
+          "false_next" : null,
+          "true_next" : "tbl_count_stamped_egress"
+        }
+      ]
+    }
+  ],
+  "checksums" : [
+    {
+      "name" : "cksum",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "../checksum_16.p4",
+        "line" : 8,
+        "column" : 8,
+        "source_fragment" : "update_checksum(true, { hdr.ipv4.version, hdr.ipv4.ihl, hdr.ipv4.diffServ, ..."
+      },
+      "target" : ["ipv4", "header_checksum"],
+      "type" : "generic",
+      "calculation" : "calc",
+      "verify" : false,
+      "update" : true,
+      "if_cond" : {
+        "type" : "bool",
+        "value" : true
+      }
+    },
+    {
+      "name" : "cksum_0",
+      "id" : 1,
+      "source_info" : {
+        "filename" : "../checksum_16.p4",
+        "line" : 12,
+        "column" : 8,
+        "source_fragment" : "update_checksum_with_payload(hdr.tcp.isValid(), { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, ..."
+      },
+      "target" : ["tcp", "checksum"],
+      "type" : "generic",
+      "calculation" : "calc_0",
+      "verify" : false,
+      "update" : true,
+      "if_cond" : {
+        "type" : "expression",
+        "value" : {
+          "op" : "d2b",
+          "left" : null,
+          "right" : {
+            "type" : "field",
+            "value" : ["tcp", "$valid$"]
+          }
+        }
+      }
+    }
+  ],
+  "force_arith" : [],
+  "extern_instances" : [],
+  "field_aliases" : [
+    [
+      "queueing_metadata.enq_timestamp",
+      ["standard_metadata", "enq_timestamp"]
+    ],
+    [
+      "queueing_metadata.enq_qdepth",
+      ["standard_metadata", "enq_qdepth"]
+    ],
+    [
+      "queueing_metadata.deq_timedelta",
+      ["standard_metadata", "deq_timedelta"]
+    ],
+    [
+      "queueing_metadata.deq_qdepth",
+      ["standard_metadata", "deq_qdepth"]
+    ],
+    [
+      "intrinsic_metadata.ingress_global_timestamp",
+      ["standard_metadata", "ingress_global_timestamp"]
+    ],
+    [
+      "intrinsic_metadata.egress_global_timestamp",
+      ["standard_metadata", "egress_global_timestamp"]
+    ],
+    [
+      "intrinsic_metadata.lf_field_list",
+      ["standard_metadata", "lf_field_list"]
+    ],
+    [
+      "intrinsic_metadata.mcast_grp",
+      ["standard_metadata", "mcast_grp"]
+    ],
+    [
+      "intrinsic_metadata.resubmit_flag",
+      ["standard_metadata", "resubmit_flag"]
+    ],
+    [
+      "intrinsic_metadata.egress_rid",
+      ["standard_metadata", "egress_rid"]
+    ],
+    [
+      "intrinsic_metadata.recirculate_flag",
+      ["standard_metadata", "recirculate_flag"]
+    ]
+  ],
+  "program" : "../bmv2_middlebox_v7.p4",
+  "__meta__" : {
+    "version" : [2, 18],
+    "compiler" : "https://github.com/p4lang/p4c"
+  }
+}

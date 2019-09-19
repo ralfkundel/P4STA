@@ -1,0 +1,63 @@
+<!--
+# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->
+
+{% load management_ui %}
+{% if error == False %}
+<div class="row">
+	<div class="col-md-2"><u><b>{{cfg.selected_loadgen|upper}} results: </b></u></div>
+	<div class="col-md-2"><b>L4 modes: </b>{% if cfg.stamp_tcp == "checked" %}TCP {% endif %}{% if cfg.stamp_udp == "checked" %}UDP {% endif %}</div>
+	<div class="col-md-2"><p><b>File ID: </b>{{ filename }}</p></div>
+	<div class="col-md-2"><p><b>Created:</b> {{time}}</p></div>
+	<div class="col-md-2"></div>
+	<div class="col-md-2">
+		<a class="btn btn-primary" href="/downloadLoadgen/" role="button">Download</a>
+	</div>
+</div>
+<hr/>
+<div class="row">
+	<div class="col-md-12"><p><b>Total measured speed: </b>{{total_gbits.0}} <b>{{total_gbits.1}}/s</b></p></div>
+</div>
+<div class="row">
+	<div class="col-md-12"><p><b>Total measured throughput: </b>{{total_gbyte.0}} <b>{{total_gbyte.1}}</b></p></div>
+</div>
+
+<div class="row">
+	<div class="col-md-12"><p><b>Total retransmitted packets: </b>{{total_retransmits}} <b>packets</b></p></div>
+</div>
+<div class="row">
+	{% for key in custom_attr.elems %}
+	<div class="col-md-3"><p><b>{{ custom_attr.elems|getkeyvalue:key }}</b></p></div>
+	{% endfor %}
+	<!--<div class="col-md-4"><p><b>Mean RTT: </b>{{mean_rtt}} <b>&#181;s</b></p></div>
+	<div class="col-md-4"><p><b>Minimum RTT: </b>{{min_rtt}} <b>&#181;s</b></p></div>
+	<div class="col-md-4"><p><b>Max RTT: </b>{{max_rtt}} <b>&#181;s</b></p></div>--->
+</div>
+{% load static %}
+<div class="row">
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}loadgen_1.svg" style="width: 100%; height: 100%"/ ></div>
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}loadgen_2.svg" style="width: 100%; height: 100%"/ ></div>
+	
+</div>
+<div class="row">
+	<div class="col-md-3"></div>
+	<div class="col-md-6"><img src="{{ MEDIA_URL }}loadgen_3.svg" style="width: 100%; height: 100%"/ ></div>
+</div>
+{% endif %}
+
+{% if error == True %}
+{% for o in output %}
+<p>{{ o }}</p>
+{% endfor %}
+{% endif %}

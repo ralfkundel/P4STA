@@ -1,0 +1,109 @@
+<!--
+# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->
+
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="shortcut icon" type="image/x-icon" href="{% static 'includes/favicon.ico' %}"/>
+	<link rel="stylesheet" href="{% static 'includes/bootstrap.min.css' %}">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+	<script src="{% static 'includes/jquery.min.js' %}"></script>
+	<script src="{% static 'includes/popper.min.js' %}"></script>
+	<script src="{% static 'includes/bootstrap.min.js' %}"></script>
+	<!-- jquery ajax -->
+	<script type="text/javascript">
+		$(document).ready(function(){ 
+			$("#ping").click(function() {
+				$("#output_ping").html('<img src="{% static 'images/spinner.svg' %}" />');
+				$.get("/ping/", function(data) {
+					$("#output_ping").html(data);
+				}, "html");
+			});
+		});
+	</script>
+
+	<script type="text/javascript">
+		$(document).ready(function(){ 
+			$("#start_external").click(function() {
+				$("#output_stop_external").empty();
+				$("#output_start_external").html('<img src="{% static 'images/spinner.svg' %}" />');
+				$.get("/startExternal/", function(data) {
+					$("#output_start_external").html(data);
+				}, "html");
+			});
+		});
+	</script>
+	<script type="text/javascript">
+		$(document).ready(function(){ 
+			$("#stop_external").click(function() {
+				$("#output_start_external").empty();
+				$("#output_stop_external").html('<img src="{% static 'images/spinner.svg' %}" />');
+				$.get("/stopExternal/", function(data) {
+					$("#output_stop_external").html(data);
+				}, "html");
+			});
+		});
+	</script>
+	<!-- jquery ajax end -->
+	<style>
+	body {overflow-x: hidden;}
+	</style>
+	</head>
+<body>
+
+{% include "middlebox/navbar.html"%}
+
+<div class="jumbotron text-center" style="margin-bottom:0">
+<h5>
+<span style="color:grey">configure switch</span>
+&emsp;<i class="fas fa-arrow-right"></i>
+&emsp;<span style="color:grey">deploy configuration</span>
+&emsp;<i class="fas fa-arrow-right"></i>
+&emsp;<u>run tests </u>
+&emsp;<i class="fas fa-arrow-right"></i>
+&emsp;<span style="color:grey">analyze results</span>
+</h5>
+</div>
+<div class="container-fluid">
+<div style="margin-top:20px;"></div>
+<div class="row">
+	<div class="col-md-4">Execute Ping Test:</div>
+</div>
+<div class="row">
+	<div class="col-md-2"><button id="ping" type="button" class="save btn btn-secondary">Start Ping</button></div>
+	<div class="col-md-8"><div id="output_ping" class="card card-body"></div></div>
+</div>
+<hr/>
+<div style="margin-top:20px;"></div>
+<div class="row">
+	<div class="col-md-4">Start listening at external host and execute iPerf3:</div>
+</div>
+<div class="row">
+	<div class="col-md-2"><button id="start_external" type="button" class="save btn btn-secondary">Start listening</button></div>
+	<div class="col-md-8"><div id="output_start_external" class="card card-body"></div></div>
+</div>
+<div style="margin-top:20px;"></div>
+<div class="row">
+	<div class="col-md-2"><button id="stop_external" type="button" class="save btn btn-secondary">Stop listening</button></div>
+	<div class="col-md-8"><div id="output_stop_external" class="card card-body"></div></div>
+</div>
+<div style="margin-top:20px;"></div>
+
+</div>
+
+</body>

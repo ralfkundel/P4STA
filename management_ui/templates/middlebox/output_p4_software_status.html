@@ -1,0 +1,125 @@
+<!--
+# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->	
+
+{% load static %}
+	<script type="text/javascript">
+		$(document).ready(function(){ 
+			$("#deploy").click(function() {
+				$("#output_deploy").html('<img src="{% static 'images/spinner.svg' %}" />');
+				$.get("/deploy/", function(data) {
+					$("#output_deploy").html(data);
+					getPorts();
+				}, "html");
+			});
+		});
+
+		$(document).ready(function(){ 
+			getPorts();
+			getIfaceStatus();
+		});
+
+		function getPorts() {
+		$("#output_ports").html('<img src="{% static 'images/spinner.svg' %}" />');
+			$.get("/show_ports/", function(data) {
+				$("#output_ports").html(data);
+			}, "html");
+		}
+
+		function getIfaceStatus() {
+		$("#output_iface_status").html('<img src="{% static 'images/spinner.svg' %}" />');
+			$.get("/host_iface_status/", function(data) {
+				$("#output_iface_status").html(data);
+			}, "html");
+		}
+
+		$(document).ready(function(){ 
+			$("#start_p4_dev_software").click(function() {
+				$("#output_start").html('<img src="{% static 'images/spinner.svg' %}" />');
+				$.get("/start_p4_dev_software/", function(data) {
+					$("#output_start").html(data);
+					location.reload();
+				}, "html");
+			});
+		});
+
+		$(document).ready(function(){ 
+			$("#stop_p4_dev_software").click(function() {
+				$("#output_stop").html('<img src="{% static 'images/spinner.svg' %}" />');
+				$.get("/stop_p4_dev_software/", function(data) {
+					$("#output_stop").html(data);
+					location.reload().delay(2000);
+				}, "html");
+			});
+		});
+
+		$(document).ready(function(){ 
+			$("#reboot").click(function() {
+				$.get("/reboot/", function(data) {
+					$("#output_reboot").html(data);
+				}, "html");
+			});
+		});
+
+		$(document).ready(function(){ 
+			$("#refresh_links").click(function() {
+				$.get("/refresh_links/", function(data) {
+					getIfaceStatus();
+				}, "html");
+			});
+		});
+
+		$(document).ready(function(){ 
+			$("#log").click(function() {
+				$.get("/get_p4_dev_startup_log/", function(data) {
+					$("#output_log").html(data);
+				}, "html");
+			});
+		});
+	</script>
+
+<p>Selected program: <b>{{cfg.program}}</b></p>
+{% if dev_is_running == True %}
+<p><b>P4 device is running: </b><span style="color:green">{{dev_status}}</span><button id="log" type="button" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Show P4 device startup log."><i class="fas fa-info-circle" style="font-size: 18pt; color:gray"></i></button></p>
+<p>
+<button id="deploy" type="button" class="save btn btn-secondary">Deploy to P4 device</button>
+<button id="stop_p4_dev_software" type="button" class="save btn btn-secondary">Stop P4 device software</button>
+<div id="output_stop"></div>
+
+
+
+
+
+<div id="output_log"></div>
+<p>
+<p><div id="output_deploy"></div></p>
+<hr/>
+
+<div id="output_ports"></div>
+{% endif %} 
+
+{% if dev_is_running == False %}
+<b>P4 device is running: </b><span style="color:red">{{dev_status}}</span>
+<p><button id="start_p4_dev_software" type="button" class="save btn btn-secondary">Start P4 device software</button></p>
+{% endif %}
+<hr/>
+
+<div id="output_iface_status"></div>
+
+<p>After starting switchd the servers may need to refresh their links. If this doesn't work please reboot them.</p>
+<p>
+<button id="refresh_links" type="button" class="save btn btn-secondary">Refresh Links</button>
+<button id="reboot" type="button" class="save btn btn-secondary">Reboot Servers</button>
+</p>
+<p><div id="output_reboot"></div></p>
