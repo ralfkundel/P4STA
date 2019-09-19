@@ -27,8 +27,8 @@ The following features are not part of the GitHub project as they are not yet fu
 
 
 # Publications
-"How to measure the speed of light?"@ 2nd P4Europe Workshop: [Demo Paper](https://www.kom.tu-darmstadt.de/research-results/publications/publications-details/?no_cache=1&pub_id=KSK19)
-Full Paper: coming soon!
+*"How to measure the speed of light?"@ 2nd P4Europe Workshop: [Demo Paper](https://www.kom.tu-darmstadt.de/research-results/publications/publications-details/?no_cache=1&pub_id=KSK19)
+*Full Paper: coming soon!
 
 
 # Architecture
