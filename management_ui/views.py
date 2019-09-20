@@ -79,7 +79,7 @@ def fetch_iface(request):
         ipv4, mac, prefix, up_state = results
     except Exception as e:
         ipv4 = mac = prefix = up_state = "timeout"
-
+        print("Exception fetch iface: "+ str(e))
     return JsonResponse({"mac": mac, "ip": ipv4, "prefix": prefix, "up_state": up_state})
 
 def set_iface(request):

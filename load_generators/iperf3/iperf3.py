@@ -73,7 +73,7 @@ class Iperf3(Loadgenerator):
                 json_id = json_id + 3
 
         ###############################
-        # N:N BIS JETZT NICHT GETESTET
+        # N:N only basic tested
         ###############################
         elif len(self.cfg["loadgen_servers"]) > 1 and len(self.cfg["loadgen_clients"]) > 1: # n server : n clients
             # start all server ports -> 3 ports per client
@@ -81,7 +81,7 @@ class Iperf3(Loadgenerator):
             port = 5101
             counter = 0
             for server in self.cfg["loadgen_servers"]:
-                for i in range(math.ceil(self.cfg["loadgen_clients"]/self.cfg["loadgen_servers"])): # e.g. 3 clients and 2 servers: 3/2=1.5 round up to 2 => 2 servers  with 2*3 ports started
+                for i in range(math.ceil(len(self.cfg["loadgen_clients"])/len(self.cfg["loadgen_servers"]))): # e.g. 3 clients and 2 servers: 3/2=1.5 round up to 2 => 2 servers  with 2*3 ports started
                     counter = counter + 1
                     output_sub = subprocess.run(  # start 1 iperf server host but with 3*n connections (n = # clients)
                         [self.directory + "/scripts/iperf_server.sh", server["ssh_ip"], server["ssh_user"], str(port), str(port+1), str(port+2), str(duration+10)], stdout=devnull)
@@ -107,7 +107,7 @@ class Iperf3(Loadgenerator):
             # get jsons from clients
             json_id = 1
             for client in self.cfg["loadgen_clients"]:
-                output_sub = subprocess.run([self.directory + "/scripts/get_json.sh", client["ssh_ip"], client["ssh_user"], file_id, str(json_id), project_path])
+                output_sub = subprocess.run([self.directory + "/scripts/get_json.sh", client["ssh_ip"], client["ssh_user"], file_id, str(json_id), results_path])
                 json_id = json_id + 3
 
         ###############################
@@ -149,8 +149,7 @@ class Iperf3(Loadgenerator):
             json_id = 1
             for client in self.cfg["loadgen_servers"][-1:] + self.cfg["loadgen_servers"][0:-1]:
                 output_sub = subprocess.run(
-                    [self.directory + "/scripts/get_json.sh", client["ssh_ip"], client["ssh_user"], file_id,
-                        str(json_id), project_path])
+                    [self.directory + "/scripts/get_json.sh", client["ssh_ip"], client["ssh_user"], file_id,  str(json_id), results_path])
                 json_id = json_id + 3
 
         #return self.process_loadgen_data(file_id)

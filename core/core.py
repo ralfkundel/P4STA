@@ -688,9 +688,13 @@ class P4staCore(rpyc.Service):
             mac = re.findall(re_mac, mac_line)
             if isinstance(mac, list) and len(mac) > 0:
                 mac = mac[0]
+            else:
+                mac = ""
             ipv4 = re.findall(re_ipv4, ipv4_line)
             if isinstance(ipv4, list) and len(ipv4) > 0:
                 ipv4 = ipv4[0]
+            else:
+                ipv4 = ""
             try:
                 netmask = re.findall(re_ipv4, nm_line)[0]
                 prefix = "/" + str(sum(bin(int(x)).count('1') for x in netmask.split('.')))
@@ -703,7 +707,12 @@ class P4staCore(rpyc.Service):
 
         # check if iface is up
         try:
-            up_state = self.execute_ssh(ssh_user, ssh_ip, "cat /sys/class/net/" + iface + "/operstate")[0]
+            #up_state = self.execute_ssh(ssh_user, ssh_ip, "cat /sys/class/net/" + iface + "/operstate")[0]
+            up_state = self.execute_ssh(ssh_user, ssh_ip, 'ifconfig | grep "' + iface+'"')[0]
+            if len(up_state) > 0:
+                up_state = "up"
+            else:
+                up_state = "down"
         except:
             up_state = "error"
 
