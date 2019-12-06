@@ -27,8 +27,8 @@ The following features are not part of the GitHub project as they are not yet fu
 
 
 # Publications
-"How to measure the speed of light?"@ 2nd P4Europe Workshop: [Demo Paper](https://www.kom.tu-darmstadt.de/research-results/publications/publications-details/?no_cache=1&pub_id=KSK19)
-"P4STA: High Performance Packet Timestamping with Programmable Packet Processors"@ IEEE/IFIP NOMS: coming soon!
+* "How to measure the speed of light with programmable data plane hardware?"@ 2nd P4Europe Workshop: [Demo Paper](https://www.kom.tu-darmstadt.de/research-results/publications/publications-details/?no_cache=1&pub_id=KSK19)
+* "P4STA: High Performance Packet Timestamping with Programmable Packet Processors"@ IEEE/IFIP NOMS: coming soon!
 
 
 # Architecture
