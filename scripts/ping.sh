@@ -1,2 +1,2 @@
 #!/bin/bash
-ssh $3@$1 "timeout 1 ping $2 -i 0.2 -c 3"
+ssh -o StrictHostKeyChecking=no $3@$1 "timeout 1 ping $2 -i 0.2 -c 3"

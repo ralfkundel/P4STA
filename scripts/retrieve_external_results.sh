@@ -18,4 +18,4 @@ scp $3@$2:/home/$3/p4sta/receiver/throughput_at_time_$1.csv $4/
 scp $3@$2:/home/$3/p4sta/receiver/timestamp1_list_$1.csv $4/
 scp $3@$2:/home/$3/p4sta/receiver/timestamp2_list_$1.csv $4/
 sleep 1
-ssh $3@$2 "cd p4sta; cd receiver; rm *.csv" # to remove all old csv in case a crashed process left some csv files..
+ssh -o StrictHostKeyChecking=no $3@$2 "cd p4sta; cd receiver; rm *.csv" # to remove all old csv in case a crashed process left some csv files..

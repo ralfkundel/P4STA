@@ -11,7 +11,7 @@ The P4STA framework consists of:
 
 Currently supported Stamper Targets are:
 * P4-bmv2 reference implementation
-* Barefoot Tofino (available as subrepository - see  [Stamper Targets](#Stamper Targets)
+* Barefoot Tofino (available as subrepository) - see  [Stamper Targets](#Stamper-Targets)
 
 Further upcoming targets are:
 * Netronome NFP-SmartNICs - coming late 2019
@@ -27,8 +27,8 @@ The following features are not part of the GitHub project as they are not yet fu
 
 
 # Publications
-* "How to measure the speed of light?"@ 2nd P4Europe Workshop: [Demo Paper](https://www.kom.tu-darmstadt.de/research-results/publications/publications-details/?no_cache=1&pub_id=KSK19)
-* Full Paper: coming soon!
+"How to measure the speed of light?"@ 2nd P4Europe Workshop: [Demo Paper](https://www.kom.tu-darmstadt.de/research-results/publications/publications-details/?no_cache=1&pub_id=KSK19)
+"P4STA: High Performance Packet Timestamping with Programmable Packet Processors"@ IEEE/IFIP NOMS: coming soon!
 
 
 # Architecture
@@ -57,7 +57,7 @@ A packet, entering the Stamper device after the DUT can be forwarded to the exte
 A sampling "downscale" factor can be defined, which causes that only every n-th paket will be forwarded to the external host. 
 
 ## Software Components
-P4STA core components are all based on Python. The HTML-UI is realized with Django and communication between Core and UI/CLI is based in RPyC.
+P4STA core components are mostly based on Python. The HTML-UI is realized with Django and communication between Core and UI/CLI is based in RPyC.
 Stamper implementations vary due to hardware specific constraints and P4_14, P4_16 and Verilog is used here.
 
 ![Figure Software Components](doc/img/softwareComponents.png)
@@ -68,11 +68,14 @@ After cloning this repository on any server/machine (management server) in your 
 1. Every server (loadgen servers, P4-device, external host) requires ssh pub key from management-server to allow a password-free SSH-connection
 2. Enter your SSH Usernames and IPs at the beginning of ./install.sh and ensure that it's executeable (chmod +x ./install.sh)
 3. Execute the install script (./install.sh)
-4. Compile the P4-Code from target directory to your P4-device. For BMV2 (Mininet) this is not necessary because it comes with precompiled P4-code.
+```
+./install.sh
+```
+4. Compile the P4-Code from target directory to your P4-device. For BMV2 (Mininet) this is not necessary as this repository contains compiled P4-code.
 
 
 ## Dependencies Management Server
-If you don't use the install.sh script ensure that the following requirements are installed at the management server. Otherwise **IGNORE THIS**.
+If you **don't** use the install.sh script ensure that the following requirements are installed at the management server. Otherwise **IGNORE THIS**.
 * Python >= 3.5 with pip3 _AND_ Python 2.7 with pip at all servers
 * Django >= 2.2
 * matplotlib >= 3.0.3
@@ -100,9 +103,8 @@ pip install setproctitle
 ```
 
 # Dependencies Loadgenerator Servers
-The following dependencies are _not_ automatically installed with ./install.sh if Ubuntu 16.04 is used:
+The following dependencies are automatically installed with ./install.sh if Ubuntu 16.04 is used:
 * iPerf3 >= 3.1.3
-At every load generator server: iPerf3 installation instruction: https://iperf.fr/iperf-download.php#ubuntu-command
 
 ## Stamper Targets
 P4STA supports different targets, currently P4-BMv2, Barefoot Tofino and Netronome SmartNICs.

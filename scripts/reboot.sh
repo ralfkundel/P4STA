@@ -1,2 +1,2 @@
 #!/bin/bash
-ssh -tt $1@$2 "sudo reboot"
+ssh -tt -o StrictHostKeyChecking=no $1@$2 "sudo reboot"

@@ -579,7 +579,7 @@ class P4staCore(rpyc.Service):
             if int(P4staCore.measurement_id) == -1:
                 raise Exception
             out = subprocess.run([project_path + "/scripts/stop_external.sh", str(P4staCore.measurement_id), cfg["ext_host_ssh"], cfg["ext_host_user"], project_path])
-            input = ["ssh", cfg["ext_host_user"] + "@" + cfg["ext_host_ssh"], "cd p4sta/receiver; ./check_extH_status.sh; exit"]
+            input = ["ssh", "-o", "StrictHostKeyChecking=no", cfg["ext_host_user"] + "@" + cfg["ext_host_ssh"], "cd p4sta/receiver; ./check_extH_status.sh; exit"]
             time.sleep(5)
             while True: #wait until exthost stopped
                 time.sleep(1)
@@ -640,7 +640,6 @@ class P4staCore(rpyc.Service):
             extH_results["max_packets_per_second"]) + " Average packet/s: " + str(
             extH_results["avg_packets_per_second"]) + "\n")
         f.close()
-
 
     def fetch_interface(self, ssh_user, ssh_ip, iface):
         try:
@@ -729,7 +728,7 @@ class P4staCore(rpyc.Service):
         return pingresp
 
     def execute_ssh(self, user, ip_address, arg):
-        input = ["ssh", user + "@" + ip_address, arg]
+        input = ["ssh", "-o", "StrictHostKeyChecking=no", user + "@" + ip_address, arg]
         res = subprocess.Popen(input, stdout=subprocess.PIPE).stdout
         return res.read().decode().split("\n")
 

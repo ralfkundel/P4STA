@@ -1,2 +1,2 @@
 #!/bin/bash
-ssh -tt $1@$2 "sudo ethtool -r $3"
+ssh -tt -o StrictHostKeyChecking=no $1@$2 "sudo ethtool -r $3"

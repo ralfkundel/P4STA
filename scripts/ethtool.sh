@@ -1,2 +1,2 @@
 #!/bin/bash
-ssh -tt $2@$1 "ethtool $3"
+ssh -tt -o StrictHostKeyChecking=no $2@$1 "ethtool $3"

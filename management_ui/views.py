@@ -773,7 +773,6 @@ def external_results(request):
         cfg = P4STA_utils.read_result_cfg(selected_run_id)
 
         try:
-            #extH_results = calculate.main(str(selected_run_id), cfg["multicast"], core_conn.root.get_results_path(selected_run_id))
             extH_results = calculate.main(str(selected_run_id), cfg["multicast"], P4STA_utils.get_results_path(selected_run_id))
             ipdv_range = extH_results["max_ipdv"] - extH_results["min_ipdv"]
             pdv_range = extH_results["max_pdv"] - extH_results["min_pdv"]
@@ -811,7 +810,7 @@ def external_results(request):
 # packs zip object for results from external host
 def download_external_results(request):
     global selected_run_id
-    file_id = selected_run_id
+    file_id = str(selected_run_id)
     files = [
         "management_ui/generated/latency.svg",
         "management_ui/generated/latency_sec.svg",
@@ -825,7 +824,7 @@ def download_external_results(request):
         "management_ui/generated/speed.svg",
         "management_ui/generated/packet_rate.svg",
              ]
-    folder = core_conn.root.get_results_path(selected_run_id)
+    folder = P4STA_utils.get_results_path(selected_run_id)
     for i in range(0, len(files)):
         name = files[i][files[i][16:].find("/")+17:]
         files[i] = [files[i], "graphs/" + name[:-4] + file_id + ".svg"]
@@ -862,10 +861,10 @@ def download_external_results(request):
 # packs zip object for results from p4 registers
 def download_p4_dev_results(request):
     global selected_run_id
-    folder = core_conn.root.get_results_path(selected_run_id)
+    folder =  P4STA_utils.get_results_path(selected_run_id)
     files = [
-                [folder+"/p4_dev_" + selected_run_id + ".json", "results/p4_dev_" + selected_run_id + ".json"], 
-                [folder+"/output_p4_device_" + selected_run_id + ".txt", "results/output_p4_device_" + selected_run_id + ".txt"]
+                [folder+"/p4_dev_" + str(selected_run_id) + ".json", "results/p4_dev_" + str(selected_run_id) + ".json"], 
+                [folder+"/output_p4_device_" + str(selected_run_id) + ".txt", "results/output_p4_device_" + str(selected_run_id) + ".txt"]
         ]
 
     return pack_zip(request, files, selected_run_id, "p4_device_results_")
@@ -882,7 +881,7 @@ def download_loadgen_results(request):
         ["management_ui/generated/loadgen_3.svg", "loadgen_3.svg"]
              ]
 
-    folder = core_conn.root.get_results_path(selected_run_id)
+    folder =  P4STA_utils.get_results_path(selected_run_id)
 
     files.append([folder+"/output_loadgen_" + file_id + ".txt", "output_loadgen_" + file_id + ".txt"])
 

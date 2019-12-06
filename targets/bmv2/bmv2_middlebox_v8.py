@@ -240,8 +240,6 @@ class TargetImpl(AbstractTarget):
 
     def get_pid(self):
         lines = subprocess.run([self.realPath + "/scripts/mn_status.sh"], stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")
-        print(self.realPath)
-        print(lines)
         try:
             if int(lines[0]) > 0:
                 pid = int(lines[0])
@@ -292,3 +290,6 @@ class TargetImpl(AbstractTarget):
         cmd = [cfg["bmv2_dir"] + "/targets/simple_switch/sswitch_CLI.py", "--thrift-port", "22223"]
 
         output = subprocess.run(cmd, stdout=subprocess.PIPE, input=cli_input.encode()).stdout.decode('UTF-8')
+
+    def check_if_p4_compiled(self, cfg):
+        return True if self.get_pid() > 0 else False, "If BMV2 is running, the selected program " + str(cfg["program"]) + " is compiled."
