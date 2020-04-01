@@ -12,9 +12,9 @@ The P4STA framework consists of:
 Currently supported Stamper Targets are:
 * P4-bmv2 reference implementation
 * Barefoot Tofino (available as subrepository) - see  [Stamper Targets](#Stamper-Targets)
+* Netronome NFP-SmartNIs
 
 Further upcoming targets are:
-* Netronome NFP-SmartNICs - coming late 2019
 * NetFPGA-SUME - approximately early 2020
 * Intel DE10-Pro FPGAs - approximately mid 2020
 
