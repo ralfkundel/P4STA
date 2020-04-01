@@ -192,7 +192,7 @@ class Iperf3(Loadgenerator):
             total_intervals = total_intervals + len(json_dict["interval_mbits"])
 
         to_plot = {"mbits": {}, "packetloss": {}}
-        if (total_intervals/len(jsons)) == len(jsons_dicts[0]["interval_mbits"]) :  # if all intervals have same length it is compareable
+        if len(jsons) > 0 and (total_intervals/len(jsons)) == len(jsons_dicts[0]["interval_mbits"]) :  # if all intervals have same length it is compareable
             for i in range(0, len(jsons_dicts[0]["interval_mbits"])):
                 current_interval_mbits = current_interval_rtt = current_interval_pl = current_interval_packets = 0
 
@@ -249,7 +249,10 @@ class Iperf3(Loadgenerator):
                 min_rtt = min(min_rtt_list)
                 max_rtt = max(max_rtt_list)
             else:
-                average_jitter_ms = round(total_jitter / len(jsons_dicts), 2)
+                if len(jsons) > 0:
+                  average_jitter_ms = round(total_jitter / len(jsons_dicts), 2)
+                else:
+                  average_jitter_ms = 0
 
             output = [""]
         else:

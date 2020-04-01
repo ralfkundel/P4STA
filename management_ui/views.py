@@ -858,9 +858,7 @@ def download_loadgen_results(request):
     folder =  P4STA_utils.get_results_path(selected_run_id)
     file_id = str(file_id)
     files.append([folder+"/output_loadgen_" + file_id + ".txt", "output_loadgen_" + file_id + ".txt"])
-
     zip_file = pack_zip(request, files, file_id, cfg["selected_loadgen"] + "_")
-
     return zip_file
 
 
@@ -875,6 +873,7 @@ def pack_zip(request, files, file_id, zip_name):
             print(str(f) + ": adding to zip object failed")
             continue  # if a file is not found continue writing the remaining files in the zip file
     zip_file.close()
-    response["Content-Disposition"] = "attachment; filename={}".format(zip_name + file_id + ".zip")
+    if file_id is not None:
+      response["Content-Disposition"] = "attachment; filename={}".format(zip_name + str(file_id) + ".zip")
 
     return response
