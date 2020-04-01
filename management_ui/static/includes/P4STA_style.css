@@ -3,3 +3,9 @@
     margin-left: 2px;
 
 }
+
+@media screen and (max-width: 500px) {
+    .topology_viewer{
+        display : none;
+    }
+}

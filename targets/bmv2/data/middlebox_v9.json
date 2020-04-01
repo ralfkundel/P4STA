@@ -4,7 +4,7 @@
       "name" : "scalars_0",
       "id" : 0,
       "fields" : [
-        ["tmp", 32, false],
+        ["tmp", 16, false],
         ["tmp_0", 32, false],
         ["tmp_1", 32, false],
         ["tmp_2", 32, false],
@@ -18,18 +18,17 @@
         ["tmp_10", 32, false],
         ["tmp_11", 32, false],
         ["tmp_12", 32, false],
-        ["metadata_t._l4_metadata_tcpLen0", 16, false],
-        ["metadata_t._l4_metadata_added_timestamp21", 1, false],
-        ["metadata_t._l4_metadata_threshold_multicast2", 16, false],
-        ["metadata_t._l4_metadata_multi_counter3", 16, false],
-        ["metadata_t._l4_metadata_tcpLength4", 16, false],
-        ["metadata_t._l4_metadata_added_empty_header5", 1, false],
-        ["metadata_t._l4_metadata_flow_direction6", 1, false],
-        ["metadata_t._timestamp_metadata_delta7", 48, false],
-        ["metadata_t._timestamp_metadata_ave_temp8", 48, false],
-        ["metadata_t._timestamp_metadata_count_temp9", 48, false],
-        ["metadata_t._timestamp_metadata_min_temp10", 32, false],
-        ["metadata_t._timestamp_metadata_max_temp11", 32, false],
+        ["metadata_t._l4_metadata_added_timestamp20", 1, false],
+        ["metadata_t._l4_metadata_threshold_multicast1", 16, false],
+        ["metadata_t._l4_metadata_multi_counter2", 16, false],
+        ["metadata_t._l4_metadata_tcpLength3", 16, false],
+        ["metadata_t._l4_metadata_added_empty_header4", 1, false],
+        ["metadata_t._l4_metadata_flow_direction5", 1, false],
+        ["metadata_t._timestamp_metadata_delta6", 48, false],
+        ["metadata_t._timestamp_metadata_ave_temp7", 48, false],
+        ["metadata_t._timestamp_metadata_count_temp8", 48, false],
+        ["metadata_t._timestamp_metadata_min_temp9", 32, false],
+        ["metadata_t._timestamp_metadata_max_temp10", 32, false],
         ["_padding_0", 5, false]
       ]
     },
@@ -115,15 +114,8 @@
       ]
     },
     {
-      "name" : "tcp_options_96bit_t",
-      "id" : 6,
-      "fields" : [
-        ["options", 96, false]
-      ]
-    },
-    {
       "name" : "tcp_options_128bit_custom_t",
-      "id" : 7,
+      "id" : 6,
       "fields" : [
         ["myType", 16, false],
         ["timestamp1", 48, false],
@@ -176,15 +168,8 @@
       "pi_omit" : true
     },
     {
-      "name" : "tcp_options_96bit",
-      "id" : 6,
-      "header_type" : "tcp_options_96bit_t",
-      "metadata" : false,
-      "pi_omit" : true
-    },
-    {
       "name" : "tcp_options_128bit_custom",
-      "id" : 7,
+      "id" : 6,
       "header_type" : "tcp_options_128bit_custom_t",
       "metadata" : false,
       "pi_omit" : true
@@ -261,7 +246,7 @@
               "parameters" : [
                 {
                   "type" : "field",
-                  "value" : ["scalars", "metadata_t._l4_metadata_tcpLength4"]
+                  "value" : ["scalars", "metadata_t._l4_metadata_tcpLength3"]
                 },
                 {
                   "type" : "expression",
@@ -337,13 +322,19 @@
           "transitions" : [
             {
               "type" : "hexstr",
-              "value" : "0x08",
+              "value" : "0x09",
               "mask" : null,
-              "next_state" : "parse_tcp_options_96bit"
+              "next_state" : "parse_tcp_options_128bit_custom"
             },
             {
               "type" : "hexstr",
-              "value" : "0x09",
+              "value" : "0x0a",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0b",
               "mask" : null,
               "next_state" : "parse_tcp_options_128bit_custom"
             },
@@ -351,7 +342,25 @@
               "type" : "hexstr",
               "value" : "0x0c",
               "mask" : null,
-              "next_state" : "parse_tcp_options_96_and_128bit_custom"
+              "next_state" : "parse_tcp_options_128bit_custom"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0d",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0e",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0f",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
             },
             {
               "value" : "default",
@@ -367,59 +376,46 @@
           ]
         },
         {
-          "name" : "parse_tcp_options_96bit",
+          "name" : "parse_tcp_options_128bit_custom",
           "id" : 3,
           "parser_ops" : [
             {
               "parameters" : [
                 {
-                  "type" : "regular",
-                  "value" : "tcp_options_96bit"
+                  "type" : "field",
+                  "value" : ["scalars", "tmp"]
+                },
+                {
+                  "type" : "lookahead",
+                  "value" : [0, 16]
                 }
               ],
-              "op" : "extract"
+              "op" : "set"
             }
           ],
           "transitions" : [
+            {
+              "type" : "hexstr",
+              "value" : "0x0f10",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom_exec"
+            },
             {
               "value" : "default",
               "mask" : null,
               "next_state" : null
             }
           ],
-          "transition_key" : []
-        },
-        {
-          "name" : "parse_tcp_options_96_and_128bit_custom",
-          "id" : 4,
-          "parser_ops" : [
-            {
-              "parameters" : [
-                {
-                  "type" : "regular",
-                  "value" : "tcp_options_96bit"
-                }
-              ],
-              "op" : "extract"
-            }
-          ],
-          "transitions" : [
-            {
-              "value" : "default",
-              "mask" : null,
-              "next_state" : "parse_tcp_options_128bit_custom"
-            }
-          ],
           "transition_key" : [
             {
               "type" : "field",
-              "value" : ["tcp_options_96bit", "options"]
+              "value" : ["scalars", "tmp"]
             }
           ]
         },
         {
-          "name" : "parse_tcp_options_128bit_custom",
-          "id" : 5,
+          "name" : "parse_tcp_options_128bit_custom_exec",
+          "id" : 4,
           "parser_ops" : [
             {
               "parameters" : [
@@ -442,7 +438,7 @@
         },
         {
           "name" : "parse_udp",
-          "id" : 6,
+          "id" : 5,
           "parser_ops" : [
             {
               "parameters" : [
@@ -481,12 +477,12 @@
       "name" : "deparser",
       "id" : 0,
       "source_info" : {
-        "filename" : "bmv2_middlebox_v8.p4",
-        "line" : 356,
+        "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+        "line" : 332,
         "column" : 8,
         "source_fragment" : "DeparserImpl"
       },
-      "order" : ["ethernet", "ipv4", "tcp", "tcp_options_96bit", "udp", "tcp_options_128bit_custom"]
+      "order" : ["ethernet", "ipv4", "tcp", "udp", "tcp_options_128bit_custom"]
     }
   ],
   "meter_arrays" : [],
@@ -495,8 +491,8 @@
       "name" : "ingress.ingress_counter",
       "id" : 0,
       "source_info" : {
-        "filename" : "bmv2_middlebox_v8.p4",
-        "line" : 67,
+        "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+        "line" : 69,
         "column" : 44,
         "source_fragment" : "ingress_counter"
       },
@@ -507,8 +503,8 @@
       "name" : "ingress.ingress_stamped_counter",
       "id" : 1,
       "source_info" : {
-        "filename" : "bmv2_middlebox_v8.p4",
-        "line" : 68,
+        "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+        "line" : 70,
         "column" : 44,
         "source_fragment" : "ingress_stamped_counter"
       },
@@ -516,23 +512,11 @@
       "is_direct" : false
     },
     {
-      "name" : "ingress.c_add_second_timestamp",
+      "name" : "egress.egress_counter",
       "id" : 2,
       "source_info" : {
-        "filename" : "bmv2_middlebox_v8.p4",
-        "line" : 69,
-        "column" : 43,
-        "source_fragment" : "c_add_second_timestamp"
-      },
-      "size" : 2,
-      "is_direct" : false
-    },
-    {
-      "name" : "egress.egress_counter",
-      "id" : 3,
-      "source_info" : {
-        "filename" : "bmv2_middlebox_v8.p4",
-        "line" : 306,
+        "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+        "line" : 275,
         "column" : 44,
         "source_fragment" : "egress_counter"
       },
@@ -541,26 +525,14 @@
     },
     {
       "name" : "egress.egress_stamped_counter",
-      "id" : 4,
+      "id" : 3,
       "source_info" : {
-        "filename" : "bmv2_middlebox_v8.p4",
-        "line" : 307,
+        "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+        "line" : 276,
         "column" : 44,
         "source_fragment" : "egress_stamped_counter"
       },
       "size" : 64,
-      "is_direct" : false
-    },
-    {
-      "name" : "egress.c_add_first_timestamp",
-      "id" : 5,
-      "source_info" : {
-        "filename" : "bmv2_middlebox_v8.p4",
-        "line" : 308,
-        "column" : 43,
-        "source_fragment" : "c_add_first_timestamp"
-      },
-      "size" : 2,
       "is_direct" : false
     }
   ],
@@ -569,8 +541,8 @@
       "name" : "ingress.time_average",
       "id" : 0,
       "source_info" : {
-        "filename" : "bmv2_middlebox_v8.p4",
-        "line" : 64,
+        "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+        "line" : 66,
         "column" : 22,
         "source_fragment" : "time_average"
       },
@@ -581,8 +553,8 @@
       "name" : "ingress.time_delta_min_max",
       "id" : 1,
       "source_info" : {
-        "filename" : "bmv2_middlebox_v8.p4",
-        "line" : 65,
+        "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+        "line" : 67,
         "column" : 22,
         "source_fragment" : "time_delta_min_max"
       },
@@ -593,8 +565,8 @@
       "name" : "ingress.multi_counter_r",
       "id" : 2,
       "source_info" : {
-        "filename" : "bmv2_middlebox_v8.p4",
-        "line" : 66,
+        "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+        "line" : 68,
         "column" : 22,
         "source_fragment" : "multi_counter_r"
       },
@@ -607,7 +579,7 @@
       "name" : "calc",
       "id" : 0,
       "source_info" : {
-        "filename" : "checksum_16.p4",
+        "filename" : "../p4_src/checksum_16.p4",
         "line" : 8,
         "column" : 8,
         "source_fragment" : "update_checksum(true, { hdr.ipv4.version, hdr.ipv4.ihl, hdr.ipv4.diffServ, ..."
@@ -664,7 +636,7 @@
       "name" : "calc_0",
       "id" : 1,
       "source_info" : {
-        "filename" : "checksum_16.p4",
+        "filename" : "../p4_src/checksum_16.p4",
         "line" : 13,
         "column" : 8,
         "source_fragment" : "update_checksum_with_payload(hdr.tcp.isValid(), { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, ..."
@@ -690,7 +662,7 @@
         },
         {
           "type" : "field",
-          "value" : ["scalars", "metadata_t._l4_metadata_tcpLength4"]
+          "value" : ["scalars", "metadata_t._l4_metadata_tcpLength3"]
         },
         {
           "type" : "field",
@@ -730,10 +702,6 @@
         },
         {
           "type" : "header",
-          "value" : "tcp_options_96bit"
-        },
-        {
-          "type" : "header",
           "value" : "tcp_options_128bit_custom"
         },
         {
@@ -746,9 +714,9 @@
       "name" : "calc_1",
       "id" : 2,
       "source_info" : {
-        "filename" : "checksum_16.p4",
+        "filename" : "../p4_src/checksum_16.p4",
         "line" : 18,
-        "column" : 1,
+        "column" : 2,
         "source_fragment" : "update_checksum_with_payload(hdr.udp.isValid(), { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, ..."
       },
       "algo" : "csum16",
@@ -785,6 +753,10 @@
         {
           "type" : "field",
           "value" : ["udp", "len"]
+        },
+        {
+          "type" : "header",
+          "value" : "tcp_options_128bit_custom"
         },
         {
           "type" : "payload",
@@ -854,8 +826,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 73,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 74,
             "column" : 2,
             "source_fragment" : "standard_metadata.egress_spec = egress_port"
           }
@@ -885,8 +857,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 73,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 74,
             "column" : 2,
             "source_fragment" : "standard_metadata.egress_spec = egress_port"
           }
@@ -916,8 +888,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 73,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 74,
             "column" : 2,
             "source_fragment" : "standard_metadata.egress_spec = egress_port"
           }
@@ -959,8 +931,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 80,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 81,
             "column" : 2,
             "source_fragment" : "standard_metadata.mcast_grp = grp"
           }
@@ -990,8 +962,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 80,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 81,
             "column" : 2,
             "source_fragment" : "standard_metadata.mcast_grp = grp"
           }
@@ -1017,7 +989,58 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_threshold_multicast2"]
+              "value" : ["scalars", "tmp_0"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "ingress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 85,
+            "column" : 32,
+            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "ingress.ingress_stamped_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_0"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 85,
+            "column" : 2,
+            "source_fragment" : "ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port)"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_threshold_multicast1"]
             },
             {
               "type" : "runtime_data",
@@ -1025,8 +1048,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 84,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 86,
             "column" : 2,
             "source_fragment" : "meta.l4_metadata.threshold_multicast = (bit<16>)threshold"
           }
@@ -1044,8 +1067,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 85,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 87,
             "column" : 2,
             "source_fragment" : "hdr.tcp_options_128bit_custom.timestamp2 = (bit<48>)standard_metadata.ingress_global_timestamp"
           }
@@ -1055,7 +1078,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_added_timestamp21"]
+              "value" : ["scalars", "metadata_t._l4_metadata_added_timestamp20"]
             },
             {
               "type" : "hexstr",
@@ -1063,8 +1086,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 86,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 88,
             "column" : 2,
             "source_fragment" : "meta.l4_metadata.added_timestamp2 = 1"
           }
@@ -1074,7 +1097,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+              "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
             },
             {
               "type" : "expression",
@@ -1105,8 +1128,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 87,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 89,
             "column" : 2,
             "source_fragment" : "meta.timestamp_metadata.delta = (bit<48>)standard_metadata.ingress_global_timestamp - hdr.tcp_options_128bit_custom.timestamp1"
           }
@@ -1116,7 +1139,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp8"]
+              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp7"]
             },
             {
               "type" : "expression",
@@ -1130,7 +1153,7 @@
                       "op" : "+",
                       "left" : {
                         "type" : "field",
-                        "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp8"]
+                        "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp7"]
                       },
                       "right" : {
                         "type" : "expression",
@@ -1167,8 +1190,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 88,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 90,
             "column" : 2,
             "source_fragment" : "meta.timestamp_metadata.ave_temp = meta.timestamp_metadata.ave_temp + (bit<48>)meta.timestamp_metadata.delta"
           }
@@ -1178,7 +1201,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp9"]
+              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp8"]
             },
             {
               "type" : "expression",
@@ -1192,7 +1215,7 @@
                       "op" : "+",
                       "left" : {
                         "type" : "field",
-                        "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp9"]
+                        "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp8"]
                       },
                       "right" : {
                         "type" : "hexstr",
@@ -1209,8 +1232,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 89,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 91,
             "column" : 2,
             "source_fragment" : "meta.timestamp_metadata.count_temp = meta.timestamp_metadata.count_temp + 1"
           }
@@ -1220,7 +1243,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_flow_direction6"]
+              "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
             },
             {
               "type" : "runtime_data",
@@ -1228,61 +1251,10 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 90,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 92,
             "column" : 2,
             "source_fragment" : "meta.l4_metadata.flow_direction = direction"
-          }
-        },
-        {
-          "op" : "assign",
-          "parameters" : [
-            {
-              "type" : "field",
-              "value" : ["scalars", "tmp"]
-            },
-            {
-              "type" : "expression",
-              "value" : {
-                "type" : "expression",
-                "value" : {
-                  "op" : "&",
-                  "left" : {
-                    "type" : "local",
-                    "value" : 1
-                  },
-                  "right" : {
-                    "type" : "hexstr",
-                    "value" : "0xffffffff"
-                  }
-                }
-              }
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 91,
-            "column" : 31,
-            "source_fragment" : "(bit<32>) direction"
-          }
-        },
-        {
-          "op" : "count",
-          "parameters" : [
-            {
-              "type" : "counter_array",
-              "value" : "ingress.c_add_second_timestamp"
-            },
-            {
-              "type" : "field",
-              "value" : ["scalars", "tmp"]
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 91,
-            "column" : 2,
-            "source_fragment" : "c_add_second_timestamp.count((bit<32>) direction)"
           }
         }
       ]
@@ -1306,7 +1278,58 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_threshold_multicast2"]
+              "value" : ["scalars", "tmp_1"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "ingress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 85,
+            "column" : 32,
+            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "ingress.ingress_stamped_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_1"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 85,
+            "column" : 2,
+            "source_fragment" : "ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port)"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_threshold_multicast1"]
             },
             {
               "type" : "runtime_data",
@@ -1314,8 +1337,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 84,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 86,
             "column" : 2,
             "source_fragment" : "meta.l4_metadata.threshold_multicast = (bit<16>)threshold"
           }
@@ -1333,8 +1356,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 85,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 87,
             "column" : 2,
             "source_fragment" : "hdr.tcp_options_128bit_custom.timestamp2 = (bit<48>)standard_metadata.ingress_global_timestamp"
           }
@@ -1344,7 +1367,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_added_timestamp21"]
+              "value" : ["scalars", "metadata_t._l4_metadata_added_timestamp20"]
             },
             {
               "type" : "hexstr",
@@ -1352,8 +1375,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 86,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 88,
             "column" : 2,
             "source_fragment" : "meta.l4_metadata.added_timestamp2 = 1"
           }
@@ -1363,7 +1386,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+              "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
             },
             {
               "type" : "expression",
@@ -1394,8 +1417,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 87,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 89,
             "column" : 2,
             "source_fragment" : "meta.timestamp_metadata.delta = (bit<48>)standard_metadata.ingress_global_timestamp - hdr.tcp_options_128bit_custom.timestamp1"
           }
@@ -1405,7 +1428,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp8"]
+              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp7"]
             },
             {
               "type" : "expression",
@@ -1419,7 +1442,7 @@
                       "op" : "+",
                       "left" : {
                         "type" : "field",
-                        "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp8"]
+                        "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp7"]
                       },
                       "right" : {
                         "type" : "expression",
@@ -1456,8 +1479,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 88,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 90,
             "column" : 2,
             "source_fragment" : "meta.timestamp_metadata.ave_temp = meta.timestamp_metadata.ave_temp + (bit<48>)meta.timestamp_metadata.delta"
           }
@@ -1467,7 +1490,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp9"]
+              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp8"]
             },
             {
               "type" : "expression",
@@ -1481,7 +1504,7 @@
                       "op" : "+",
                       "left" : {
                         "type" : "field",
-                        "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp9"]
+                        "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp8"]
                       },
                       "right" : {
                         "type" : "hexstr",
@@ -1498,8 +1521,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 89,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 91,
             "column" : 2,
             "source_fragment" : "meta.timestamp_metadata.count_temp = meta.timestamp_metadata.count_temp + 1"
           }
@@ -1509,7 +1532,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_flow_direction6"]
+              "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
             },
             {
               "type" : "runtime_data",
@@ -1517,18 +1540,30 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 90,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 92,
             "column" : 2,
             "source_fragment" : "meta.l4_metadata.flow_direction = direction"
           }
-        },
+        }
+      ]
+    },
+    {
+      "name" : "ingress.add_timestamp_header_tcp",
+      "id" : 15,
+      "runtime_data" : [
+        {
+          "name" : "direction",
+          "bitwidth" : 1
+        }
+      ],
+      "primitives" : [
         {
           "op" : "assign",
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_0"]
+              "value" : ["scalars", "tmp_2"]
             },
             {
               "type" : "expression",
@@ -1537,8 +1572,8 @@
                 "value" : {
                   "op" : "&",
                   "left" : {
-                    "type" : "local",
-                    "value" : 1
+                    "type" : "field",
+                    "value" : ["standard_metadata", "ingress_port"]
                   },
                   "right" : {
                     "type" : "hexstr",
@@ -1549,10 +1584,10 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 91,
-            "column" : 31,
-            "source_fragment" : "(bit<32>) direction"
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 96,
+            "column" : 32,
+            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
           }
         },
         {
@@ -1560,36 +1595,20 @@
           "parameters" : [
             {
               "type" : "counter_array",
-              "value" : "ingress.c_add_second_timestamp"
+              "value" : "ingress.ingress_stamped_counter"
             },
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_0"]
+              "value" : ["scalars", "tmp_2"]
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 91,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 96,
             "column" : 2,
-            "source_fragment" : "c_add_second_timestamp.count((bit<32>) direction)"
+            "source_fragment" : "ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port)"
           }
-        }
-      ]
-    },
-    {
-      "name" : "ingress.add_timestamp_header",
-      "id" : 15,
-      "runtime_data" : [
-        {
-          "name" : "new_offset",
-          "bitwidth" : 4
         },
-        {
-          "name" : "direction",
-          "bitwidth" : 1
-        }
-      ],
-      "primitives" : [
         {
           "op" : "add_header",
           "parameters" : [
@@ -1599,8 +1618,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 95,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 97,
             "column" : 2,
             "source_fragment" : "hdr.tcp_options_128bit_custom.setValid()"
           }
@@ -1613,15 +1632,38 @@
               "value" : ["tcp", "dataOffset"]
             },
             {
-              "type" : "runtime_data",
-              "value" : 0
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["tcp", "dataOffset"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x04"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0x0f"
+                  }
+                }
+              }
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 96,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 98,
             "column" : 2,
-            "source_fragment" : "hdr.tcp.dataOffset = new_offset"
+            "source_fragment" : "hdr.tcp.dataOffset = hdr.tcp.dataOffset + 4"
           }
         },
         {
@@ -1660,8 +1702,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 97,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 99,
             "column" : 2,
             "source_fragment" : "hdr.ipv4.paketlen = hdr.ipv4.paketlen + 16w0x10"
           }
@@ -1679,8 +1721,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 98,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 100,
             "column" : 2,
             "source_fragment" : "hdr.tcp_options_128bit_custom.myType = 16w0x0f10"
           }
@@ -1690,7 +1732,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_tcpLen0"]
+              "value" : ["scalars", "metadata_t._l4_metadata_tcpLength3"]
             },
             {
               "type" : "expression",
@@ -1704,7 +1746,7 @@
                       "op" : "+",
                       "left" : {
                         "type" : "field",
-                        "value" : ["scalars", "metadata_t._l4_metadata_tcpLen0"]
+                        "value" : ["scalars", "metadata_t._l4_metadata_tcpLength3"]
                       },
                       "right" : {
                         "type" : "hexstr",
@@ -1721,10 +1763,10 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 99,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 101,
             "column" : 2,
-            "source_fragment" : "meta.l4_metadata.tcpLen = meta.l4_metadata.tcpLen + 16w0x10"
+            "source_fragment" : "meta.l4_metadata.tcpLength = meta.l4_metadata.tcpLength + 16w0x10"
           }
         },
         {
@@ -1732,16 +1774,16 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_flow_direction6"]
+              "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
             },
             {
               "type" : "runtime_data",
-              "value" : 1
+              "value" : 0
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 100,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 102,
             "column" : 2,
             "source_fragment" : "meta.l4_metadata.flow_direction = direction"
           }
@@ -1751,7 +1793,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_added_empty_header5"]
+              "value" : ["scalars", "metadata_t._l4_metadata_added_empty_header4"]
             },
             {
               "type" : "hexstr",
@@ -1759,8 +1801,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 101,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 103,
             "column" : 2,
             "source_fragment" : "meta.l4_metadata.added_empty_header = 1"
           }
@@ -1782,6 +1824,57 @@
           "parameters" : [
             {
               "type" : "field",
+              "value" : ["scalars", "tmp_3"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "ingress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 107,
+            "column" : 32,
+            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "ingress.ingress_stamped_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_3"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 107,
+            "column" : 2,
+            "source_fragment" : "ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port)"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
               "value" : ["tcp_options_128bit_custom", "myType"]
             },
             {
@@ -1790,8 +1883,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 105,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 108,
             "column" : 2,
             "source_fragment" : "hdr.tcp_options_128bit_custom.myType = 16w0x0f10"
           }
@@ -1801,7 +1894,64 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_flow_direction6"]
+              "value" : ["tcp_options_128bit_custom", "timestamp1"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x000000000000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 109,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.timestamp1 = 48w0x0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "empty"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 110,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.empty = 16w0x0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "timestamp2"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x000000000000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 111,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.timestamp2 = 48w0x0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
             },
             {
               "type" : "runtime_data",
@@ -1809,8 +1959,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 106,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 112,
             "column" : 2,
             "source_fragment" : "meta.l4_metadata.flow_direction = direction"
           }
@@ -1820,7 +1970,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_added_empty_header5"]
+              "value" : ["scalars", "metadata_t._l4_metadata_added_empty_header4"]
             },
             {
               "type" : "hexstr",
@@ -1828,8 +1978,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 107,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 113,
             "column" : 2,
             "source_fragment" : "meta.l4_metadata.added_empty_header = 1"
           }
@@ -1839,279 +1989,6 @@
     {
       "name" : "ingress.count_all_ingress",
       "id" : 17,
-      "runtime_data" : [],
-      "primitives" : [
-        {
-          "op" : "assign",
-          "parameters" : [
-            {
-              "type" : "field",
-              "value" : ["scalars", "tmp_1"]
-            },
-            {
-              "type" : "expression",
-              "value" : {
-                "type" : "expression",
-                "value" : {
-                  "op" : "&",
-                  "left" : {
-                    "type" : "field",
-                    "value" : ["standard_metadata", "ingress_port"]
-                  },
-                  "right" : {
-                    "type" : "hexstr",
-                    "value" : "0xffffffff"
-                  }
-                }
-              }
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 111,
-            "column" : 24,
-            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
-          }
-        },
-        {
-          "op" : "count",
-          "parameters" : [
-            {
-              "type" : "counter_array",
-              "value" : "ingress.ingress_counter"
-            },
-            {
-              "type" : "field",
-              "value" : ["scalars", "tmp_1"]
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 111,
-            "column" : 2,
-            "source_fragment" : "ingress_counter.count((bit<32>) standard_metadata.ingress_port)"
-          }
-        }
-      ]
-    },
-    {
-      "name" : "ingress.count_stamped_ingress",
-      "id" : 18,
-      "runtime_data" : [],
-      "primitives" : [
-        {
-          "op" : "assign",
-          "parameters" : [
-            {
-              "type" : "field",
-              "value" : ["scalars", "tmp_2"]
-            },
-            {
-              "type" : "expression",
-              "value" : {
-                "type" : "expression",
-                "value" : {
-                  "op" : "&",
-                  "left" : {
-                    "type" : "field",
-                    "value" : ["standard_metadata", "ingress_port"]
-                  },
-                  "right" : {
-                    "type" : "hexstr",
-                    "value" : "0xffffffff"
-                  }
-                }
-              }
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 115,
-            "column" : 32,
-            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
-          }
-        },
-        {
-          "op" : "count",
-          "parameters" : [
-            {
-              "type" : "counter_array",
-              "value" : "ingress.ingress_stamped_counter"
-            },
-            {
-              "type" : "field",
-              "value" : ["scalars", "tmp_2"]
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 115,
-            "column" : 2,
-            "source_fragment" : "ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port)"
-          }
-        }
-      ]
-    },
-    {
-      "name" : "ingress.count_stamped_ingress",
-      "id" : 19,
-      "runtime_data" : [],
-      "primitives" : [
-        {
-          "op" : "assign",
-          "parameters" : [
-            {
-              "type" : "field",
-              "value" : ["scalars", "tmp_3"]
-            },
-            {
-              "type" : "expression",
-              "value" : {
-                "type" : "expression",
-                "value" : {
-                  "op" : "&",
-                  "left" : {
-                    "type" : "field",
-                    "value" : ["standard_metadata", "ingress_port"]
-                  },
-                  "right" : {
-                    "type" : "hexstr",
-                    "value" : "0xffffffff"
-                  }
-                }
-              }
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 115,
-            "column" : 32,
-            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
-          }
-        },
-        {
-          "op" : "count",
-          "parameters" : [
-            {
-              "type" : "counter_array",
-              "value" : "ingress.ingress_stamped_counter"
-            },
-            {
-              "type" : "field",
-              "value" : ["scalars", "tmp_3"]
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 115,
-            "column" : 2,
-            "source_fragment" : "ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port)"
-          }
-        }
-      ]
-    },
-    {
-      "name" : "act",
-      "id" : 20,
-      "runtime_data" : [],
-      "primitives" : [
-        {
-          "op" : "register_read",
-          "parameters" : [
-            {
-              "type" : "field",
-              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp8"]
-            },
-            {
-              "type" : "register_array",
-              "value" : "ingress.time_average"
-            },
-            {
-              "type" : "hexstr",
-              "value" : "0x00000000"
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 219,
-            "column" : 4,
-            "source_fragment" : "time_average.read(meta.timestamp_metadata.ave_temp, 0)"
-          }
-        },
-        {
-          "op" : "register_read",
-          "parameters" : [
-            {
-              "type" : "field",
-              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp9"]
-            },
-            {
-              "type" : "register_array",
-              "value" : "ingress.time_average"
-            },
-            {
-              "type" : "hexstr",
-              "value" : "0x00000001"
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 220,
-            "column" : 4,
-            "source_fragment" : "time_average.read(meta.timestamp_metadata.count_temp, 1)"
-          }
-        },
-        {
-          "op" : "register_read",
-          "parameters" : [
-            {
-              "type" : "field",
-              "value" : ["scalars", "metadata_t._timestamp_metadata_min_temp10"]
-            },
-            {
-              "type" : "register_array",
-              "value" : "ingress.time_delta_min_max"
-            },
-            {
-              "type" : "hexstr",
-              "value" : "0x00000000"
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 221,
-            "column" : 4,
-            "source_fragment" : "time_delta_min_max.read(meta.timestamp_metadata.min_temp, 0)"
-          }
-        },
-        {
-          "op" : "register_read",
-          "parameters" : [
-            {
-              "type" : "field",
-              "value" : ["scalars", "metadata_t._timestamp_metadata_max_temp11"]
-            },
-            {
-              "type" : "register_array",
-              "value" : "ingress.time_delta_min_max"
-            },
-            {
-              "type" : "hexstr",
-              "value" : "0x00000001"
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 222,
-            "column" : 4,
-            "source_fragment" : "time_delta_min_max.read(meta.timestamp_metadata.max_temp, 1)"
-          }
-        }
-      ]
-    },
-    {
-      "name" : "act_0",
-      "id" : 21,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2129,7 +2006,7 @@
                   "op" : "&",
                   "left" : {
                     "type" : "field",
-                    "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+                    "value" : ["standard_metadata", "ingress_port"]
                   },
                   "right" : {
                     "type" : "hexstr",
@@ -2140,8 +2017,165 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 278,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 117,
+            "column" : 24,
+            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "ingress.ingress_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_4"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 117,
+            "column" : 2,
+            "source_fragment" : "ingress_counter.count((bit<32>) standard_metadata.ingress_port)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act",
+      "id" : 18,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp7"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_average"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 220,
+            "column" : 4,
+            "source_fragment" : "time_average.read(meta.timestamp_metadata.ave_temp, 0)"
+          }
+        },
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp8"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_average"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000001"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 221,
+            "column" : 4,
+            "source_fragment" : "time_average.read(meta.timestamp_metadata.count_temp, 1)"
+          }
+        },
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_min_temp9"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_delta_min_max"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 222,
+            "column" : 4,
+            "source_fragment" : "time_delta_min_max.read(meta.timestamp_metadata.min_temp, 0)"
+          }
+        },
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_max_temp10"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_delta_min_max"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000001"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 223,
+            "column" : 4,
+            "source_fragment" : "time_delta_min_max.read(meta.timestamp_metadata.max_temp, 1)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_0",
+      "id" : 19,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_5"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 247,
             "column" : 34,
             "source_fragment" : "(bit<32>)meta.timestamp_metadata.delta"
           }
@@ -2159,12 +2193,12 @@
             },
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_4"]
+              "value" : ["scalars", "tmp_5"]
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 278,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 247,
             "column" : 6,
             "source_fragment" : "time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta)"
           }
@@ -2173,7 +2207,7 @@
     },
     {
       "name" : "act_1",
-      "id" : 22,
+      "id" : 20,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2181,7 +2215,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_5"]
+              "value" : ["scalars", "tmp_6"]
             },
             {
               "type" : "expression",
@@ -2191,7 +2225,7 @@
                   "op" : "&",
                   "left" : {
                     "type" : "field",
-                    "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
                   },
                   "right" : {
                     "type" : "hexstr",
@@ -2202,8 +2236,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 282,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 251,
             "column" : 33,
             "source_fragment" : "(bit<32>)meta.timestamp_metadata.delta"
           }
@@ -2221,12 +2255,12 @@
             },
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_5"]
+              "value" : ["scalars", "tmp_6"]
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 282,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 251,
             "column" : 5,
             "source_fragment" : "time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta)"
           }
@@ -2235,7 +2269,7 @@
     },
     {
       "name" : "act_2",
-      "id" : 23,
+      "id" : 21,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2251,12 +2285,12 @@
             },
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp8"]
+              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp7"]
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 274,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 243,
             "column" : 4,
             "source_fragment" : "time_average.write(0, meta.timestamp_metadata.ave_temp)"
           }
@@ -2274,12 +2308,12 @@
             },
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp9"]
+              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp8"]
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 275,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 244,
             "column" : 4,
             "source_fragment" : "time_average.write(1, meta.timestamp_metadata.count_temp)"
           }
@@ -2288,7 +2322,7 @@
     },
     {
       "name" : "act_3",
-      "id" : 24,
+      "id" : 22,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2296,7 +2330,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_6"]
+              "value" : ["scalars", "tmp_7"]
             },
             {
               "type" : "expression",
@@ -2306,7 +2340,7 @@
                   "op" : "&",
                   "left" : {
                     "type" : "field",
-                    "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
                   },
                   "right" : {
                     "type" : "hexstr",
@@ -2317,8 +2351,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 285,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 254,
             "column" : 33,
             "source_fragment" : "(bit<32>)meta.timestamp_metadata.delta"
           }
@@ -2336,12 +2370,12 @@
             },
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_6"]
+              "value" : ["scalars", "tmp_7"]
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 285,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 254,
             "column" : 5,
             "source_fragment" : "time_delta_min_max.write(1, (bit<32>)meta.timestamp_metadata.delta)"
           }
@@ -2350,7 +2384,7 @@
     },
     {
       "name" : "act_4",
-      "id" : 25,
+      "id" : 23,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2358,7 +2392,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_multi_counter3"]
+              "value" : ["scalars", "metadata_t._l4_metadata_multi_counter2"]
             },
             {
               "type" : "hexstr",
@@ -2366,8 +2400,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 292,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 261,
             "column" : 6,
             "source_fragment" : "meta.l4_metadata.multi_counter = 0"
           }
@@ -2377,7 +2411,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_7"]
+              "value" : ["scalars", "tmp_8"]
             },
             {
               "type" : "expression",
@@ -2387,7 +2421,7 @@
                   "op" : "&",
                   "left" : {
                     "type" : "field",
-                    "value" : ["scalars", "metadata_t._l4_metadata_flow_direction6"]
+                    "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
                   },
                   "right" : {
                     "type" : "hexstr",
@@ -2398,8 +2432,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 293,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 262,
             "column" : 29,
             "source_fragment" : "(bit<32>) meta.l4_metadata.flow_direction"
           }
@@ -2413,7 +2447,7 @@
             },
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_7"]
+              "value" : ["scalars", "tmp_8"]
             },
             {
               "type" : "hexstr",
@@ -2421,8 +2455,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 293,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 262,
             "column" : 6,
             "source_fragment" : "multi_counter_r.write( (bit<32>) meta.l4_metadata.flow_direction, meta.l4_metadata.multi_counter)"
           }
@@ -2431,7 +2465,7 @@
     },
     {
       "name" : "act_5",
-      "id" : 26,
+      "id" : 24,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2439,7 +2473,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_multi_counter3"]
+              "value" : ["scalars", "metadata_t._l4_metadata_multi_counter2"]
             },
             {
               "type" : "expression",
@@ -2453,7 +2487,7 @@
                       "op" : "+",
                       "left" : {
                         "type" : "field",
-                        "value" : ["scalars", "metadata_t._l4_metadata_multi_counter3"]
+                        "value" : ["scalars", "metadata_t._l4_metadata_multi_counter2"]
                       },
                       "right" : {
                         "type" : "hexstr",
@@ -2470,8 +2504,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 295,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 264,
             "column" : 6,
             "source_fragment" : "meta.l4_metadata.multi_counter = meta.l4_metadata.multi_counter + 1"
           }
@@ -2481,7 +2515,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_8"]
+              "value" : ["scalars", "tmp_9"]
             },
             {
               "type" : "expression",
@@ -2491,7 +2525,7 @@
                   "op" : "&",
                   "left" : {
                     "type" : "field",
-                    "value" : ["scalars", "metadata_t._l4_metadata_flow_direction6"]
+                    "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
                   },
                   "right" : {
                     "type" : "hexstr",
@@ -2502,8 +2536,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 296,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 265,
             "column" : 29,
             "source_fragment" : "(bit<32>) meta.l4_metadata.flow_direction"
           }
@@ -2517,16 +2551,16 @@
             },
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_8"]
+              "value" : ["scalars", "tmp_9"]
             },
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_multi_counter3"]
+              "value" : ["scalars", "metadata_t._l4_metadata_multi_counter2"]
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 296,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 265,
             "column" : 6,
             "source_fragment" : "multi_counter_r.write( (bit<32>) meta.l4_metadata.flow_direction, meta.l4_metadata.multi_counter)"
           }
@@ -2535,7 +2569,7 @@
     },
     {
       "name" : "act_6",
-      "id" : 27,
+      "id" : 25,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2543,7 +2577,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_9"]
+              "value" : ["scalars", "tmp_10"]
             },
             {
               "type" : "expression",
@@ -2553,7 +2587,7 @@
                   "op" : "&",
                   "left" : {
                     "type" : "field",
-                    "value" : ["scalars", "metadata_t._l4_metadata_flow_direction6"]
+                    "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
                   },
                   "right" : {
                     "type" : "hexstr",
@@ -2564,8 +2598,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 289,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 258,
             "column" : 58,
             "source_fragment" : "(bit<32>)meta.l4_metadata.flow_direction"
           }
@@ -2575,7 +2609,7 @@
           "parameters" : [
             {
               "type" : "field",
-              "value" : ["scalars", "metadata_t._l4_metadata_multi_counter3"]
+              "value" : ["scalars", "metadata_t._l4_metadata_multi_counter2"]
             },
             {
               "type" : "register_array",
@@ -2583,12 +2617,12 @@
             },
             {
               "type" : "field",
-              "value" : ["scalars", "tmp_9"]
+              "value" : ["scalars", "tmp_10"]
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 289,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 258,
             "column" : 5,
             "source_fragment" : "multi_counter_r.read(meta.l4_metadata.multi_counter, (bit<32>)meta.l4_metadata.flow_direction)"
           }
@@ -2597,13 +2631,19 @@
     },
     {
       "name" : "NoAction",
-      "id" : 28,
+      "id" : 26,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "NoAction",
+      "id" : 27,
       "runtime_data" : [],
       "primitives" : []
     },
     {
       "name" : "egress.change_mac",
-      "id" : 29,
+      "id" : 28,
       "runtime_data" : [
         {
           "name" : "dst",
@@ -2624,8 +2664,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 312,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 280,
             "column" : 2,
             "source_fragment" : "hdr.ethernet.dstAddr = dst"
           }
@@ -2634,7 +2674,7 @@
     },
     {
       "name" : "egress.add_timestamp1",
-      "id" : 30,
+      "id" : 29,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2650,68 +2690,17 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 316,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 284,
             "column" : 2,
             "source_fragment" : "hdr.tcp_options_128bit_custom.timestamp1 = (bit<48>)standard_metadata.egress_global_timestamp"
-          }
-        },
-        {
-          "op" : "assign",
-          "parameters" : [
-            {
-              "type" : "field",
-              "value" : ["scalars", "tmp_10"]
-            },
-            {
-              "type" : "expression",
-              "value" : {
-                "type" : "expression",
-                "value" : {
-                  "op" : "&",
-                  "left" : {
-                    "type" : "field",
-                    "value" : ["scalars", "metadata_t._l4_metadata_flow_direction6"]
-                  },
-                  "right" : {
-                    "type" : "hexstr",
-                    "value" : "0xffffffff"
-                  }
-                }
-              }
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 317,
-            "column" : 30,
-            "source_fragment" : "(bit<32>)meta.l4_metadata.flow_direction"
-          }
-        },
-        {
-          "op" : "count",
-          "parameters" : [
-            {
-              "type" : "counter_array",
-              "value" : "egress.c_add_first_timestamp"
-            },
-            {
-              "type" : "field",
-              "value" : ["scalars", "tmp_10"]
-            }
-          ],
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 317,
-            "column" : 2,
-            "source_fragment" : "c_add_first_timestamp.count((bit<32>)meta.l4_metadata.flow_direction)"
           }
         }
       ]
     },
     {
       "name" : "egress.count_all_egress",
-      "id" : 31,
+      "id" : 30,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2740,8 +2729,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 321,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 288,
             "column" : 23,
             "source_fragment" : "(bit<32>) standard_metadata.egress_port"
           }
@@ -2759,8 +2748,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 321,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 288,
             "column" : 2,
             "source_fragment" : "egress_counter.count((bit<32>) standard_metadata.egress_port)"
           }
@@ -2769,7 +2758,7 @@
     },
     {
       "name" : "egress.count_stamped_egress",
-      "id" : 32,
+      "id" : 31,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2798,8 +2787,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 325,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 292,
             "column" : 31,
             "source_fragment" : "(bit<32>) standard_metadata.egress_port"
           }
@@ -2817,8 +2806,8 @@
             }
           ],
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 325,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 292,
             "column" : 2,
             "source_fragment" : "egress_stamped_counter.count((bit<32>) standard_metadata.egress_port)"
           }
@@ -2831,8 +2820,8 @@
       "name" : "ingress",
       "id" : 0,
       "source_info" : {
-        "filename" : "bmv2_middlebox_v8.p4",
-        "line" : 63,
+        "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+        "line" : 65,
         "column" : 8,
         "source_fragment" : "ingress"
       },
@@ -2842,8 +2831,8 @@
           "name" : "tbl_count_all_ingress",
           "id" : 0,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 213,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 214,
             "column" : 2,
             "source_fragment" : "count_all_ingress()"
           },
@@ -2871,8 +2860,8 @@
           "name" : "ingress.t_l1_forwarding",
           "id" : 1,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 119,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 121,
             "column" : 7,
             "source_fragment" : "t_l1_forwarding"
           },
@@ -2908,8 +2897,8 @@
           "name" : "ingress.t_l2_forwarding",
           "id" : 2,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 131,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 133,
             "column" : 7,
             "source_fragment" : "t_l2_forwarding"
           },
@@ -2952,8 +2941,8 @@
           "name" : "ingress.t_l3_forwarding",
           "id" : 3,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 145,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 147,
             "column" : 7,
             "source_fragment" : "t_l3_forwarding"
           },
@@ -2995,8 +2984,8 @@
           "name" : "tbl_act",
           "id" : 4,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 219,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 220,
             "column" : 4,
             "source_fragment" : "time_average.read(meta.timestamp_metadata.ave_temp, 0); ..."
           },
@@ -3007,27 +2996,27 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [20],
+          "action_ids" : [18],
           "actions" : ["act"],
           "base_default_next" : "node_9",
           "next_tables" : {
             "act" : "node_9"
           },
           "default_entry" : {
-            "action_id" : 20,
+            "action_id" : 18,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
           }
         },
         {
-          "name" : "ingress.t_add_timestamp_header",
+          "name" : "ingress.t_add_timestamp_header_tcp",
           "id" : 5,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 156,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 158,
             "column" : 7,
-            "source_fragment" : "t_add_timestamp_header"
+            "source_fragment" : "t_add_timestamp_header_tcp"
           },
           "key" : [
             {
@@ -3045,15 +3034,15 @@
           ],
           "match_type" : "exact",
           "type" : "simple",
-          "max_size" : 4,
+          "max_size" : 16,
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
           "action_ids" : [15, 1],
-          "actions" : ["ingress.add_timestamp_header", "NoAction"],
+          "actions" : ["ingress.add_timestamp_header_tcp", "NoAction"],
           "base_default_next" : "node_11",
           "next_tables" : {
-            "ingress.add_timestamp_header" : "node_11",
+            "ingress.add_timestamp_header_tcp" : "node_11",
             "NoAction" : "node_11"
           },
           "default_entry" : {
@@ -3064,42 +3053,13 @@
           }
         },
         {
-          "name" : "tbl_count_stamped_ingress",
+          "name" : "ingress.t_timestamp2_tcp",
           "id" : 6,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 229,
-            "column" : 5,
-            "source_fragment" : "count_stamped_ingress()"
-          },
-          "key" : [],
-          "match_type" : "exact",
-          "type" : "simple",
-          "max_size" : 1024,
-          "with_counters" : false,
-          "support_timeout" : false,
-          "direct_meters" : null,
-          "action_ids" : [18],
-          "actions" : ["ingress.count_stamped_ingress"],
-          "base_default_next" : "ingress.timestamp2",
-          "next_tables" : {
-            "ingress.count_stamped_ingress" : "ingress.timestamp2"
-          },
-          "default_entry" : {
-            "action_id" : 18,
-            "action_const" : true,
-            "action_data" : [],
-            "action_entry_const" : true
-          }
-        },
-        {
-          "name" : "ingress.timestamp2",
-          "id" : 7,
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 167,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 169,
             "column" : 7,
-            "source_fragment" : "timestamp2"
+            "source_fragment" : "t_timestamp2_tcp"
           },
           "key" : [
             {
@@ -3123,16 +3083,16 @@
           ],
           "match_type" : "exact",
           "type" : "simple",
-          "max_size" : 4,
+          "max_size" : 16,
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
           "action_ids" : [13, 2],
           "actions" : ["ingress.add_timestamp2", "NoAction"],
-          "base_default_next" : "node_20",
+          "base_default_next" : "node_18",
           "next_tables" : {
-            "ingress.add_timestamp2" : "node_20",
-            "NoAction" : "node_20"
+            "ingress.add_timestamp2" : "node_18",
+            "NoAction" : "node_18"
           },
           "default_entry" : {
             "action_id" : 2,
@@ -3143,10 +3103,10 @@
         },
         {
           "name" : "ingress.t_add_timestamp_header_udp",
-          "id" : 8,
+          "id" : 7,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 179,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 181,
             "column" : 7,
             "source_fragment" : "t_add_timestamp_header_udp"
           },
@@ -3160,16 +3120,16 @@
           ],
           "match_type" : "exact",
           "type" : "simple",
-          "max_size" : 4,
+          "max_size" : 16,
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
           "action_ids" : [16, 3],
           "actions" : ["ingress.add_timestamp_header_udp", "NoAction"],
-          "base_default_next" : "node_17",
+          "base_default_next" : "node_16",
           "next_tables" : {
-            "ingress.add_timestamp_header_udp" : "node_17",
-            "NoAction" : "node_17"
+            "ingress.add_timestamp_header_udp" : "node_16",
+            "NoAction" : "node_16"
           },
           "default_entry" : {
             "action_id" : 3,
@@ -3179,40 +3139,11 @@
           }
         },
         {
-          "name" : "tbl_count_stamped_ingress_0",
-          "id" : 9,
-          "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 267,
-            "column" : 6,
-            "source_fragment" : "count_stamped_ingress()"
-          },
-          "key" : [],
-          "match_type" : "exact",
-          "type" : "simple",
-          "max_size" : 1024,
-          "with_counters" : false,
-          "support_timeout" : false,
-          "direct_meters" : null,
-          "action_ids" : [19],
-          "actions" : ["ingress.count_stamped_ingress"],
-          "base_default_next" : "ingress.timestamp2_udp",
-          "next_tables" : {
-            "ingress.count_stamped_ingress" : "ingress.timestamp2_udp"
-          },
-          "default_entry" : {
-            "action_id" : 19,
-            "action_const" : true,
-            "action_data" : [],
-            "action_entry_const" : true
-          }
-        },
-        {
           "name" : "ingress.timestamp2_udp",
-          "id" : 10,
+          "id" : 8,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 189,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 191,
             "column" : 7,
             "source_fragment" : "timestamp2_udp"
           },
@@ -3232,16 +3163,16 @@
           ],
           "match_type" : "exact",
           "type" : "simple",
-          "max_size" : 4,
+          "max_size" : 16,
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
           "action_ids" : [14, 4],
           "actions" : ["ingress.add_timestamp2", "NoAction"],
-          "base_default_next" : "node_20",
+          "base_default_next" : "node_18",
           "next_tables" : {
-            "ingress.add_timestamp2" : "node_20",
-            "NoAction" : "node_20"
+            "ingress.add_timestamp2" : "node_18",
+            "NoAction" : "node_18"
           },
           "default_entry" : {
             "action_id" : 4,
@@ -3252,10 +3183,10 @@
         },
         {
           "name" : "tbl_act_0",
-          "id" : 11,
+          "id" : 9,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 274,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 243,
             "column" : 4,
             "source_fragment" : "time_average.write(0, meta.timestamp_metadata.ave_temp); ..."
           },
@@ -3266,14 +3197,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [23],
+          "action_ids" : [21],
           "actions" : ["act_2"],
-          "base_default_next" : "node_22",
+          "base_default_next" : "node_20",
           "next_tables" : {
-            "act_2" : "node_22"
+            "act_2" : "node_20"
           },
           "default_entry" : {
-            "action_id" : 23,
+            "action_id" : 21,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3281,10 +3212,10 @@
         },
         {
           "name" : "tbl_act_1",
-          "id" : 12,
+          "id" : 10,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 278,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 247,
             "column" : 6,
             "source_fragment" : "time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta)"
           },
@@ -3295,14 +3226,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [21],
+          "action_ids" : [19],
           "actions" : ["act_0"],
-          "base_default_next" : "node_27",
+          "base_default_next" : "node_25",
           "next_tables" : {
-            "act_0" : "node_27"
+            "act_0" : "node_25"
           },
           "default_entry" : {
-            "action_id" : 21,
+            "action_id" : 19,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3310,10 +3241,10 @@
         },
         {
           "name" : "tbl_act_2",
-          "id" : 13,
+          "id" : 11,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 282,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 251,
             "column" : 5,
             "source_fragment" : "time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta)"
           },
@@ -3324,14 +3255,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [22],
+          "action_ids" : [20],
           "actions" : ["act_1"],
-          "base_default_next" : "node_27",
+          "base_default_next" : "node_25",
           "next_tables" : {
-            "act_1" : "node_27"
+            "act_1" : "node_25"
           },
           "default_entry" : {
-            "action_id" : 22,
+            "action_id" : 20,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3339,10 +3270,10 @@
         },
         {
           "name" : "tbl_act_3",
-          "id" : 14,
+          "id" : 12,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 285,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 254,
             "column" : 5,
             "source_fragment" : "time_delta_min_max.write(1, (bit<32>)meta.timestamp_metadata.delta)"
           },
@@ -3353,14 +3284,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [24],
+          "action_ids" : [22],
           "actions" : ["act_3"],
-          "base_default_next" : "node_29",
+          "base_default_next" : "node_27",
           "next_tables" : {
-            "act_3" : "node_29"
+            "act_3" : "node_27"
           },
           "default_entry" : {
-            "action_id" : 24,
+            "action_id" : 22,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3368,10 +3299,10 @@
         },
         {
           "name" : "tbl_act_4",
-          "id" : 15,
+          "id" : 13,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 289,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 258,
             "column" : 5,
             "source_fragment" : "multi_counter_r.read(meta.l4_metadata.multi_counter, (bit<32>)meta.l4_metadata.flow_direction)"
           },
@@ -3382,35 +3313,29 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [27],
+          "action_ids" : [25],
           "actions" : ["act_6"],
-          "base_default_next" : "node_31",
+          "base_default_next" : "node_29",
           "next_tables" : {
-            "act_6" : "node_31"
+            "act_6" : "node_29"
           },
           "default_entry" : {
-            "action_id" : 27,
+            "action_id" : 25,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
           }
         },
         {
-          "name" : "ingress.multicast",
-          "id" : 16,
+          "name" : "ingress.t_multicast",
+          "id" : 14,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 200,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 202,
             "column" : 7,
-            "source_fragment" : "multicast"
+            "source_fragment" : "t_multicast"
           },
           "key" : [
-            {
-              "match_type" : "exact",
-              "name" : "standard_metadata.ingress_port",
-              "target" : ["standard_metadata", "ingress_port"],
-              "mask" : null
-            },
             {
               "match_type" : "exact",
               "name" : "standard_metadata.egress_spec",
@@ -3440,10 +3365,10 @@
         },
         {
           "name" : "tbl_act_5",
-          "id" : 17,
+          "id" : 15,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 292,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 261,
             "column" : 37,
             "source_fragment" : "= 0; ..."
           },
@@ -3454,14 +3379,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [25],
+          "action_ids" : [23],
           "actions" : ["act_4"],
           "base_default_next" : null,
           "next_tables" : {
             "act_4" : null
           },
           "default_entry" : {
-            "action_id" : 25,
+            "action_id" : 23,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3469,10 +3394,10 @@
         },
         {
           "name" : "tbl_act_6",
-          "id" : 18,
+          "id" : 16,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 295,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 264,
             "column" : 37,
             "source_fragment" : "= meta.l4_metadata.multi_counter + 1; ..."
           },
@@ -3483,14 +3408,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [26],
+          "action_ids" : [24],
           "actions" : ["act_5"],
           "base_default_next" : null,
           "next_tables" : {
             "act_5" : null
           },
           "default_entry" : {
-            "action_id" : 26,
+            "action_id" : 24,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3503,8 +3428,8 @@
           "name" : "node_5",
           "id" : 0,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 216,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 217,
             "column" : 5,
             "source_fragment" : "hdr.ipv4.isValid()"
           },
@@ -3526,8 +3451,8 @@
           "name" : "node_7",
           "id" : 1,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 218,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 219,
             "column" : 6,
             "source_fragment" : "hdr.tcp.isValid() || hdr.udp.isValid()"
           },
@@ -3566,8 +3491,8 @@
           "name" : "node_9",
           "id" : 2,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 226,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 227,
             "column" : 6,
             "source_fragment" : "hdr.tcp.isValid()"
           },
@@ -3582,15 +3507,15 @@
               }
             }
           },
-          "true_next" : "ingress.t_add_timestamp_header",
-          "false_next" : "node_14"
+          "true_next" : "ingress.t_add_timestamp_header_tcp",
+          "false_next" : "node_13"
         },
         {
           "name" : "node_11",
           "id" : 3,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 228,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 229,
             "column" : 7,
             "source_fragment" : "hdr.tcp_options_128bit_custom.myType == 16w0x0f10"
           },
@@ -3608,15 +3533,15 @@
               }
             }
           },
-          "true_next" : "tbl_count_stamped_ingress",
-          "false_next" : "ingress.timestamp2"
+          "true_next" : "ingress.t_timestamp2_tcp",
+          "false_next" : "node_18"
         },
         {
-          "name" : "node_14",
+          "name" : "node_13",
           "id" : 4,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 263,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 233,
             "column" : 11,
             "source_fragment" : "hdr.udp.isValid()"
           },
@@ -3631,15 +3556,15 @@
               }
             }
           },
-          "true_next" : "node_15",
-          "false_next" : "node_20"
+          "true_next" : "node_14",
+          "false_next" : "node_18"
         },
         {
-          "name" : "node_15",
+          "name" : "node_14",
           "id" : 5,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 264,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 234,
             "column" : 7,
             "source_fragment" : "hdr.udp.len >= 0x18"
           },
@@ -3658,14 +3583,14 @@
             }
           },
           "true_next" : "ingress.t_add_timestamp_header_udp",
-          "false_next" : "node_20"
+          "false_next" : "node_18"
         },
         {
-          "name" : "node_17",
+          "name" : "node_16",
           "id" : 6,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 266,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 236,
             "column" : 8,
             "source_fragment" : "hdr.tcp_options_128bit_custom.myType == 16w0x0f10"
           },
@@ -3683,15 +3608,15 @@
               }
             }
           },
-          "true_next" : "tbl_count_stamped_ingress_0",
-          "false_next" : "ingress.timestamp2_udp"
+          "true_next" : "ingress.timestamp2_udp",
+          "false_next" : "node_18"
         },
         {
-          "name" : "node_20",
+          "name" : "node_18",
           "id" : 7,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 273,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 242,
             "column" : 6,
             "source_fragment" : "hdr.tcp.isValid() || hdr.udp.isValid()"
           },
@@ -3727,11 +3652,11 @@
           "true_next" : "tbl_act_0"
         },
         {
-          "name" : "node_22",
+          "name" : "node_20",
           "id" : 8,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 276,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 245,
             "column" : 7,
             "source_fragment" : "(bit<48>)meta.timestamp_metadata.min_temp > meta.timestamp_metadata.delta"
           },
@@ -3745,7 +3670,7 @@
                   "op" : "&",
                   "left" : {
                     "type" : "field",
-                    "value" : ["scalars", "metadata_t._timestamp_metadata_min_temp10"]
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_min_temp9"]
                   },
                   "right" : {
                     "type" : "hexstr",
@@ -3755,19 +3680,19 @@
               },
               "right" : {
                 "type" : "field",
-                "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+                "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
               }
             }
           },
-          "true_next" : "node_23",
-          "false_next" : "node_25"
+          "true_next" : "node_21",
+          "false_next" : "node_23"
         },
         {
-          "name" : "node_23",
+          "name" : "node_21",
           "id" : 9,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 277,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 246,
             "column" : 8,
             "source_fragment" : "meta.timestamp_metadata.delta > 0"
           },
@@ -3777,7 +3702,7 @@
               "op" : ">",
               "left" : {
                 "type" : "field",
-                "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+                "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
               },
               "right" : {
                 "type" : "hexstr",
@@ -3786,14 +3711,14 @@
             }
           },
           "true_next" : "tbl_act_1",
-          "false_next" : "node_27"
+          "false_next" : "node_25"
         },
         {
-          "name" : "node_25",
+          "name" : "node_23",
           "id" : 10,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 281,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 250,
             "column" : 12,
             "source_fragment" : "(bit<48>)meta.timestamp_metadata.min_temp == 0"
           },
@@ -3807,7 +3732,7 @@
                   "op" : "&",
                   "left" : {
                     "type" : "field",
-                    "value" : ["scalars", "metadata_t._timestamp_metadata_min_temp10"]
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_min_temp9"]
                   },
                   "right" : {
                     "type" : "hexstr",
@@ -3822,14 +3747,14 @@
             }
           },
           "true_next" : "tbl_act_2",
-          "false_next" : "node_27"
+          "false_next" : "node_25"
         },
         {
-          "name" : "node_27",
+          "name" : "node_25",
           "id" : 11,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 284,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 253,
             "column" : 7,
             "source_fragment" : "(bit<48>)meta.timestamp_metadata.max_temp < meta.timestamp_metadata.delta"
           },
@@ -3843,7 +3768,7 @@
                   "op" : "&",
                   "left" : {
                     "type" : "field",
-                    "value" : ["scalars", "metadata_t._timestamp_metadata_max_temp11"]
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_max_temp10"]
                   },
                   "right" : {
                     "type" : "hexstr",
@@ -3853,19 +3778,19 @@
               },
               "right" : {
                 "type" : "field",
-                "value" : ["scalars", "metadata_t._timestamp_metadata_delta7"]
+                "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
               }
             }
           },
           "true_next" : "tbl_act_3",
-          "false_next" : "node_29"
+          "false_next" : "node_27"
         },
         {
-          "name" : "node_29",
+          "name" : "node_27",
           "id" : 12,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 288,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 257,
             "column" : 7,
             "source_fragment" : "meta.l4_metadata.added_timestamp2 == 1"
           },
@@ -3875,7 +3800,7 @@
               "op" : "==",
               "left" : {
                 "type" : "field",
-                "value" : ["scalars", "metadata_t._l4_metadata_added_timestamp21"]
+                "value" : ["scalars", "metadata_t._l4_metadata_added_timestamp20"]
               },
               "right" : {
                 "type" : "hexstr",
@@ -3887,11 +3812,11 @@
           "true_next" : "tbl_act_4"
         },
         {
-          "name" : "node_31",
+          "name" : "node_29",
           "id" : 13,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 290,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 259,
             "column" : 8,
             "source_fragment" : "meta.l4_metadata.multi_counter >= meta.l4_metadata.threshold_multicast"
           },
@@ -3901,15 +3826,15 @@
               "op" : ">=",
               "left" : {
                 "type" : "field",
-                "value" : ["scalars", "metadata_t._l4_metadata_multi_counter3"]
+                "value" : ["scalars", "metadata_t._l4_metadata_multi_counter2"]
               },
               "right" : {
                 "type" : "field",
-                "value" : ["scalars", "metadata_t._l4_metadata_threshold_multicast2"]
+                "value" : ["scalars", "metadata_t._l4_metadata_threshold_multicast1"]
               }
             }
           },
-          "true_next" : "ingress.multicast",
+          "true_next" : "ingress.t_multicast",
           "false_next" : "tbl_act_6"
         }
       ]
@@ -3918,8 +3843,8 @@
       "name" : "egress",
       "id" : 1,
       "source_info" : {
-        "filename" : "bmv2_middlebox_v8.p4",
-        "line" : 304,
+        "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+        "line" : 273,
         "column" : 8,
         "source_fragment" : "egress"
       },
@@ -3927,10 +3852,10 @@
       "tables" : [
         {
           "name" : "egress.broadcast_mac",
-          "id" : 19,
+          "id" : 17,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 329,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 296,
             "column" : 7,
             "source_fragment" : "broadcast_mac"
           },
@@ -3948,15 +3873,15 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [29, 28],
+          "action_ids" : [28, 26],
           "actions" : ["egress.change_mac", "NoAction"],
-          "base_default_next" : "node_38",
+          "base_default_next" : "node_36",
           "next_tables" : {
-            "egress.change_mac" : "node_38",
-            "NoAction" : "node_38"
+            "egress.change_mac" : "node_36",
+            "NoAction" : "node_36"
           },
           "default_entry" : {
-            "action_id" : 28,
+            "action_id" : 26,
             "action_const" : false,
             "action_data" : [],
             "action_entry_const" : false
@@ -3964,10 +3889,10 @@
         },
         {
           "name" : "tbl_add_timestamp1",
-          "id" : 20,
+          "id" : 18,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 344,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 321,
             "column" : 5,
             "source_fragment" : "add_timestamp1()"
           },
@@ -3978,54 +3903,62 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [30],
+          "action_ids" : [29],
           "actions" : ["egress.add_timestamp1"],
-          "base_default_next" : "tbl_count_stamped_egress",
+          "base_default_next" : "node_40",
           "next_tables" : {
-            "egress.add_timestamp1" : "tbl_count_stamped_egress"
+            "egress.add_timestamp1" : "node_40"
           },
           "default_entry" : {
-            "action_id" : 30,
+            "action_id" : 29,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
           }
         },
         {
-          "name" : "tbl_count_stamped_egress",
-          "id" : 21,
+          "name" : "egress.t_count_stamped_egress",
+          "id" : 19,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 345,
-            "column" : 5,
-            "source_fragment" : "count_stamped_egress()"
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 306,
+            "column" : 7,
+            "source_fragment" : "t_count_stamped_egress"
           },
-          "key" : [],
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "hdr.tcp_options_128bit_custom.myType",
+              "target" : ["tcp_options_128bit_custom", "myType"],
+              "mask" : null
+            }
+          ],
           "match_type" : "exact",
           "type" : "simple",
-          "max_size" : 1024,
+          "max_size" : 8,
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [32],
-          "actions" : ["egress.count_stamped_egress"],
+          "action_ids" : [31, 27],
+          "actions" : ["egress.count_stamped_egress", "NoAction"],
           "base_default_next" : "tbl_count_all_egress",
           "next_tables" : {
-            "egress.count_stamped_egress" : "tbl_count_all_egress"
+            "egress.count_stamped_egress" : "tbl_count_all_egress",
+            "NoAction" : "tbl_count_all_egress"
           },
           "default_entry" : {
-            "action_id" : 32,
-            "action_const" : true,
+            "action_id" : 27,
+            "action_const" : false,
             "action_data" : [],
-            "action_entry_const" : true
+            "action_entry_const" : false
           }
         },
         {
           "name" : "tbl_count_all_egress",
-          "id" : 22,
+          "id" : 20,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 348,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 328,
             "column" : 2,
             "source_fragment" : "count_all_egress()"
           },
@@ -4036,14 +3969,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [31],
+          "action_ids" : [30],
           "actions" : ["egress.count_all_egress"],
           "base_default_next" : null,
           "next_tables" : {
             "egress.count_all_egress" : null
           },
           "default_entry" : {
-            "action_id" : 31,
+            "action_id" : 30,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -4053,11 +3986,11 @@
       "action_profiles" : [],
       "conditionals" : [
         {
-          "name" : "node_38",
+          "name" : "node_36",
           "id" : 14,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 341,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 318,
             "column" : 5,
             "source_fragment" : "hdr.ipv4.isValid()"
           },
@@ -4072,15 +4005,15 @@
               }
             }
           },
-          "false_next" : null,
-          "true_next" : "node_39"
+          "true_next" : "node_37",
+          "false_next" : "tbl_count_all_egress"
         },
         {
-          "name" : "node_39",
+          "name" : "node_37",
           "id" : 15,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 342,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 319,
             "column" : 6,
             "source_fragment" : "meta.l4_metadata.added_empty_header == 1"
           },
@@ -4090,7 +4023,7 @@
               "op" : "==",
               "left" : {
                 "type" : "field",
-                "value" : ["scalars", "metadata_t._l4_metadata_added_empty_header5"]
+                "value" : ["scalars", "metadata_t._l4_metadata_added_empty_header4"]
               },
               "right" : {
                 "type" : "hexstr",
@@ -4098,15 +4031,15 @@
               }
             }
           },
-          "true_next" : "node_40",
-          "false_next" : "tbl_count_all_egress"
+          "true_next" : "node_38",
+          "false_next" : "node_40"
         },
         {
-          "name" : "node_40",
+          "name" : "node_38",
           "id" : 16,
           "source_info" : {
-            "filename" : "bmv2_middlebox_v8.p4",
-            "line" : 343,
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 320,
             "column" : 7,
             "source_fragment" : "hdr.tcp.isValid() || hdr.udp.isValid()"
           },
@@ -4139,6 +4072,32 @@
             }
           },
           "true_next" : "tbl_add_timestamp1",
+          "false_next" : "node_40"
+        },
+        {
+          "name" : "node_40",
+          "id" : 17,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_middlebox_v9.p4",
+            "line" : 324,
+            "column" : 7,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.myType == 0x0f10"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "field",
+                "value" : ["tcp_options_128bit_custom", "myType"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x0f10"
+              }
+            }
+          },
+          "true_next" : "egress.t_count_stamped_egress",
           "false_next" : "tbl_count_all_egress"
         }
       ]
@@ -4149,7 +4108,7 @@
       "name" : "cksum",
       "id" : 0,
       "source_info" : {
-        "filename" : "checksum_16.p4",
+        "filename" : "../p4_src/checksum_16.p4",
         "line" : 8,
         "column" : 8,
         "source_fragment" : "update_checksum(true, { hdr.ipv4.version, hdr.ipv4.ihl, hdr.ipv4.diffServ, ..."
@@ -4168,7 +4127,7 @@
       "name" : "cksum_0",
       "id" : 1,
       "source_info" : {
-        "filename" : "checksum_16.p4",
+        "filename" : "../p4_src/checksum_16.p4",
         "line" : 13,
         "column" : 8,
         "source_fragment" : "update_checksum_with_payload(hdr.tcp.isValid(), { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, ..."
@@ -4194,9 +4153,9 @@
       "name" : "cksum_1",
       "id" : 2,
       "source_info" : {
-        "filename" : "checksum_16.p4",
+        "filename" : "../p4_src/checksum_16.p4",
         "line" : 18,
-        "column" : 1,
+        "column" : 2,
         "source_fragment" : "update_checksum_with_payload(hdr.udp.isValid(), { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, ..."
       },
       "target" : ["udp", "checksum"],
@@ -4265,7 +4224,7 @@
       ["standard_metadata", "recirculate_flag"]
     ]
   ],
-  "program" : "bmv2_middlebox_v8.p4",
+  "program" : "../p4_src/bmv2_middlebox_v9.p4",
   "__meta__" : {
     "version" : [2, 18],
     "compiler" : "https://github.com/p4lang/p4c"

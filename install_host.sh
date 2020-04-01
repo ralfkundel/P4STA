@@ -13,5 +13,7 @@ printf "\n-----------------------------------------\n"
 printf "\nAdding the following entries to visudo at ***HOST***:\n"
 echo "$current_user ALL=(ALL:ALL) NOPASSWD:/sbin/reboot" | sudo EDITOR='tee -a' visudo
 echo "$current_user ALL=(ALL:ALL) NOPASSWD:/sbin/ethtool" | sudo EDITOR='tee -a' visudo
+echo "$current_user ALL=(ALL:ALL) NOPASSWD:/sbin/ifconfig" | sudo EDITOR='tee -a' visudo
+echo "$current_user ALL=(ALL:ALL) NOPASSWD:/bin/ip" | sudo EDITOR='tee -a' visudo
 printf "\n 2 entries added to visudo."
 printf "\n-----------------------------------------\n"

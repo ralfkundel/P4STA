@@ -13,4 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License. -->
 
-<span style="color:green"><p>&emsp;Registers and Counters resetted.</p></span>
+{% if answer == "" %}
+<span style="color:green"><p>Registers and Counters resetted.</p></span>
+{% else %}
+<span style="color:red"><p>{{answer}}</p></span>
+{% endif %}

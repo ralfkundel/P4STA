@@ -27,15 +27,23 @@ import sys
 sys.path.append(project_path + "/core/abstract_loadgenerator")
 from loadgenerator import Loadgenerator
 
+
 class Iperf3(Loadgenerator):
     def __init__(self, cfg):
         super().__init__(cfg)
         self.directory = os.path.dirname(os.path.realpath(__file__))
+
     def get_name(self):
         return "iPerf3"
 
     def run_loadgens(self, file_id, duration, l4_selected, packet_size_mtu, results_path):
+        def check_ns(host):
+            if "namespace_id" in host:
+                return "sudo ip netns exec " + str(host["namespace_id"])
+            else:
+                return ""
         devnull = open(os.devnull, 'w')
+        namespace = ""
         if l4_selected == "tcp":
             mss = int(packet_size_mtu) - 56 # normally MSS = MTU - 40 but here - 16 because of 16 byte timestamps added
             flag = "-M " + str(mss)
@@ -51,7 +59,9 @@ class Iperf3(Loadgenerator):
             port = 5101
             for client in self.cfg["loadgen_clients"]:
                 output_sub = subprocess.run(  # start 1 iperf server host but with 3*n connections (n = # clients)
-                    [self.directory + "/scripts/iperf_server.sh", server["ssh_ip"], server["ssh_user"], str(port), str(port+1), str(port+2), str(duration+10)], stdout=devnull)
+                    [self.directory + "/scripts/iperf_server.sh", server["ssh_ip"], server["ssh_user"], str(port), str(port+1), str(port+2), str(duration+10), check_ns(server)], stdout=devnull)
+                print("IPERF SERVER STARTED")
+                print(output_sub)
                 port = port + 3
 
             time.sleep(1)
@@ -61,7 +71,7 @@ class Iperf3(Loadgenerator):
             for client in self.cfg["loadgen_clients"]:
                 output_sub = subprocess.run(
                     [self.directory + "/scripts/iperf_client.sh", server["loadgen_ip"], client["ssh_ip"],
-                        client["ssh_user"], file_id, str(port), str(port+1), str(port+2), str(json_id), str(duration), flag])
+                        client["ssh_user"], file_id, str(port), str(port+1), str(port+2), str(json_id), str(duration), flag, check_ns(client)])
                 port = port + 3
                 json_id = json_id + 3
 
@@ -84,7 +94,7 @@ class Iperf3(Loadgenerator):
                 for i in range(math.ceil(len(self.cfg["loadgen_clients"])/len(self.cfg["loadgen_servers"]))): # e.g. 3 clients and 2 servers: 3/2=1.5 round up to 2 => 2 servers  with 2*3 ports started
                     counter = counter + 1
                     output_sub = subprocess.run(  # start 1 iperf server host but with 3*n connections (n = # clients)
-                        [self.directory + "/scripts/iperf_server.sh", server["ssh_ip"], server["ssh_user"], str(port), str(port+1), str(port+2), str(duration+10)], stdout=devnull)
+                        [self.directory + "/scripts/iperf_server.sh", server["ssh_ip"], server["ssh_user"], str(port), str(port+1), str(port+2), str(duration+10), check_ns(server)], stdout=devnull)
                     port = port + 3
                     server_per_client.append(server)
                     if counter == len(self.cfg["loadgen_clients"]):
@@ -98,7 +108,7 @@ class Iperf3(Loadgenerator):
             for client in self.cfg["loadgen_clients"]:
                 output_sub = subprocess.run(
                     [self.directory + "/scripts/iperf_client.sh", server_per_client[server_index]["loadgen_ip"], client["ssh_ip"],
-                        client["ssh_user"], file_id, str(port), str(port+1), str(port+2), str(json_id), str(duration), flag])
+                        client["ssh_user"], file_id, str(port), str(port+1), str(port+2), str(json_id), str(duration), flag, check_ns(host)])
                 port = port + 3
                 json_id = json_id + 3
                 server_index = server_index + 1
@@ -117,7 +127,7 @@ class Iperf3(Loadgenerator):
             port = 5101
             for server in self.cfg["loadgen_servers"]:
                 output_sub = subprocess.run(  # start 1 iperf server host but with 3*n connections (n = # clients)
-                    [self.directory + "/scripts/iperf_server.sh", server["ssh_ip"], server["ssh_user"], str(port), str(port+1), str(port+2), str(duration+10)], stdout=devnull)
+                    [self.directory + "/scripts/iperf_server.sh", server["ssh_ip"], server["ssh_user"], str(port), str(port+1), str(port+2), str(duration+10), check_ns(server)], stdout=devnull)
                 port = port + 3
 
             time.sleep(1)
@@ -131,7 +141,7 @@ class Iperf3(Loadgenerator):
             client = self.cfg["loadgen_servers"][-1] # client and server are the same now ..
             output_sub = subprocess.run(
                 [self.directory + "/scripts/iperf_client.sh", connect_to["loadgen_ip"], client["ssh_ip"],
-                    client["ssh_user"], file_id, str(port), str(port + 1), str(port + 2), str(json_id), str(duration), flag])
+                    client["ssh_user"], file_id, str(port), str(port + 1), str(port + 2), str(json_id), str(duration), flag, check_ns(host)])
 
             # now from the second on every client connects to server
             for client in self.cfg["loadgen_servers"][0:-1]:
@@ -141,7 +151,7 @@ class Iperf3(Loadgenerator):
                 connect_to = self.cfg["loadgen_servers"][index] # connect to next server in list (last host connects to first)
                 output_sub = subprocess.run(
                     [self.directory + "/scripts/iperf_client.sh", connect_to["loadgen_ip"], client["ssh_ip"],
-                        client["ssh_user"], file_id, str(port), str(port + 1), str(port + 2), str(json_id), str(duration)])
+                        client["ssh_user"], file_id, str(port), str(port + 1), str(port + 2), str(json_id), str(duration), check_ns(host)])
 
             time.sleep(5+duration)
 

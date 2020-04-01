@@ -12,3 +12,7 @@ management
 management_ui/static/includes/bootstrap.min.js_v*
 management_ui/static/includes/bootstrap.min.css_v*
 targets/bmv2/data/commands1_middlebox1.txt
+test.*
+pastaenv/*
+targets/BF2556X-1T.zip
+targets/BF2556X-1T/

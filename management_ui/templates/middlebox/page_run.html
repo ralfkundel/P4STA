@@ -17,15 +17,7 @@
 <html lang="en">
 {% load static %}
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="shortcut icon" type="image/x-icon" href="{% static 'includes/favicon.ico' %}"/>
-	<link rel="stylesheet" href="{% static 'includes/bootstrap.min.css' %}">
-	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
-	<script src="{% static 'includes/jquery.min.js' %}"></script>
-	<script src="{% static 'includes/popper.min.js' %}"></script>
-	<script src="{% static 'includes/bootstrap.min.js' %}"></script>
-	<!-- jquery ajax -->
+	{% include "middlebox/includes.html"%}
 	<script type="text/javascript">
 		$(document).ready(function(){ 
 			$("#ping").click(function() {
@@ -34,11 +26,7 @@
 					$("#output_ping").html(data);
 				}, "html");
 			});
-		});
-	</script>
 
-	<script type="text/javascript">
-		$(document).ready(function(){ 
 			$("#start_external").click(function() {
 				$("#output_stop_external").empty();
 				$("#output_start_external").html('<img src="{% static 'images/spinner.svg' %}" />');
@@ -46,24 +34,17 @@
 					$("#output_start_external").html(data);
 				}, "html");
 			});
-		});
-	</script>
-	<script type="text/javascript">
-		$(document).ready(function(){ 
+ 
 			$("#stop_external").click(function() {
 				$("#output_start_external").empty();
-				$("#output_stop_external").html('<img src="{% static 'images/spinner.svg' %}" />');
+				$("#output_stop_external").html('<p>Reading counters from Stamper and timestamp csv-files from ext-host. Can take up to 1 Minute...</p><img src="{% static 'images/spinner.svg' %}" />');
 				$.get("/stopExternal/", function(data) {
 					$("#output_stop_external").html(data);
 				}, "html");
 			});
 		});
 	</script>
-	<!-- jquery ajax end -->
-	<style>
-	body {overflow-x: hidden;}
-	</style>
-	</head>
+</head>
 <body>
 
 {% include "middlebox/navbar.html"%}
@@ -91,7 +72,7 @@
 <hr/>
 <div style="margin-top:20px;"></div>
 <div class="row">
-	<div class="col-md-4">Start listening at external host and execute iPerf3:</div>
+	<div class="col-md-4">Start listening at external host and execute Loadgenerator (<b>{{selected_loadgen}}</b>):</div>
 </div>
 <div class="row">
 	<div class="col-md-2"><button id="start_external" type="button" class="save btn btn-secondary">Start listening</button></div>

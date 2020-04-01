@@ -1,4 +1,21 @@
-#include "header_middlebox_16.p4"
+/*
+# Copyright 2020-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+*/
+
+
+#include "header_middlebox_v9.p4"
 #include "checksum_16.p4"
 
 parser parserImpl(packet_in packet, out headers_t hdr, inout metadata_t meta, inout standard_metadata_t standard_metadata) {
@@ -28,26 +45,28 @@ parser parserImpl(packet_in packet, out headers_t hdr, inout metadata_t meta, in
 	state parse_tcp {
 		packet.extract(hdr.tcp);
 		transition select(hdr.tcp.dataOffset) {
-			4w0x8: parse_tcp_options_96bit;                 //Offset 8*32bit = 32 byte = 12 Byte present options + 20 Byte remaining TCP header
-			4w0x9: parse_tcp_options_128bit_custom;         //Offset 9*32bit = 16 custom Bytes + 20 Bytes remaining TCP header
-			4w0xC: parse_tcp_options_96_and_128bit_custom;  //Offset 10*32bit =	we have 12 Byte present options and our 16 custom Bytes + 20 Bytes remaining tcp header
+			// timestamps can start at 0x9 = 0x5 (no options) + 128bit (0x4*32bit) timestamps and end at 0xF (0x5 + 0x4 timestamps + 0x6 existing tcp options)
+			// timestamp header could be in options for offsets 0x9 to 0xf
+			// timestamp header is always FIRST tcp option! 
+			0x9 : parse_tcp_options_128bit_custom;
+			0xA : parse_tcp_options_128bit_custom;
+			0xB : parse_tcp_options_128bit_custom;
+			0xC : parse_tcp_options_128bit_custom;
+			0xD : parse_tcp_options_128bit_custom;
+			0xE : parse_tcp_options_128bit_custom;
+			0xF : parse_tcp_options_128bit_custom;
 			default: accept;
 		}
 	}
 	
-	state parse_tcp_options_96bit {
-		packet.extract(hdr.tcp_options_96bit);
-		transition accept;
-	}
-	
-	state parse_tcp_options_96_and_128bit_custom {
-		packet.extract(hdr.tcp_options_96bit);
-		transition select(hdr.tcp_options_96bit.options) {
-			default: parse_tcp_options_128bit_custom;
+	state parse_tcp_options_128bit_custom {
+		transition select(packet.lookahead<bit<16>>()) {
+			0x0f10: parse_tcp_options_128bit_custom_exec;
+			default: accept;
 		}
 	}
-	
-	state parse_tcp_options_128bit_custom {
+
+	state parse_tcp_options_128bit_custom_exec {
 		packet.extract(hdr.tcp_options_128bit_custom);
 		transition accept;
 	}
@@ -66,7 +85,6 @@ control ingress(inout headers_t hdr, inout metadata_t meta, inout standard_metad
 	register<bit<16>>(2) multi_counter_r;    					// stores the current counter for paket duplication to external host
 	counter(64, CounterType.packets_and_bytes) ingress_counter;
 	counter(64, CounterType.packets_and_bytes) ingress_stamped_counter;
-	counter(2, CounterType.packets_and_bytes) c_add_second_timestamp;
 	
 	///////// actions /////////
 	action send(bit<9> egress_port) {
@@ -81,38 +99,39 @@ control ingress(inout headers_t hdr, inout metadata_t meta, inout standard_metad
 	}
 	
 	action add_timestamp2(bit<16> threshold, bit<1> direction) {
+		ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port);
 		meta.l4_metadata.threshold_multicast = (bit<16>)threshold; // threshold for multicast how many packets get replicated
 		hdr.tcp_options_128bit_custom.timestamp2 = (bit<48>)standard_metadata.ingress_global_timestamp;
 		meta.l4_metadata.added_timestamp2 = 1;
 		meta.timestamp_metadata.delta = (bit<48>)standard_metadata.ingress_global_timestamp - hdr.tcp_options_128bit_custom.timestamp1;
 		meta.timestamp_metadata.ave_temp = meta.timestamp_metadata.ave_temp + (bit<48>)meta.timestamp_metadata.delta;
 		meta.timestamp_metadata.count_temp = meta.timestamp_metadata.count_temp + 1;
-		meta.l4_metadata.flow_direction = direction;
-		c_add_second_timestamp.count((bit<32>) direction);
+		meta.l4_metadata.flow_direction = direction; // one flow per dut port, used for counting multicast packets for threshold
 	}
 	
-	action add_timestamp_header(bit<4> new_offset, bit<1> direction) {
+	action add_timestamp_header_tcp(bit<1> direction) {
+		ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port);
 		hdr.tcp_options_128bit_custom.setValid();
-		hdr.tcp.dataOffset = new_offset;
+		hdr.tcp.dataOffset = hdr.tcp.dataOffset + 4;
 		hdr.ipv4.paketlen = hdr.ipv4.paketlen + 16w0x10;
 		hdr.tcp_options_128bit_custom.myType = 16w0x0f10;
-		meta.l4_metadata.tcpLen = meta.l4_metadata.tcpLen + 16w0x10;
+		meta.l4_metadata.tcpLength = meta.l4_metadata.tcpLength + 16w0x10;
 		meta.l4_metadata.flow_direction = direction;
 		meta.l4_metadata.added_empty_header = 1;
 	}
 
 	action add_timestamp_header_udp(bit<1> direction) {
+		ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port);
 		hdr.tcp_options_128bit_custom.myType = 16w0x0f10;
+		hdr.tcp_options_128bit_custom.timestamp1 = 48w0x0;
+		hdr.tcp_options_128bit_custom.empty = 16w0x0;
+		hdr.tcp_options_128bit_custom.timestamp2 = 48w0x0;
 		meta.l4_metadata.flow_direction = direction;
 		meta.l4_metadata.added_empty_header = 1;
 	}
 
 	action count_all_ingress() {
 		ingress_counter.count((bit<32>) standard_metadata.ingress_port); // ingress port = index in counter array
-	}
-
-	action count_stamped_ingress() {
-		ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port); // ingress port = index in counter array
 	}
 
 	///////// tables /////////
@@ -153,18 +172,18 @@ control ingress(inout headers_t hdr, inout metadata_t meta, inout standard_metad
 		size = 64;
 	}
 	
-	table t_add_timestamp_header {
+	table t_add_timestamp_header_tcp {
 		key = {
 			hdr.tcp.dataOffset : exact;
-			standard_metadata.egress_spec : exact;
+			standard_metadata.egress_spec : exact;//standard_metadata.ingress_port : exact;
 		}
 		actions = {
-			add_timestamp_header;
+			add_timestamp_header_tcp;
 		}
-		size = 4;
+		size = 16;
 	}
 	
-	table timestamp2 {
+	table t_timestamp2_tcp {
 		key = {
 			hdr.tcp.dataOffset : exact;
 			hdr.tcp_options_128bit_custom.myType : exact;
@@ -173,17 +192,17 @@ control ingress(inout headers_t hdr, inout metadata_t meta, inout standard_metad
 		actions = {
 			add_timestamp2;
 		}
-		size = 4;
+		size = 16;
 	}
 
 	table t_add_timestamp_header_udp {
 		key = {
-			standard_metadata.egress_spec : exact;
+			standard_metadata.egress_spec : exact;//standard_metadata.ingress_port : exact;
 		}
 		actions = {
 			add_timestamp_header_udp;
 		}
-		size = 4;
+		size = 16;
 	}
 	
 	table timestamp2_udp {
@@ -194,13 +213,12 @@ control ingress(inout headers_t hdr, inout metadata_t meta, inout standard_metad
 		actions = {
 			add_timestamp2;
 		}
-		size = 4;
+		size = 16;
 	}
 	
-	table multicast {
+	table t_multicast {
 		key = {
-			//hdr.tcp.dataOffset : exact;
-			standard_metadata.ingress_port : exact;
+			//standard_metadata.ingress_port : exact;
 			standard_metadata.egress_spec : exact;
 		}
 		actions = {
@@ -224,49 +242,17 @@ control ingress(inout headers_t hdr, inout metadata_t meta, inout standard_metad
 			}
 
 			if(hdr.tcp.isValid()) {
-				t_add_timestamp_header.apply();
+				t_add_timestamp_header_tcp.apply();
 				if(hdr.tcp_options_128bit_custom.myType == 16w0x0f10){
-					count_stamped_ingress();
+					t_timestamp2_tcp.apply();
 				}
-				//time_average.read(meta.timestamp_metadata.ave_temp, 0);
-				//time_average.read(meta.timestamp_metadata.count_temp, 1);
-				//time_delta_min_max.read(meta.timestamp_metadata.min_temp, 0);
-				//time_delta_min_max.read(meta.timestamp_metadata.max_temp, 1);
-				timestamp2.apply();
-				//time_average.write(0, meta.timestamp_metadata.ave_temp);
-				//time_average.write(1, meta.timestamp_metadata.count_temp);
-				//if((bit<48>)meta.timestamp_metadata.min_temp > meta.timestamp_metadata.delta) {
-				//	if(meta.timestamp_metadata.delta > 0){
-				//		time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta);
-				//	}
-				//}
-				//else if((bit<48>)meta.timestamp_metadata.min_temp == 0) {
-				//	time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta);
-				//}
-				//if((bit<48>)meta.timestamp_metadata.max_temp < meta.timestamp_metadata.delta) {
-				//	time_delta_min_max.write(1, (bit<32>)meta.timestamp_metadata.delta);
-				//}
-
-				//if(meta.l4_metadata.added_timestamp2 == 1){
-				//	multi_counter_r.read(meta.l4_metadata.multi_counter, (bit<32>)meta.l4_metadata.flow_direction);
-				//	if(meta.l4_metadata.multi_counter >= meta.l4_metadata.threshold_multicast){
-				//		multicast.apply();
-				//		meta.l4_metadata.multi_counter = 0;
-				//		multi_counter_r.write( (bit<32>) meta.l4_metadata.flow_direction, meta.l4_metadata.multi_counter);
-				//	} else {
-				//		meta.l4_metadata.multi_counter = meta.l4_metadata.multi_counter + 1;
-				//		multi_counter_r.write( (bit<32>) meta.l4_metadata.flow_direction, meta.l4_metadata.multi_counter);
-				//	}
-				//}
-
 			}
 			else if(hdr.udp.isValid()) {
 				if(hdr.udp.len >= 0x18) { // udp size (header + payload) must be over 24 bytes
 					t_add_timestamp_header_udp.apply();
 					if(hdr.tcp_options_128bit_custom.myType == 16w0x0f10){
-						count_stamped_ingress();
-					}
-					timestamp2_udp.apply();
+						timestamp2_udp.apply();						
+					}					
 				}
 			}
 			
@@ -288,7 +274,7 @@ control ingress(inout headers_t hdr, inout metadata_t meta, inout standard_metad
 				if(meta.l4_metadata.added_timestamp2 == 1){
 					multi_counter_r.read(meta.l4_metadata.multi_counter, (bit<32>)meta.l4_metadata.flow_direction);
 					if(meta.l4_metadata.multi_counter >= meta.l4_metadata.threshold_multicast){
-						multicast.apply();
+						t_multicast.apply();
 						meta.l4_metadata.multi_counter = 0;
 						multi_counter_r.write( (bit<32>) meta.l4_metadata.flow_direction, meta.l4_metadata.multi_counter);
 					} else {
@@ -305,7 +291,6 @@ control egress(inout headers_t hdr, inout metadata_t meta, inout standard_metada
 	
 	counter(64, CounterType.packets_and_bytes) egress_counter;
 	counter(64, CounterType.packets_and_bytes) egress_stamped_counter;
-	counter(2, CounterType.packets_and_bytes) c_add_first_timestamp;
 
 	///////// actions /////////
 	action change_mac(bit<48> dst) { // changes mac destination, used for multicast to set to ff:ff:..
@@ -314,7 +299,6 @@ control egress(inout headers_t hdr, inout metadata_t meta, inout standard_metada
 	
 	action add_timestamp1() {
 		hdr.tcp_options_128bit_custom.timestamp1 = (bit<48>)standard_metadata.egress_global_timestamp;
-		c_add_first_timestamp.count((bit<32>)meta.l4_metadata.flow_direction);
 	}
 	
 	action count_all_egress() {
@@ -335,6 +319,16 @@ control egress(inout headers_t hdr, inout metadata_t meta, inout standard_metada
 		}
 		size = 32;
 	}
+	// workaround because if only count_stamped_egress() is called with if cond, it gets executed always ... 
+	table t_count_stamped_egress {
+		key = {
+			hdr.tcp_options_128bit_custom.myType : exact;
+		}
+		actions = {
+			count_stamped_egress;
+		}
+		size = 8;
+	}
 	
     apply {
 		broadcast_mac.apply();
@@ -342,14 +336,13 @@ control egress(inout headers_t hdr, inout metadata_t meta, inout standard_metada
 			if(meta.l4_metadata.added_empty_header == 1) {
 				if(hdr.tcp.isValid() || hdr.udp.isValid()) {
 					add_timestamp1();
-					count_stamped_egress();
 				}
 		}
-		count_all_egress();
-		//if(hdr.tcp_options_128bit_custom.myType == 16w0x0f10){
-		//	count_stamped_egress();
-		//}
+			if (hdr.tcp_options_128bit_custom.myType == 0x0f10){
+				t_count_stamped_egress.apply();
+			}
 		}
+		count_all_egress();
 	}
 }
 
@@ -357,10 +350,9 @@ control DeparserImpl(packet_out packet, in headers_t hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
-	packet.emit(hdr.tcp);
-	packet.emit(hdr.tcp_options_96bit);
-	packet.emit(hdr.udp);
-	packet.emit(hdr.tcp_options_128bit_custom);
+		packet.emit(hdr.tcp);
+		packet.emit(hdr.udp);
+		packet.emit(hdr.tcp_options_128bit_custom);
     }
 }
 

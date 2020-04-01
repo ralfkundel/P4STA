@@ -1,0 +1,4 @@
+{
+	"name": "PythonExtHost",
+	"driver": "pythonHostDriver.py"
+}

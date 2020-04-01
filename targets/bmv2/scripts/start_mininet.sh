@@ -13,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 sudo kill $(pidof target_bmv2_mininet_module)
-sleep 1
 sudo mn -c
-sleep 1
 sudo $1 \
     --switch $2/targets/simple_switch/simple_switch \
     --cli $2/tools/runtime_CLI.py &

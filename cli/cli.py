@@ -138,17 +138,16 @@ class PastaConfigure(Cmd):
         self.cfg = P4STA_utils.read_current_cfg()
         self.target_cfg = core_conn.root.get_target_cfg()
 
-        self.table_general = [["Prog", "Target", "Mode", "Dupl. Scale", "Packet Gen"]]
         self.table_loadgen_1 = [
-            ["Loadgens 1", "SSH IP", "SSH User", "Load Iface", "Loadgen MAC", "Loadgen IP", "Port", "P4 Port", "Link"]]
+            ["Loadgens 1", "SSH IP", "SSH User", "Load Iface", "Loadgen MAC", "Loadgen IP", "Port", "P4 Port"]]
         self.table_loadgen_2 = [
-            ["Loadgens 2", "SSH IP", "SSH User", "Load Iface", "Loadgen MAC", "Loadgen IP", "Port", "P4 Port", "Link"]]
+            ["Loadgens 2", "SSH IP", "SSH User", "Load Iface", "Loadgen MAC", "Loadgen IP", "Port", "P4 Port"]]
 
-        self.table_dut = [["Use Port", "Port", "P4 Port", "Link", "Duplicate Flow (income)"]]
-        self.table_external_host = [["SSH IP", "SSH User", "Load Iface", "Port", "P4 Port", "Link"]]
+        self.table_dut = [["Use Port", "Port", "P4 Port", "Duplicate Flow (income)"]]
+        self.table_external_host = [["SSH IP", "SSH User", "Load Iface", "Port", "P4 Port"]]
         self.table_stamper = [["SSH IP", "SSH User"]]
 
-        # read target specific config
+        # read Stamper target specific config
         for t_inp in self.target_cfg["inputs"]["input_table"]:
             self.table_loadgen_1[0].append(t_inp["title"])
             self.table_loadgen_2[0].append(t_inp["title"])
@@ -156,7 +155,8 @@ class PastaConfigure(Cmd):
             self.table_external_host[0].append(t_inp["title"])
 
         print("Current configuration (to change enter 'change_general_cfg':")
-        self.table_general.append([self.cfg["program"], self.cfg["selected_target"], "Layer " + self.cfg["forwarding_mode"], self.cfg["multicast"], self.cfg["selected_loadgen"]])
+        self.table_general = [["Target", "Mode", "Dupl. Scale", "Packet Gen"]]
+        self.table_general.append([self.cfg["selected_target"], "Layer " + self.cfg["forwarding_mode"], self.cfg["multicast"], self.cfg["selected_loadgen"]])
         print(tabulate(self.table_general, tablefmt="fancy_grid"))
 
         print("LOADGENERATORS:")
@@ -168,7 +168,7 @@ class PastaConfigure(Cmd):
                     add.append(server[t_inp["target_key"]])
                 except:
                     add.append("")
-            self.table_loadgen_1.append(["1." + str(server["id"]), server["ssh_ip"], server["ssh_user"], server["loadgen_iface"], server["loadgen_mac"], server["loadgen_ip"], server["real_port"], server["p4_port"], server["speed"]] + add)
+            self.table_loadgen_1.append(["1." + str(server["id"]), server["ssh_ip"], server["ssh_user"], server["loadgen_iface"], server["loadgen_mac"], server["loadgen_ip"], server["real_port"], server["p4_port"]] + add)
 
         print(tabulate(self.table_loadgen_1, tablefmt="fancy_grid"))
 
@@ -179,7 +179,7 @@ class PastaConfigure(Cmd):
                     add.append(client[t_inp["target_key"]])
                 except:
                     add.append("")
-            self.table_loadgen_2.append(["2." + str(client["id"]), client["ssh_ip"], client["ssh_user"], client["loadgen_iface"], client["loadgen_mac"], client["loadgen_ip"], client["real_port"], client["p4_port"], client["speed"]] + add)
+            self.table_loadgen_2.append(["2." + str(client["id"]), client["ssh_ip"], client["ssh_user"], client["loadgen_iface"], client["loadgen_mac"], client["loadgen_ip"], client["real_port"], client["p4_port"]] + add)
 
         print(tabulate(self.table_loadgen_2, tablefmt="fancy_grid"))
 
@@ -191,12 +191,12 @@ class PastaConfigure(Cmd):
                     add[dut].append(self.cfg[dut + t_inp["target_key"]])
                 except:
                     add[dut].append("")
-        self.table_dut.append(["checked", self.cfg["dut1_real"], self.cfg["dut1"], self.cfg["dut1_speed"],self.cfg["dut_1_duplicate"]] + add["dut1_"])
-        self.table_dut.append([self.cfg["dut_2_use_port"], self.strike(self.cfg["dut2_real"]), self.strike(self.cfg["dut2"]), self.strike(self.cfg["dut2_speed"]), self.strike(self.cfg["dut_2_duplicate"])]  + self.strike(add["dut2_"]))
+        self.table_dut.append(["checked", self.cfg["dut1_real"], self.cfg["dut1"], self.cfg["dut_1_outgoing_stamp"]] + add["dut1_"])
+        self.table_dut.append([self.cfg["dut_2_use_port"], self.strike(self.cfg["dut2_real"]), self.strike(self.cfg["dut2"]), self.strike(self.cfg["dut_2_outgoing_stamp"])] + self.strike(add["dut2_"]))
         print(tabulate(self.table_dut, tablefmt="fancy_grid"))
 
         print("EXTERNAL HOST:")
-        self.table_external_host.append([self.cfg["ext_host_ssh"], self.cfg["ext_host_user"], self.cfg["ext_host_if"], self.cfg["ext_host_real"], self.cfg["ext_host"], self.cfg["ext_host_speed"]] + add["ext_host_"])
+        self.table_external_host.append([self.cfg["ext_host_ssh"], self.cfg["ext_host_user"], self.cfg["ext_host_if"], self.cfg["ext_host_real"], self.cfg["ext_host"]] + add["ext_host_"])
         print(tabulate(self.table_external_host, tablefmt="fancy_grid"))
 
         print("STAMPER:")
@@ -205,7 +205,7 @@ class PastaConfigure(Cmd):
 
 
     def do_change_general_cfg(self, args):
-        """Opens the environment to change the config (e.g. p4-target, program, duplication downscale factor, packet generator and forwarding mode."""
+        """Opens the environment to change the config (e.g. Stamper-target, duplication downscale factor, packet generator and forwarding mode."""
         ChangeGeneralConfig().cmdloop()
         self.target_cfg = core_conn.root.get_target_cfg()
 
@@ -229,15 +229,15 @@ class PastaConfigure(Cmd):
 
 #args = group, ssh_ip, ssh_user, load_iface, load_mac, load_ip, port, link
     def do_add_loadgen(self, args):
-        """Add a loadgenerator: 'add_loadgen group ssh_ip ssh_username load_interface mac_adress load_ip link_speed custom_target_opt'"""
+        """Add a loadgenerator: 'add_loadgen group ssh_ip ssh_username load_interface mac_adress load_ip custom_target_opt'"""
         def error():
             print("\nPlease use the following format:")
             print("add_loadgen group ssh_ip ssh_user load_iface load_mac load_ip port link" + self.get_target_specific_description())
 
-            print("e.g.: add_loadgen 1 172.1.1.10 mmustermann eth1 11:22:33:44:55:66 10.10.10.1 1/1 100G" + self.get_target_specific_description())
+            print("e.g.: add_loadgen 1 172.1.1.10 mmustermann eth1 11:22:33:44:55:66 10.10.10.1 1/1" + self.get_target_specific_description())
 
         arg_list = args.split()
-        if len(arg_list) >= 8:
+        if len(arg_list) >= 7:
             add_to = self.group_type(arg_list[0])
             if add_to != "":
                 ports = core_conn.root.get_ports()
@@ -260,11 +260,10 @@ class PastaConfigure(Cmd):
                         "loadgen_mac": arg_list[4],
                         "loadgen_ip": arg_list[5],
                         "real_port": arg_list[6],
-                        "speed": arg_list[7],
                         "p4_port": new_p4_port,
                         "id": max(all_ids) + 1
                     }
-                    ind = 8
+                    ind = 7
                     for t_inp in self.target_cfg["inputs"]["input_table"]:
                         try:
                             dict_add[t_inp["target_key"]] = arg_list[ind]
@@ -311,9 +310,8 @@ class PastaConfigure(Cmd):
         else:
             error()
 
-    # change_dut dut1_port dut1_speed dut1_duplicate dut2_port dut2_speed dut2_duplicate
     def do_change_dut(self, args):
-        """Changes Device under Test config: 'change_dut dut1_port dut1_speed target_specific dut1_duplicate(Duplicate Flow which comes in) dut2_port dut2_speed target_specific dut2_duplicate' to set or unset use: change_dut uncheck/check 2 (only dut2 is changeable)"""
+        """Changes Device under Test config: 'change_dut dut1_port target_specific dut1_stamp(Flow leaving stamper at dut1 port) dut2_port target_specific dut2_stamp' to set or unset use: change_dut uncheck/check 2 (only dut2 is changeable)"""
         arg_list = args.split()
         if len(arg_list) == 2:
             try:
@@ -323,24 +321,25 @@ class PastaConfigure(Cmd):
                         if self.cfg["dut_2_use_port"] == "unchecked":
                             self.cfg["dut2_real"] = self.cfg["dut1_real"]
                             self.cfg["dut2"] = self.cfg["dut1"]
-                            self.cfg["dut2_speed"] = self.cfg["dut1_speed"]
+                            if "dut1_speed" in self.cfg:
+                                self.cfg["dut2_speed"] = self.cfg["dut1_speed"]
                         P4STA_utils.write_config(self.cfg)
                 else:
                     raise Exception
             except:
                 print("Please use one of the following formats: \n change_dut unchecked/checked 2 (only dut2 is changeable)")
-                print("change_dut dut1_port dut1_speed" + self.get_target_specific_description() + " dut1_duplicate(Duplicate Flow which comes in) dut2_port dut2_speed" + self.get_target_specific_description() + " dut2_duplicate")
+                print("change_dut dut1_port" + self.get_target_specific_description() + " dut1_duplicate(Duplicate Flow which comes in) dut2_port " + self.get_target_specific_description() + " dut2_duplicate")
         else:
             try:
                 tar = len(self.target_cfg["inputs"]["input_table"])
                 print(arg_list)
-                if len(arg_list) == 6+(tar*2) and (arg_list[2+tar] == "checked" or arg_list[2+tar] == "unchecked") and (arg_list[5+(2*tar)] == "checked" or arg_list[5+(2*tar)] == "unchecked"):
+                if len(arg_list) == 4+(tar*2) and (arg_list[1+tar] == "checked" or arg_list[1+tar] == "unchecked") and (arg_list[3+(2*tar)] == "checked" or arg_list[3+(2*tar)] == "unchecked"):
                     ports = core_conn.root.get_ports()
                     real_ports = ports["real_ports"]
                     logical_ports = ports["logical_ports"]
 
                     c = 1
-                    end = 3 + len(self.target_cfg["inputs"]["input_table"])
+                    end = 2 + len(self.target_cfg["inputs"]["input_table"])
                     for i in [0, end]:
                         self.cfg["dut" + str(c) + "_real"] = arg_list[i]
                         try:
@@ -348,12 +347,12 @@ class PastaConfigure(Cmd):
                         except:
                             print("\nSure you entered the right port syntax for the selected target (" + self.cfg["selected_target"] + ") ?\n")
                             raise Exception
-                        self.cfg["dut" + str(c) + "_speed"] = arg_list[i+1]
-                        self.cfg["dut_" + str(c) + "_duplicate"] = arg_list[i+2]
-                        index = 3
+
+                        self.cfg["dut_" + str(c) + "_outgoing_stamp"] = arg_list[i+1]
+                        index = 2
                         for t_inp in self.target_cfg["inputs"]["input_table"]:
                             try:
-                                self.cfg["dut" + str(c) + "_" + t_inp[target_key]] = arg_list[i + index]
+                                self.cfg["dut" + str(c) + "_" + t_inp["target_key"]] = arg_list[i + index]
                             except Exception as e:
                                 print("Error:" + str(e))
                             index = index + 1
@@ -365,11 +364,11 @@ class PastaConfigure(Cmd):
                     raise Exception
             except Exception as e:
                 print("Please enter a valid dut configuration like:")
-                print("\"change_dut 57/0 40G" + self.get_target_specific_description() + " checked 58/0 40G" + self.get_target_specific_description() + " unchecked\"")
+                print("\"change_dut 57/0" + self.get_target_specific_description() + " checked 58/0" + self.get_target_specific_description() + " unchecked\"")
                 print("\"change_dut unchecked/checked 2\" (only dut2 is changeable and for bmv2 both dut ports are needed.)")
 
     def do_change_external_host(self, args):
-        """Changes external host config: 'change_external_host ssh_ip ssh_user load_iface port link_speed target_specific'"""
+        """Changes external host config: 'change_external_host ssh_ip ssh_user load_iface port target_specific'"""
         arg_list = args.split()
         try:
             if len(arg_list) >= 5:
@@ -387,9 +386,8 @@ class PastaConfigure(Cmd):
                     print(e)
                     print("\nSure you entered the right port syntax for the selected target (" + self.cfg["selected_target"] + ") ?\n")
                     raise Exception
-                self.cfg["ext_host_speed"] = arg_list[4]
 
-                i = 5
+                i = 4
                 for t_inp in self.target_cfg["inputs"]["input_table"]:
                     try:
                         self.cfg["ext_host_" + t_inp["target_key"]] = arg_list[i]
@@ -402,8 +400,8 @@ class PastaConfigure(Cmd):
             else:
                 raise Exception
         except:
-            print("Please enter a valid external host configuration: ssh_ip username interface port speed" + self.get_target_specific_description())
-            print("\"e.g.: change_external_host 172.1.1.99 mmustermann eth0 5/0 40G" + self.get_target_specific_description())
+            print("Please enter a valid external host configuration: ssh_ip username interface " + self.get_target_specific_description())
+            print("\"e.g.: change_external_host 172.1.1.99 mmustermann eth0 5/0 " + self.get_target_specific_description())
 
     def do_change_stamper(self, args):
         """Changes p4-stamper config: 'change_stamper ssh_ip ssh_user'"""
@@ -430,6 +428,7 @@ class ChangeGeneralConfig(Cmd):
         super().__init__()
         self.cfg = P4STA_utils.read_current_cfg()
         self.target_cfg = core_conn.root.get_target_cfg()
+        self.all_cfgs = core_conn.root.get_available_cfg_files()
 
         print("Available targets: " + ", ".join( core_conn.root.get_all_targets() ))
         print("Available forwarding modes (Layer): 1 (1 to 1 loadgen only), 2, 3")
@@ -437,12 +436,11 @@ class ChangeGeneralConfig(Cmd):
 
         self.show()
 
-
     def show(self):
         """Shows the current general config (like target, forwarding mode, packet generator)"""
         print("Current configuration:")
-        table_general = [["Prog", "Target", "Mode", "Dupl. Scale", "Packet Gen"],
-                         [self.cfg["program"], self.cfg["selected_target"], "Layer " + self.cfg["forwarding_mode"],
+        table_general = [["Target", "Mode", "Dupl. Scale", "Packet Gen"],
+                         [self.cfg["selected_target"], "Layer " + self.cfg["forwarding_mode"],
                           self.cfg["multicast"], self.cfg["selected_loadgen"]]]
         table_specific = [[],[]]
         for tbl_inp in self.target_cfg["inputs"]["input_individual"]:
@@ -450,7 +448,10 @@ class ChangeGeneralConfig(Cmd):
             table_specific[1].append(self.cfg[tbl_inp["target_key"]])
 
         print(tabulate(table_general, tablefmt="fancy_grid"))
-        print("Target specific configuration:")
+        print("Stamp TCP packets: " + ("True" if (self.cfg["stamp_tcp"] == "checked")  else "False"))
+        print("Stamp UDP packets: " + ("True" if (self.cfg["stamp_udp"] == "checked")  else "False"))
+        print("")
+        print("Stamper target specific configuration:")
         print(tabulate(table_specific, tablefmt="fancy_grid"))
         print("\nEnter \"back\" to return to main menu.\n")
 
@@ -468,18 +469,18 @@ class ChangeGeneralConfig(Cmd):
         """Exits CLI completely"""
         sys.exit(0)
 
-    def get_target_specific_description(self):
+    def get_stamper_target_specific_description(self):
         self.target_cfg = core_conn.root.get_target_cfg()
         answer = ""
         for t_inp in self.target_cfg["inputs"]["input_individual"]:
             try:
-                answer = answer + " " + t_inp["title"] + "(" + t_inp["description"] + ")"
+                answer = answer + " " + t_inp["title"] + " (" + t_inp["description"] + ")\n"
             except Exception as e:
                 pass
         return answer
 
     def do_change_specific(self, args):
-        """Changes target specific settings: 'change_specific arg1 arg2 ..'"""
+        """Changes Stamper target specific settings: 'change_specific arg1 arg2 ..'"""
         arg_list = args.split()
         if len(arg_list) == len(self.target_cfg["inputs"]["input_individual"]):
             c = 0
@@ -488,17 +489,7 @@ class ChangeGeneralConfig(Cmd):
                 c = c + 1
             self.update_and_show()
         else:
-            print("Please enter a valid setting like: change_specific" + self.get_target_specific_description())
-
-
-    def do_change_program(self, args):
-        """Change P4 program: 'change_program program_name'"""
-        arg_list = args.split()
-        if len(arg_list) == 1:
-            self.cfg["program"] = arg_list[0]
-            self.update_and_show()
-        else:
-            print("Please enter a program name like: change_program middlebox_v6")
+            print("Please enter a valid setting like: change_specific SETTING VALUE\n Available target specific settings are:\n" + self.get_stamper_target_specific_description())
 
 ### TODO load/store cfg
     def do_save_config(self, args):
@@ -524,14 +515,25 @@ class ChangeGeneralConfig(Cmd):
         else:
             print ("Use: create_new_cfg_from_template <bmv2, ...>")
 
+    def complete_open_config(self, text, line, begidx, endidx):
+        mline = line.partition(' ')[2]
+        offs = len(mline) - len(text)
+        return [s[offs:] for s in self.all_cfgs if s.startswith(mline)]
 
     def do_open_config(self, args):
         """"Open Configuration"""
         arg_list = args.split()
         if len(arg_list) == 1:
-            cfg = P4STA_utils.read_current_cfg(arg_list[0])
-            P4STA_utils.write_config(cfg)
+            self.all_cfgs = core_conn.root.get_available_cfg_files()
+            if arg_list[0] in self.all_cfgs:
+                cfg = P4STA_utils.read_current_cfg(arg_list[0])
+                P4STA_utils.write_config(cfg)
+            else:
+                print(arg_list[0] + " not found! Please enter a correct name of the following:")
+                for line in self.all_cfgs:
+                    print("-> " + line)
         else:
+            self.do_show_available_stamper_targets("")
             print("Use: open_config <file_name>")
     
     def do_delete_config(self, args):
@@ -546,11 +548,13 @@ class ChangeGeneralConfig(Cmd):
         else:
             print("Use: delete_config <file_name>")
 
-    def do_show_available_configs(self, args):
+    def do_show_available_stamper_targets(self, args):
         """"Shows all config-files which can be opened/deleted"""
         arg_list = args.split()
         if len(arg_list) == 0:
-            print(core_conn.root.get_available_cfg_files())
+            self.all_cfgs = core_conn.root.get_available_cfg_files()
+            for line in self.all_cfgs:
+                print("-> " + line)
         else:
             print("[Error: No arguements needed]")
 
@@ -621,8 +625,8 @@ class DeployPasta(Cmd):
         except Exception as e:
             print(e)
             return
-        result = p4_dev_status_job.value
-        self.cfg, lines_pm, running, dev_status = answers
+
+        self.cfg, lines_pm, running, dev_status = p4_dev_status_job.value
 
         if running:
             print(self.green("P4 device is running."))
@@ -693,12 +697,15 @@ class DeployPasta(Cmd):
         """Deploy config to P4 device. This activates the ports and configures the P4 runtime tables."""
         if self.ready_to_deploy:
             try:
-                deploy = rpyc.timed(core_conn.root.deploy(), 20)
+                deploy = rpyc.timed(core_conn.root.deploy, 20)
                 answer = deploy()
-                deploy.wait()
-                print("deployed successfully")
+                answer.wait()
+                deploy_error = answer.value
+
+                if len(deploy_error) < 2:
+                    print("deployed successfully")
             except Exception as e:
-                print("error: "+str(e))
+                print(traceback.format_exc())
         else:
             print("P4-device seems not to be ready to deploy. Please check 'status' to see if it is ready and start it with 'start_device'.")
 
@@ -742,14 +749,19 @@ class RunPasta(Cmd):
         new_id = core_conn.root.set_new_measurement_id()
 
         try:
-            answer = core_conn.root.start_external()            
+            answer, errors = core_conn.root.start_external()
             self.ext_running = answer
         except Exception as e:
             print("error: "+str(e))
             return
 
         if self.ext_running:
-            print("External host started listening successfully.")
+            if len(errors) > 0:
+                for err in errors:
+                    print(err)
+                print("Starting of external host aborted!")
+            else:
+                print("External host started listening successfully.")
         else:
             print("Target (P4 device) is not running. Please go back and then to deploy to start the target.")
 
@@ -771,7 +783,7 @@ class RunPasta(Cmd):
         print("Registers resetted successfully.")
 
     def do_run_load(self, args):
-        """Start the load generator with its configured configuration for chosen duration: run_loadgen 15 tcp 1500-> run for 15 seconds in TCP mode with 1500 Byte Packet Size (MTU)"""
+        """Start the load generator with its configured configuration for chosen duration: run_load 15 tcp 1500-> run for 15 seconds in TCP mode with 1500 Byte Packet Size (MTU)"""
         arg_list = args.split()
         try:
             if len(arg_list) == 3 and arg_list[0].isdigit():
@@ -802,14 +814,14 @@ class RunPasta(Cmd):
                 if self.ext_running:
                     print("Start execution of load generators, please wait up to " + str(duration+5) + " seconds...")
                     t_timeout = round(duration*1.5 + 20)
-                    start_loadgens =  rpyc.timed(core_conn.root.start_loadgens, t_timeout) 
+                    start_loadgens = rpyc.timed(core_conn.root.start_loadgens, t_timeout)
                     file_id = start_loadgens(duration, l4_type, mtu)
                     file_id.wait()
 
                     process_loadgens = rpyc.timed(core_conn.root.process_loadgens, duration*2)
-                    results = process_loadgens(file_id)
+                    results = process_loadgens(file_id.value)
                     results.wait()
-                    output, total_bits, error, total_retransmits, total_byte, custom_attr, to_plot  = results.value
+                    output, total_bits, error, total_retransmits, total_byte, custom_attr, to_plot = results.value
 
                     DisplayResultsPasta.show_loadgen_results(output, total_bits, error, total_retransmits, total_byte, custom_attr, to_plot)
 
@@ -824,7 +836,7 @@ class RunPasta(Cmd):
             else:
                 raise Exception
         except:
-            #print(traceback.format_exc())
+            print(traceback.format_exc())
             print("Please use the following format: run_loadgen time_in_sec l4_type packet_size; e.g.: 'run_loadgen 10 tcp 1500'")
 
 class DisplayResultsPasta(Cmd):
@@ -937,7 +949,6 @@ class DisplayResultsPasta(Cmd):
                 delete_by_id(arg_list[0])
             except:
                 print("Please enter a correct id 'delete_dataset ID' or 'delete_dataset' without id to get more information.")
-
 
     def do_show_p4_dev_results(self, args):
         sw = core_conn.root.p4_dev_results(self.selected_run_id)

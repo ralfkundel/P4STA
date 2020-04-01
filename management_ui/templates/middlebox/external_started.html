@@ -68,6 +68,14 @@
 	function updateTextInput(val) {
         	document.getElementById('packet_size_field').value=val; 
         }
+	
+	function load_status_overview() {
+		$("#status_overview").html('<img src="{% static 'images/spinner.svg' %}" />');
+		$.get("/status_overview/", function(data) {
+			$("#status_overview").html(data);
+		}, "html");
+		document.getElementById("show_status").innerHTML = "Refresh";
+	}
 	</script> 
 
 <style>
@@ -90,6 +98,7 @@
 </head>
 
 {% csrf_token %}
+{% if running == True and errors|length == 0 %}
 <p>External host started listening via multicast. Press the stop button to get the results.</p>
 <p>You should reset the switch registers to get exact results.</p>
 <p>Results from external Host, P4 registers and iPerf3 get automaticly saved when you press stop!<p>
@@ -160,3 +169,14 @@
 	<div class="col-md-2"><button id="exec_loadgen" type="button" class="save btn btn-secondary" onclick="exec_loadgens()">Start iPerf3</button></div>
 	<div class="col-md-10"><div id="output_loadgens" class="card card-body"></div></div>
 </div>
+{% elif running == False %}
+<span style="color: red">P4 device is not reachable. Please start it at <a href="/2/">Deploy</a></span>
+<button id="show_status" type="button" class="save btn btn-secondary" onclick="load_status_overview();">Show Status</button></h2> <div id="status_overview"></div>
+
+
+{% elif errors|length > 0 %}
+{% for error in errors %}
+<p>{{error}}</p>
+{% endfor %}
+<p>Aborted starting of external host. Please check your configuration at <a href="/">Configure</a></p>
+{% endif %}

@@ -23,6 +23,7 @@ import subprocess
 import sys
 import time
 import traceback
+import threading
 from pathlib import Path
 from tabulate import tabulate
 
@@ -38,15 +39,17 @@ from iperf3 import iperf3
 from loadgenerator import Loadgenerator
 
 # import abstract target
-sys.path.append(project_path + "/core/abstract_target")
 from abstract_target import AbstractTarget
+from abstract_extHost import AbstractExtHost
 
 # import calculate module
 from calculate import calculate
 
+first_run = False
 
 class P4staCore(rpyc.Service):
     all_targets = {}
+    all_extHosts = {}
     measurement_id = -1 ## will be set when external host is started
     method_return = None
 
@@ -54,6 +57,8 @@ class P4staCore(rpyc.Service):
         return project_path
 
     def __init__(self):
+        global first_run
+        first_run = False
         print("init p4sta core")
         P4STA_utils.set_project_path(project_path)
 
@@ -69,6 +74,20 @@ class P4staCore(rpyc.Service):
                     cfg["real_path"] = os.path.join(fullpath, dir)
                     self.all_targets.update({cfg["target"]:cfg})
 
+        #Find installed extHosts
+        fullpath = os.path.join(project_path, "extHost")
+        dirs = [d for d in os.listdir(fullpath) if os.path.isdir(os.path.join(fullpath, d))]
+        for dir in dirs:
+            config_path = os.path.join(fullpath, dir, "extHost_config.json")
+            if os.path.isfile(config_path):
+                ### we found a target
+                with open(config_path, "r") as f:
+                    cfg = json.load(f)
+                    cfg["real_path"] = os.path.join(fullpath, dir)
+                    self.all_extHosts.update({cfg["name"]:cfg})
+        print(self.all_extHosts)
+
+
         #TODO find installed load generators dynamically
         
         #Check if config exists. Otherwise: create one
@@ -80,12 +99,44 @@ class P4staCore(rpyc.Service):
             with open(path, "r") as f:
                 cfg = json.load(f)
                 P4STA_utils.write_config(cfg)
+            first_run = True
 
     def on_connect(self, con):#, listen_port=6000, answer_port=7000):
         print("connected to P4STA core")
 
-    def red(self, txt):
-        return "\033[1;31m" + txt + "\x1b[0m"
+    def check_first_run(self):
+        global first_run
+        return first_run
+
+    def first_run_finished(self):
+        global  first_run
+        first_run = False
+
+    def write_install_script(self, first_time_cfg):
+        new = []
+        with open("install.sh", "r+") as f:
+            old = f.readlines()
+            for line in old:
+                if line.find('switch_ip="') > -1:
+                    new_line = 'switch_ip="' + first_time_cfg["stamper_ssh"] + '"' + '\n'
+                elif line.find('ssh_username_switch="') > -1:
+                    new_line = 'ssh_username_switch="' + first_time_cfg["stamper_user"] + '"' + '\n'
+                elif line.find('external_host="') > -1:
+                    new_line = 'external_host="' + first_time_cfg["ext_host_ssh"] + '"' + '\n'
+                elif line.find('ssh_username_external="') > -1:
+                    new_line = 'ssh_username_external="' + first_time_cfg["ext_host_user"] + '"' + '\n'
+                elif line.find('loadgen_ips=("') > -1:
+                    new_line = 'loadgen_ips=(' + str(first_time_cfg["loadgen_ips"]).replace(",", "").replace("'", "\"").replace("[", "").replace("]", "") + ')' + ' #("ip1" "ip2" "ip3"..)\n'
+                elif line.find('ssh_username_server="') > -1:
+                    new_line = 'ssh_username_server="' + first_time_cfg["loadgen_user"] + '"' + ' #same user for all loadgens\n'
+                else:
+                    new_line = line
+                new.append(new_line)
+
+                f.seek(0)
+                for line in new:
+                    f.write(line)
+                os.chmod("install.sh", 0o775)
 
     # returns an instance of current selected target config object
     def target_obj(self, target_name):
@@ -99,6 +150,21 @@ class P4staCore(rpyc.Service):
         target_obj.setRealPath(target_description["real_path"])
 
         return target_obj
+
+    def extHost_obj(self, name):
+        host_description = self.all_extHosts[name]
+        path_to_driver = (os.path.join(host_description["real_path"], host_description["driver"]))
+
+        spec = importlib.util.spec_from_file_location("ExtHostImpl", path_to_driver)
+        foo = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(foo)
+        target_obj = foo.ExtHostImpl(host_description) #, P4STA_utils.read_current_cfg())
+        target_obj.setRealPath(host_description["real_path"])
+
+        return target_obj
+
+    def current_extHost_obj(self):
+        return self.extHost_obj(P4STA_utils.read_current_cfg()["selected_extHost"])
 
     # returns an instance of current selected load generator object
     def loadgen_obj(self, cfg):
@@ -120,7 +186,7 @@ class P4staCore(rpyc.Service):
             with open(os.path.join(target.realPath, "target_config.json"), "r") as f:
                 return json.load(f)
         except Exception as e:
-            print(self.red("CORE Exception in get_target_cfg: " + traceback.format_exc()))
+            P4STA_utils.log_error(("CORE Exception in get_target_cfg: " + traceback.format_exc()))
             return {}
 
     def write_config(self, cfg, file_name="config.json"):
@@ -132,7 +198,6 @@ class P4staCore(rpyc.Service):
             print("CORE: Delete of config.json denied!")
             return
         os.remove(os.path.join(project_path, "data", name))
-
 
     def get_available_cfg_files(self):
         lst = []
@@ -150,7 +215,6 @@ class P4staCore(rpyc.Service):
         my_file = Path(path)
         return self.open_cfg_file(path)
 
-
     def get_template_cfg_path(self, stamper_target_name):
         target = self.target_obj(stamper_target_name)
         path = target.getFullTemplatePath()
@@ -165,16 +229,11 @@ class P4staCore(rpyc.Service):
             cfg = json.load(f)
             return cfg
 
-    def stamper_specific_config(self):
-        target = self.target_obj(P4STA_utils.read_current_cfg()["selected_target"])
-        target.stamper_specific_config(P4STA_utils.read_current_cfg())
-
     def delete_by_id(self, file_id):
         try:
             shutil.rmtree(P4STA_utils.get_results_path(file_id))
         except Exception as e: # 
             print(e)
-
 
     def get_ports(self):
         cfg = P4STA_utils.read_current_cfg()
@@ -208,7 +267,6 @@ class P4staCore(rpyc.Service):
             return last
         return None
 
-
     def start_loadgens(self, duration, l4_selected="tcp", packet_size_mtu="1500"):
         cfg = P4STA_utils.read_current_cfg()
         loadgen = self.loadgen_obj(cfg)
@@ -222,7 +280,6 @@ class P4staCore(rpyc.Service):
         loadgen = self.loadgen_obj(cfg)
         results = loadgen.process_loadgen_data(str(file_id), P4STA_utils.get_results_path(file_id))
 
-        #output, total_bits, error, total_retransmits, total_byte, mean_rtt, min_rtt, max_rtt, to_plot = results
         output, total_bits, error, total_retransmits, total_byte, custom_attr, to_plot = results
 
         if not error:
@@ -246,12 +303,14 @@ class P4staCore(rpyc.Service):
                     except:
                         pass
 
-                        
         return output, total_bits, error, total_retransmits, total_byte, custom_attr, to_plot
 
     def deploy(self):
         target = self.target_obj(P4STA_utils.read_current_cfg()["selected_target"])
-        target.deploy(P4STA_utils.read_current_cfg())
+        error = target.deploy(P4STA_utils.read_current_cfg())
+        if error is not None and error != "":
+            P4STA_utils.log_error(error)
+        return error
 
     def ping(self):
         cfg = P4STA_utils.read_current_cfg()
@@ -260,12 +319,12 @@ class P4staCore(rpyc.Service):
             output += ['-----------------------', 'Server: '+server['ssh_ip'], '-----------------------']
             if len(cfg["loadgen_clients"]) > 0:
                 for client in cfg["loadgen_clients"]:
-                    output_sub = subprocess.run([project_path + "/scripts/ping.sh", server["ssh_ip"], client["loadgen_ip"], server["ssh_user"]], stdout=subprocess.PIPE)
+                    output_sub = subprocess.run([project_path + "/scripts/ping.sh", server["ssh_ip"], client["loadgen_ip"], server["ssh_user"], self.check_ns(server)], stdout=subprocess.PIPE)
                     output += (output_sub.stdout.decode("utf-8").split("\n"))
             else:
                 for server2 in cfg["loadgen_servers"]:
                     if server is not server2:
-                        output_sub = subprocess.run([project_path + "/scripts/ping.sh", server2["ssh_ip"], server2["loadgen_ip"], server2["ssh_user"]], stdout=subprocess.PIPE)
+                        output_sub = subprocess.run([project_path + "/scripts/ping.sh", server2["ssh_ip"], server["loadgen_ip"], server2["ssh_user"], self.check_ns(server2)], stdout=subprocess.PIPE)
                         output += (output_sub.stdout.decode("utf-8").split("\n"))
         return output
 
@@ -273,7 +332,7 @@ class P4staCore(rpyc.Service):
         target = self.target_obj(P4STA_utils.read_current_cfg()["selected_target"])
         cfg = target.read_p4_device(P4STA_utils.read_current_cfg())
 
-        with open(os.path.join(self.get_current_results_path(), "p4_dev_" + P4staCore.measurement_id + ".json"), "w") as write_json:
+        with open(os.path.join(self.get_current_results_path(), "p4_dev_" + str(P4staCore.measurement_id) + ".json"), "w") as write_json:
             json.dump(cfg, write_json, indent=2, sort_keys=True)
 
         if cfg["delta_counter"] == 0:
@@ -319,43 +378,60 @@ class P4staCore(rpyc.Service):
                 table = [["IN", "GBytes", "Packets", "Ave Size (Byte)", "GBytes", "Packets", "Ave Size (Byte)", "OUT"]]
                 try:
                     for server in cfg["loadgen_servers"]:
-                        table.append([server["real_port"], round(server["num_ingress" + word + "_bytes"] / 1000000000, 2),
-                                      server["num_ingress" + word + "_packets"],
-                                      round(server["num_ingress" + word + "_bytes"] / server["num_ingress" + word + "_packets"], 2),
-                                      round(cfg["dut1_num_egress" + word + "_bytes"] / 1000000000, 2), cfg["dut1_num_egress" + word + "_packets"],
-                                      round(cfg["dut1_num_egress" + word + "_bytes"] / cfg["dut1_num_egress" + word + "_packets"], 2),
-                                      cfg["dut1_real"]])
+                        try:
+                            table.append([server["real_port"], round(server["num_ingress" + word + "_bytes"] / 1000000000, 2),
+                                          server["num_ingress" + word + "_packets"],
+                                          round(server["num_ingress" + word + "_bytes"] / server["num_ingress" + word + "_packets"], 2),
+                                          round(cfg["dut1_num_egress" + word + "_bytes"] / 1000000000, 2), cfg["dut1_num_egress" + word + "_packets"],
+                                          round(cfg["dut1_num_egress" + word + "_bytes"] / cfg["dut1_num_egress" + word + "_packets"], 2),
+                                          cfg["dut1_real"]])
+                        except ZeroDivisionError:
+                            table.append([server["real_port"], "err: could be 0", server["num_ingress" + word + "_packets"], "err: could be 0",
+                                          "err: could be 0", cfg["dut1_num_egress" + word + "_packets"], "err: could be 0", cfg["dut1_real"]])
 
                     for client in cfg["loadgen_clients"]:
-                        table.append([cfg["dut2_real"], round(cfg["dut2_num_ingress" + word + "_bytes"] / 1000000000, 2),
-                                      cfg["dut2_num_ingress" + word + "_packets"],
-                                      round(cfg["dut2_num_ingress" + word + "_bytes"] / cfg["dut2_num_ingress" + word + "_packets"], 2),
-                                      round(client["num_egress" + word + "_bytes"] / 1000000000, 2), client["num_egress" + word + "_packets"],
-                                      round(client["num_egress" + word + "_bytes"] / client["num_egress" + word + "_packets"], 2),
-                                      client["real_port"]])
+                        try:
+                            table.append([cfg["dut2_real"], round(cfg["dut2_num_ingress" + word + "_bytes"] / 1000000000, 2),
+                                          cfg["dut2_num_ingress" + word + "_packets"],
+                                          round(cfg["dut2_num_ingress" + word + "_bytes"] / cfg["dut2_num_ingress" + word + "_packets"], 2),
+                                          round(client["num_egress" + word + "_bytes"] / 1000000000, 2), client["num_egress" + word + "_packets"],
+                                          round(client["num_egress" + word + "_bytes"] / client["num_egress" + word + "_packets"], 2),
+                                          client["real_port"]])
+                        except ZeroDivisionError:
+                            table.append([cfg["dut2_real"], "err: could be 0", cfg["dut2_num_ingress" + word + "_packets"], "err: could be 0",
+                                          "err: could be 0", client["num_egress" + word + "_packets"], "err: could be 0", client["real_port"]])
 
                     for client in cfg["loadgen_clients"]:
-                        table.append([client["real_port"], round(client["num_ingress" + word + "_bytes"] / 1000000000, 2),
-                                      client["num_ingress" + word + "_packets"],
-                                      round(client["num_ingress" + word + "_bytes"] / client["num_ingress" + word + "_packets"], 2),
-                                      round(cfg["dut2_num_egress" + word + "_bytes"] / 1000000000, 2), cfg["dut2_num_egress" + word + "_packets"],
-                                      round(cfg["dut2_num_egress" + word + "_bytes"] / cfg["dut2_num_egress" + word + "_packets"], 2),
-                                      cfg["dut2_real"]])
+                        try:
+                            table.append([client["real_port"], round(client["num_ingress" + word + "_bytes"] / 1000000000, 2),
+                                          client["num_ingress" + word + "_packets"],
+                                          round(client["num_ingress" + word + "_bytes"] / client["num_ingress" + word + "_packets"], 2),
+                                          round(cfg["dut2_num_egress" + word + "_bytes"] / 1000000000, 2), cfg["dut2_num_egress" + word + "_packets"],
+                                          round(cfg["dut2_num_egress" + word + "_bytes"] / cfg["dut2_num_egress" + word + "_packets"], 2),
+                                          cfg["dut2_real"]])
+                        except ZeroDivisionError:
+                            table.append([client["real_port"], "err: could be 0", client["num_ingress" + word + "_packets"], "err: could be 0",
+                                          "err: could be 0", cfg["dut2_num_egress" + word + "_packets"], "err: could be 0", cfg["dut2_real"]])
 
                     for server in cfg["loadgen_servers"]:
-                        table.append([cfg["dut1_real"], round(cfg["dut1_num_ingress" + word + "_bytes"] / 1000000000, 2),
-                                      cfg["dut1_num_ingress" + word + "_packets"],
-                                      round(cfg["dut1_num_ingress" + word + "_bytes"] / cfg["dut1_num_ingress" + word + "_packets"], 2),
-                                      round(server["num_egress" + word + "_bytes"] / 1000000000, 2), server["num_egress" + word + "_packets"],
-                                      round(server["num_egress" + word + "_bytes"] / server["num_egress" + word + "_packets"], 2),
-                                      server["real_port"]])
+                        try:
+                            table.append([cfg["dut1_real"], round(cfg["dut1_num_ingress" + word + "_bytes"] / 1000000000, 2),
+                                          cfg["dut1_num_ingress" + word + "_packets"],
+                                          round(cfg["dut1_num_ingress" + word + "_bytes"] / cfg["dut1_num_ingress" + word + "_packets"], 2),
+                                          round(server["num_egress" + word + "_bytes"] / 1000000000, 2), server["num_egress" + word + "_packets"],
+                                          round(server["num_egress" + word + "_bytes"] / server["num_egress" + word + "_packets"], 2),
+                                          server["real_port"]])
+                        except ZeroDivisionError:
+                            table.append([cfg["dut1_real"], "err: could be 0", cfg["dut1_num_ingress" + word + "_packets"], "err: could be 0",
+                                          "err: could be 0", server["num_egress" + word + "_packets"], "err: could be 0", server["real_port"]])
                 except Exception as e:
-                    table.append(["An error occurred while creating the table."])
+                    print(traceback.format_exc())
+                    table.append(["Error: " + str(e)])
 
                 f.write(tabulate(table, tablefmt="fancy_grid"))  # creates table with the help of tabulate module
 
     def p4_dev_results(self, file_id):
-        #TODO: stability: what if exception?
+        #TODO: better exception handling
         time_created = "not available"
         try:
             time_created = time.strftime('%H:%M:%S %d.%m.%Y', time.localtime(int(file_id)))
@@ -365,7 +441,7 @@ class P4staCore(rpyc.Service):
             with open(P4STA_utils.get_results_path(file_id)  + "/p4_dev_" + str(file_id) + ".json", "r") as file:
                 sw = json.load(file)
         except Exception as e:
-            print(self.red("CORE Exception: " + traceback.format_exc()))
+            P4STA_utils.log_error("CORE Exception: " + traceback.format_exc())
         if sw["delta_counter"] != 0:
             average = sw["total_deltas"]/sw["delta_counter"]
         else:
@@ -486,10 +562,19 @@ class P4staCore(rpyc.Service):
 
         return sw
 
-    # resets registers in p4 device by overwriting them with 0
+    # resets registers in p4 device
     def reset(self):
         target = self.target_obj(P4STA_utils.read_current_cfg()["selected_target"])
-        target.reset_p4_registers(P4STA_utils.read_current_cfg())
+        ret_val = target.reset_p4_registers(P4STA_utils.read_current_cfg())
+        if ret_val is None:
+            ret_val = ""
+        return ret_val
+
+    def check_ns(self, host):
+        if "namespace_id" in host:
+            return "sudo ip netns exec " + str(host["namespace_id"])
+        else:
+            return ""
 
     def p4_dev_status(self):
         cfg = P4STA_utils.read_current_cfg()
@@ -501,7 +586,7 @@ class P4staCore(rpyc.Service):
             host["reachable"] = pingresp
             if pingresp:
                 output_host = subprocess.run(
-                    [project_path + "/scripts/ethtool.sh", host["ssh_ip"], host["ssh_user"], host["loadgen_iface"]],
+                    [project_path + "/scripts/ethtool.sh", host["ssh_ip"], host["ssh_user"], host["loadgen_iface"], self.check_ns(host)],
                     stdout=subprocess.PIPE)
                 pos = output_host.stdout.decode("utf-8").find("Link detected")
                 try:
@@ -561,43 +646,29 @@ class P4staCore(rpyc.Service):
             os.makedirs(self.get_current_results_path())
         shutil.copy(project_path + "/data/config.json", os.path.join(self.get_current_results_path(), "config_"+str(P4staCore.measurement_id)+".json") )
 
-        if cfg["selected_target"] != "bmv2":
-            multi = 1 # 1 = nanoseconds
-        else:
-            multi = 1000 # 1000 = microseconds
-
-        ext_py_dir = project_path + "/extHost/pythonExtHost"
+        multi = self.get_target_cfg()['stamping_capabilities']['timestamp-multi']
+        tsmax = self.get_target_cfg()['stamping_capabilities']['timestamp-max']
+        errors = ()
         if running:
-            output= subprocess.run([project_path + "/scripts/start_external.sh", file_id, cfg["ext_host_if"], cfg["ext_host_ssh"], cfg["ext_host_user"], ext_py_dir, str(multi)])
-            #print(output)
-
-        return running
+            errors = self.current_extHost_obj().start_external(file_id, multi = multi, tsmax=tsmax)
+        if errors != ():
+            P4STA_utils.log_error(errors)
+        return running, errors
 
     def stop_external(self):
         cfg = P4STA_utils.read_current_cfg()
         try:
             if int(P4staCore.measurement_id) == -1:
                 raise Exception
-            out = subprocess.run([project_path + "/scripts/stop_external.sh", str(P4staCore.measurement_id), cfg["ext_host_ssh"], cfg["ext_host_user"], project_path])
-            input = ["ssh", "-o", "StrictHostKeyChecking=no", cfg["ext_host_user"] + "@" + cfg["ext_host_ssh"], "cd p4sta/receiver; ./check_extH_status.sh; exit"]
-            time.sleep(5)
-            while True: #wait until exthost stopped
-                time.sleep(1)
-                res = subprocess.Popen(input, stdout=subprocess.PIPE).stdout
-                result = res.read().decode()
-                if result.find("1") > -1:
-                    # if 1 is found by check_extH_status.sh at external host, receiver has finished saving csv files
-                    break
-            out = subprocess.run([project_path + "/scripts/retrieve_external_results.sh", str(P4staCore.measurement_id), cfg["ext_host_ssh"], cfg["ext_host_user"], self.get_current_results_path()])
-            stoppable = True
+
+            stoppable = self.current_extHost_obj().stop_external(P4staCore.measurement_id)
         except:
             stoppable = False
-            #subprocess.run([project_path + "/scripts/stop_all_py.sh", cfg["ext_host_ssh"], cfg["ext_host_user"]])
-            # kills mininet and the CLI too .. not good
 
         self.read_p4_device()
 
-        self.external_results(str(P4staCore.measurement_id))
+	#Don't do this when stopping ext host, takes lot of time
+        #self.external_results(str(P4staCore.measurement_id))
 
         return stoppable
 
@@ -641,9 +712,9 @@ class P4staCore(rpyc.Service):
             extH_results["avg_packets_per_second"]) + "\n")
         f.close()
 
-    def fetch_interface(self, ssh_user, ssh_ip, iface):
+    def fetch_interface(self, ssh_user, ssh_ip, iface, namespace=""):
         try:
-            lines = subprocess.run([project_path + "/core/scripts/fetch.sh", ssh_user, ssh_ip, iface], stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")
+            lines = subprocess.run([project_path + "/core/scripts/fetch.sh", ssh_user, ssh_ip, iface, namespace], stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")
             mac_line = ""
             ipv4_line = ""
             for l in range(0, len(lines)):
@@ -701,34 +772,45 @@ class P4staCore(rpyc.Service):
                 prefix = ""
 
         except Exception as e:
-            print(self.red("CORE EXCEPTION: " + str(traceback.format_exc())))
+            P4STA_utils.log_error("CORE EXCEPTION: " + str( traceback.format_exc() ))
             ipv4 = mac = "fetch error"
 
         # check if iface is up
         try:
-            #up_state = self.execute_ssh(ssh_user, ssh_ip, "cat /sys/class/net/" + iface + "/operstate")[0]
-            up_state = self.execute_ssh(ssh_user, ssh_ip, 'ifconfig | grep "' + iface+'"')[0]
+            if namespace == "":
+                up_state = self.execute_ssh(ssh_user, ssh_ip, 'ifconfig | grep "' + iface+'"')[0]
+            else:
+                up_state = self.execute_ssh(ssh_user, ssh_ip, 'sudo ip netns exec ' + str(namespace) + ' ifconfig | grep "' + iface + '"')[0]
             if len(up_state) > 0:
                 up_state = "up"
+                iface_found = True
             else:
                 up_state = "down"
+                found = self.execute_ssh(ssh_user, ssh_ip, 'ifconfig -a | grep "' + iface + '"')[0]
+                if len(found) > 0:
+                    iface_found = True
+                else:
+                    iface_found = False
         except:
             up_state = "error"
 
-        return ipv4, mac, prefix, up_state
+        return ipv4, mac, prefix, up_state, iface_found
 
-    def set_interface(self, ssh_user, ssh_ip, iface, iface_ip):
-        line = subprocess.run([project_path + "/core/scripts/setIP.sh", ssh_user, ssh_ip, iface, iface_ip], stdout=subprocess.PIPE).stdout.decode("utf-8")
-        print("set interface: " + str(line))
+    def set_interface(self, ssh_user, ssh_ip, iface, iface_ip, namespace=""):
+        if namespace == "":
+            line = subprocess.run([project_path + "/core/scripts/setIP.sh", ssh_user, ssh_ip, iface, iface_ip], stdout=subprocess.PIPE).stdout.decode("utf-8")
+        else:
+            line = subprocess.run([project_path + "/core/scripts/setIP_namespace.sh", ssh_user, ssh_ip, iface, iface_ip, namespace], stdout=subprocess.PIPE).stdout.decode("utf-8")
 
-        return line.find("failed") > -1
+        # error = return True; worked = return False
+        return not (line.find("worked") > -1 and line.find("ifconfig_success") > -1)
 
     def check_ssh_ping(self, ip):
         pingresp = (os.system("timeout 1 ping " + ip + " -c 1") == 0)  # if ping works it should be true
         return pingresp
 
     def execute_ssh(self, user, ip_address, arg):
-        input = ["ssh", "-o", "StrictHostKeyChecking=no", user + "@" + ip_address, arg]
+        input = ["ssh", "-o ConnectTimeout=5", user + "@" + ip_address, arg] #-o StrictHostKeyChecking=no
         res = subprocess.Popen(input, stdout=subprocess.PIPE).stdout
         return res.read().decode().split("\n")
 
@@ -747,8 +829,8 @@ class P4staCore(rpyc.Service):
         else:
             return ["Error checking sudo status."]
 
-    def check_iface(self, user, ip, iface):
-        ipv4, mac, prefix, up_state = self.fetch_interface(user, ip, iface) #host["ssh_user"], host["ssh_ip"], host["loadgen_iface"])
+    def check_iface(self, user, ip, iface, namespace=""):
+        ipv4, mac, prefix, up_state, iface_found = self.fetch_interface(user, ip, iface, namespace)
         if ipv4 == "" or ipv4 == []:
             ipv4 = "n/a"
         if mac == "" or mac == []:
@@ -763,9 +845,19 @@ class P4staCore(rpyc.Service):
     def check_routes(self, user, ip):
         return self.execute_ssh(user, ip, "ip route")
 
-    def fetch_mtu(self, user, ip_address, iface):
+    def check_namespaces(self, user, ip):
+        namespaces = self.execute_ssh(user, ip, "ip netns list")
+        answer = []
+        for ns in namespaces:
+            if ns != "":
+                answer.append([str(ns)] + self.execute_ssh(user, ip, "sudo ip netns exec " + str(ns) + " ifconfig"))
+        return answer
+
+    def fetch_mtu(self, user, ip_address, iface, namespace=""):
         mtu = "0"
-        for line in self.execute_ssh(user, ip_address, "ifconfig " + iface):
+        if namespace != "":
+            namespace = "sudo ip netns exec " + namespace + " "
+        for line in self.execute_ssh(user, ip_address, namespace + "ifconfig " + iface):
             found = line.lower().find("mtu")
             if found > -1:
                 mtu = line[found + 4:found + 4 + line[found + 4:].find(" ")]
@@ -775,6 +867,133 @@ class P4staCore(rpyc.Service):
 
         return mtu
 
+    def get_results_path(self, file_id):
+        return P4STA_utils.get_results_path(file_id)
+
+    def delete_namespace(self, ns, user, ssh_ip):
+        all = self.execute_ssh(user, ssh_ip, "sudo ip netns list")
+        if ns in all:
+            self.execute_ssh(user, ssh_ip, "sudo ip netns del " + ns)
+            return True
+        else:
+            return False
+
+    def status_overview(self):
+        cfg = P4STA_utils.read_current_cfg()
+        target_cfg = self.get_target_cfg()
+        target = self.target_obj(cfg["selected_target"])
+        results = [None] * (len(cfg["loadgen_servers"] + cfg["loadgen_clients"]) + 3)  # stores the return values from threads
+
+        def check_needed_sudos(host, needed_sudos):
+            to_add = []
+            for needed in needed_sudos:
+                found = False
+                for right in host["sudo_rights"]:
+                    if right.endswith("NOPASSWD: ALL"):
+                        return []
+                    if right.find(needed) > -1:
+                        found = True
+                if not found:
+                    to_add.append(needed)
+            return to_add
+
+        # Stamper thread
+        def stamper(results, index):
+            res = {}
+            res["p4_dev_ssh_ping"] = self.check_ssh_ping(ip=cfg["p4_dev_ssh"])
+            res["p4_dev_sudo_rights"] = self.check_sudo(cfg["p4_dev_user"], cfg["p4_dev_ssh"])
+
+            if res["p4_dev_ssh_ping"]:
+                res["p4_dev_compile_status_color"], res["p4_compile_status"] = self.check_if_p4_compiled()
+            else:
+                res["p4_dev_compile_status_color"], res["p4_compile_status"] = (False, "P4-Stamper is not reachable at SSH IP!")
+            # needed sudos = defined in target_config.json + dynamic sudos (e.g. software version)
+            needed_sudos = target_cfg["status_check"]["needed_sudos_to_add"] + target.needed_dynamic_sudos(cfg)
+            res["p4_dev_needed_sudos_to_add"] = check_needed_sudos({"sudo_rights": res["p4_dev_sudo_rights"]}, needed_sudos)
+
+            # store in results list (no return possible for a thread)
+            results[index] = res
+
+        # external host thread
+        def ext_host(results, index):
+            res = {}
+            res["ext_host_ssh_ping"] = self.check_ssh_ping(cfg["ext_host_ssh"])
+            if res["ext_host_ssh_ping"]:
+                res["ext_host_sudo_rights"] = self.check_sudo(cfg["ext_host_user"], cfg["ext_host_ssh"])
+                res["ext_host_fetched_ipv4"], res["ext_host_fetched_mac"], res["ext_host_fetched_prefix"], res["ext_host_up_state"] = self.check_iface(cfg["ext_host_user"], cfg["ext_host_ssh"], cfg["ext_host_if"])
+                res["ext_host_needed_sudos_to_add"] = check_needed_sudos({"sudo_rights": res["ext_host_sudo_rights"]}, ["/usr/bin/pkill", "/usr/bin/killall", "/home/" + cfg["ext_host_user"] + "/p4sta/receiver/pythonRawSocketExtHost.py"])
+                # check pip modules
+                try:
+                    answer = self.execute_ssh(cfg["ext_host_user"], cfg["ext_host_ssh"], "python3 -c 'import pkgutil; print(1 if pkgutil.find_loader(\"setproctitle\") else 0)'")
+                    res["ext_host_pip_check"] = answer[0] == "1"
+                except:
+                    res["ext_host_pip_check"] = False
+                # store in results list (no return possible for a thread)
+                results[index] = res
+
+        # load generators threads
+        def loadgen(host, results, index):
+            res = {}
+            res["ssh_ping"] = self.check_ssh_ping(host["ssh_ip"])
+            if res["ssh_ping"]:
+                if "namespace_id" in host:
+                    res["fetched_ipv4"], res["fetched_mac"], res["fetched_prefix"], res["up_state"] = self.check_iface(host['ssh_user'], host['ssh_ip'], host['loadgen_iface'], host["namespace_id"])
+                else:
+                    res["fetched_ipv4"], res["fetched_mac"], res["fetched_prefix"], res["up_state"] = self.check_iface(host['ssh_user'], host['ssh_ip'], host['loadgen_iface'], "")
+
+                res["sudo_rights"] = self.check_sudo(host['ssh_user'], host['ssh_ip'])
+                res["needed_sudos_to_add"] = check_needed_sudos({"sudo_rights": res["sudo_rights"]}, ["/sbin/ethtool", "/sbin/reboot", "/sbin/ifconfig", "/bin/ip"])
+                res["ip_routes"] = self.check_routes(host['ssh_user'], host['ssh_ip'])
+                res["namespaces"] = self.check_namespaces(host['ssh_user'], host['ssh_ip'])
+
+            else:
+                res["sudo_rights"] = ["not reachable"]
+                res["needed_sudos_to_add"] = []
+                res["fetched_ipv4"], res["fetched_mac"], res["fetched_prefix"], res["up_state"] = ("", "", "", "down")
+                res["ip_routes"] = []
+                res["namespaces"] = []
+            results[index] = res
+
+        # start threads
+        threads = list()
+        x = threading.Thread(target=stamper, args=(results, 0))
+        threads.append(x)
+        x.start()
+        x = threading.Thread(target=ext_host, args=(results, 1))
+        threads.append(x)
+        x.start()
+
+        ind = 2
+        for host in cfg["loadgen_servers"] + cfg["loadgen_clients"]:
+            x = threading.Thread(target=loadgen, args=(host, results, ind))
+            threads.append(x)
+            x.start()
+            ind = ind + 1
+
+        for thread in threads:
+            thread.join()
+
+        # collecting all results
+        for i in range(0, 2):
+            if results[i] is not None:
+                cfg = {**cfg, **results[i]}
+            else:
+                print("### results[" + str(i) + "] = NONE ###")
+
+        ind = 2
+        for host in cfg["loadgen_servers"] + cfg["loadgen_clients"]:
+            host["ssh_ping"] = results[ind]["ssh_ping"]
+            host["sudo_rights"] = results[ind]["sudo_rights"]
+            host["needed_sudos_to_add"] = results[ind]["needed_sudos_to_add"]
+            host["fetched_ipv4"] = results[ind]["fetched_ipv4"]
+            host["fetched_mac"] = results[ind]["fetched_mac"]
+            host["fetched_prefix"] = results[ind]["fetched_prefix"]
+            host["up_state"] = results[ind]["up_state"]
+            host["ip_routes"] = results[ind]["ip_routes"]
+            host["namespaces"] = results[ind]["namespaces"]
+            ind = ind + 1
+
+        return cfg
 
 
 if __name__ == '__main__':

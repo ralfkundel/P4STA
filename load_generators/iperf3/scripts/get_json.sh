@@ -15,4 +15,4 @@
 scp $2@$1:s$4.json $5/iperf3_s$4_$3.json 
 scp $2@$1:s$(($4 + 1)).json $5/iperf3_s$(($4 + 1))_$3.json
 scp $2@$1:s$(($4 + 2)).json $5/iperf3_s$(($4 + 2))_$3.json
-ssh -tt $2@$1 "rm s$4.json; rm s$(($4 + 1)).json; rm s$(($4 + 2)).json"
+ssh -tt $2@$1 "rm -f s$4.json; rm -f s$(($4 + 1)).json; rm -f s$(($4 + 2)).json"

@@ -31,10 +31,49 @@
   display: inline-block;
 }
 </style>
+<script>
+	function delete_namespace(ns, user, ssh_ip){
+		var token = document.getElementsByName("csrfmiddlewaretoken");
+		csrf_value = token[0].getAttribute("value");
+		$.ajax({
+            type: "POST",
+            url: "/deleteNamespace/",
+            data: {
+            	'csrfmiddlewaretoken': csrf_value,
+            	'namespace': ns,
+				'user': user,
+				'ssh_ip': ssh_ip
+            },
+            error: function(){
+				document.getElementById(ns+"_"+ssh_ip+"_error").innerHTML = "error deleting";
+            },
+            success: function (response) {
+				if(!response.error){
+					items = document.getElementsByClassName(ns+"_"+ssh_ip)
+					for (var i = 0; i < items.length; i++){
+						items[i].innerHTML = "";
+					}
+					items = document.getElementsByClassName(ns+"_"+ssh_ip+"_error")
+					for (var i = 0; i < items.length; i++){
+						items[i].innerHTML = "";
+					}
+					//document.getElementById(ns+"_"+ssh_ip).innerHTML = "";
+					//document.getElementById(ns+"_"+ssh_ip+"_error").innerHTML = "";
+				} else {
+					//document.getElementById(ns+"_"+ssh_ip+"_error").innerHTML = "error deleting";
+					items = document.getElementsByClassName(ns+"_"+ssh_ip+"_error")
+					for (var i = 0; i < items.length; i++){
+						items[i].innerHTML = "error deleting";
+					}
+				}
+            },
+            timeout: 3000
+          });
+	}
+</script>
 </head>
 
 <div style="line-height: normal;">
-<!--  debug: {{sudo_rights}}  -->
 
 
 <p><b><u>P4 Device</u></b></p>
@@ -73,7 +112,7 @@
 		{% else %}
 			<span class="dot_red" data-toggle="tooltip" data-placement="top" title="SSH IP is not reacheably by ping."></span>
 		{% endif %} 
-		SSH:</b> {{host.ssh_ip}} <b> | LOAD PORT </b>{{host.real_port}}<b> IFACE </b>{{host.loadgen_iface}}<b>: IP</b> {{host.fetched_ipv4}}{{host.fetched_prefix}} <b>MAC</b> {{host.fetched_mac}} <b>{% if host.up_state == "up" %}<span style="color: green">UP</span>{% else %}<span style="color: red">DOWN</span>{% endif %}</b>
+		SSH:</b> {{host.ssh_ip}} <b> | LOAD PORT </b>{{host.real_port}}<b> IFACE </b>{{host.loadgen_iface}}<b>: IP</b> <span style="color: {% if host.fetched_ipv4 ==  host.loadgen_ip %}green{% else %}red{% endif %}">{{host.fetched_ipv4}}{{host.fetched_prefix}}</span> <b>MAC</b> <span style="color: {% if host.fetched_mac ==  host.loadgen_mac %}green{% else %}red{% endif %}">{{host.fetched_mac}}</span> <b>{% if host.up_state == "up" %}<span style="color: green">UP</span>{% else %}<span style="color: red">DOWN</span>{% endif %}</b>
 		</b></p>
 {% if host.ssh_ping %}
 <details>
@@ -96,6 +135,17 @@
 
 </details>
 
+<details>
+	<summary>ACTIVE NAMESPACES WITH INTERFACES:</summary>
+	  {% for line in host.namespaces %}
+	  	<div class="{{line.0}}_{{host.ssh_ip}}">
+		{% for l in line %}
+		  &emsp;{% if forloop.first %}<b>{%endif%}{{l}}{% if forloop.first %}</b><button type="button" class="btn btn-outline-dark btn-sm" onclick="delete_namespace('{{l}}', '{{host.ssh_user}}', '{{host.ssh_ip}}')" style="float: right; margin-right: 20px;">Delete</button><div class="{{line.0}}_{{host.ssh_ip}}_error" style="color: red; float: right; padding-right: 5px;"></div>{%endif%}<br>
+		{% endfor %}
+		</div>
+	  {% endfor %}
+</details>
+
 
 {% endif %}	
 {% endfor %}
@@ -110,7 +160,7 @@
 		{% else %}
 			<span class="dot_red" data-toggle="tooltip" data-placement="top" title="SSH IP is not reacheably by ping."></span>
 		{% endif %} 
-		SSH:</b> {{host.ssh_ip}} <b> | LOAD PORT </b>{{host.real_port}}<b> IFACE </b>{{host.loadgen_iface}}<b>: IP</b> {{host.fetched_ipv4}}{{host.fetched_prefix}} <b>MAC</b> {{host.fetched_mac}} <b>{% if host.up_state == "up" %}<span style="color: green">UP</span>{% else %}<span style="color: red">DOWN</span>{% endif %}</b>
+		SSH:</b> {{host.ssh_ip}} <b> | LOAD PORT </b>{{host.real_port}}<b> IFACE </b>{{host.loadgen_iface}}<b>: IP</b> <span style="color: {% if host.fetched_ipv4 ==  host.loadgen_ip %}green{% else %}red{% endif %}">{{host.fetched_ipv4}}{{host.fetched_prefix}}</span> <b>MAC</b> <span style="color: {% if host.fetched_mac ==  host.loadgen_mac %}green{% else %}red{% endif %}">{{host.fetched_mac}}</span> <b>{% if host.up_state == "up" %}<span style="color: green">UP</span>{% else %}<span style="color: red">DOWN</span>{% endif %}</b>
 	</b></p>
 {% if host.ssh_ping %}
 <details>
@@ -129,6 +179,17 @@
 	{% for line in host.ip_routes %}
 		&emsp;{{line}}<br>
 	{% endfor %}
+</details>
+
+<details>
+	<summary>ACTIVE NAMESPACES WITH INTERFACES:</summary>
+	  {% for line in host.namespaces %}
+	  	<div class="{{line.0}}_{{host.ssh_ip}}">
+		{% for l in line %}
+		  &emsp;{% if forloop.first %}<b>{%endif%}{{l}}{% if forloop.first %}</b><button type="button" class="btn btn-outline-dark btn-sm" onclick="delete_namespace('{{l}}', '{{host.ssh_user}}', '{{host.ssh_ip}}')" style="float: right; margin-right: 20px;">Delete</button><div class="{{line.0}}_{{host.ssh_ip}}_error" style="color: red; float: right; padding-right: 5px;"></div>{%endif%}<br>
+		{% endfor %}
+		</div>
+	  {% endfor %}
 </details>
 
 {% endif %}
@@ -154,6 +215,10 @@
 		<br><p><i class="fas fa-exclamation"></i>
 		You shoud add to visudo: $USER (ALL : ALL) NOPASSWD:{{line}}</p>
 	{% endfor %}
+</details>
+<details>
+  <summary><span class={% if ext_host_pip_check == False %}"dot_red"{% else %}"dot_green"{% endif %}></span> PYTHON MODULES:</summary>
+	<p>&emsp;{% if ext_host_pip_check == False %}Please install module <b>setproctitle</b> at external host (pip install setproctitle){% else %}Module <b>setproctitle</b> is installed at external host.{% endif %}</p>
 </details>
 
 {% endif %}

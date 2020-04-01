@@ -29,14 +29,10 @@ class AbstractTarget:
     def getFullTemplatePath(self):
         return os.path.join(self.realPath, self.target_cfg["cfg_template"])
 
-    # for stamper target specific configuration inputs (e.g. FEC)
-    def stamper_specific_config(self, cfg):
-        pass
-
     # returns a dict["real_ports"] and ["logical_ports"]
     def port_lists(self):
         temp = {"real_ports": [], "logical_ports": []}
-        for i in range(0, 100):
+        for i in range(0, 400):
             temp["real_ports"].append(str(i))
             temp["logical_ports"].append(str(i))
         return temp
@@ -88,3 +84,8 @@ class AbstractTarget:
         input = ["ssh", cfg["p4_dev_user"] + "@" + cfg["p4_dev_ssh"], arg]
         res = subprocess.Popen(input, stdout=subprocess.PIPE).stdout
         return res.read().decode().split("\n")
+
+    # returns list of strings with needed dynamic sudos for this target
+    # in difference to fixed needed sudos defined in target_config.json this checks for needed sudos which are not clear for every use case (e.g. different software version)
+    def needed_dynamic_sudos(self, cfg):
+        return []

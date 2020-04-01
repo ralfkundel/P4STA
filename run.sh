@@ -3,6 +3,7 @@ echo "##########################################################################
 echo "Welcome to P4STA! Please select the mode you want to start the environment."
 echo "To stop P4STA you just need to enter ctrl + c"
 echo "###########################################################################"
+source pastaenv/bin/activate
 select yn in "P4STA Core + HTML-GUI (recommended)" "P4STA Core(VERBOSE) + HTML-GUI" "P4STA Core + CLI" "Just P4STA Core (VERBOSE)"; do
     case $yn in
         "P4STA Core + HTML-GUI (recommended)" ) (python3 core/core.py>/dev/null&); python3 manage.py runserver 0.0.0.0:9997; break;;
@@ -12,4 +13,5 @@ select yn in "P4STA Core + HTML-GUI (recommended)" "P4STA Core(VERBOSE) + HTML-G
     esac
 done
 pkill python3 #kills core.py instance at the end
+deactivate
 

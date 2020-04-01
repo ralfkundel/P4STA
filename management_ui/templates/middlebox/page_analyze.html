@@ -17,24 +17,12 @@
 <html lang="en">
 {% load static %}
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="shortcut icon" type="image/x-icon" href="{% static 'includes/favicon.ico' %}"/>
-	<link rel="stylesheet" href="{% static 'includes/bootstrap.min.css' %}">
-	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
-	<script src="{% static 'includes/jquery.min.js' %}"></script>
-	<script src="{% static 'includes/popper.min.js' %}"></script>
-	<script src="{% static 'includes/bootstrap.min.js' %}"></script>
+	{% include "middlebox/includes.html"%}
 	<script type="text/javascript">
 			$(document).ready(function(){
 			$('[data-toggle="tooltip"]').tooltip(); 
 		});
-	</script>
-	<style>
-	body {overflow-x: hidden;}
-	</style>
-	<!-- jquery ajax -->
-	<script type="text/javascript">
+
 		$(document).ready(function(){ 
 			$("#external_results, #all").click(function() {
 				$("#output_results").html('<img src="{% static 'images/spinner.svg' %}" />');
@@ -46,8 +34,7 @@
 				});
 			});
 		});
-	</script>
-	<script type="text/javascript">
+
 		$(document).ready(function(){ 
 			$("#loadgen_results, #all").click(function() {
 				$("#output_loadgen_results").html('<img src="{% static 'images/spinner.svg' %}" />');
@@ -56,8 +43,7 @@
 				}, "html");
 			});
 		});
-	</script>
-	<script type="text/javascript">
+
 		$(document).ready(function(){ 
 			$("#p4_dev_results, #all").click(function() {
 				$("#output_p4_dev_results").html('<img src="{% static 'images/spinner.svg' %}" />');
@@ -67,7 +53,6 @@
 			});
 		});
 	</script>
-	<!-- jquery ajax end -->
 </head>
 <body>
 
@@ -88,13 +73,13 @@
 
 <div class="container-fluid">
 <div class="row">
-<div class="col-md-9">
+<div class="col-md-8">
 <div style="margin-top:20px;"></div>
 <div class="row">
 <div class="col-md-4">Please select the dataset you want to analyze: <i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="Your Choice defines which data-set at /results/ directory will be displayed."></i></div>
 <form method="POST" style="white-space: nowrap;">{% csrf_token %}
 <div class="col-md-4">
-			<select id= "set_id" name="set_id" class="form-control" style="width: 190px;">
+			<select id= "set_id" name="set_id" class="form-control" style="width: 200px;">
 				<option value="{{id.0}}">{{id.1}}</option>
 				{% for z in id_list %}
 				<option value={{z.0}}>{{z.1}}</option>
@@ -180,17 +165,18 @@
 
 
 </div>
-<div class="col-md-3">
-		<p style="position:fixed;">&emsp;<u><b>Network Configuration {{id.1}}</b></u></p>
-		<p></p>
-		<canvas id="topology2" width="375" height="375" style="position:fixed;">Your browser does not support the HTML5 canvas tag.</canvas>
+<div class="col-md-4">
+	
+		<p><button id="pause_port_animation" class="btn btn-default btn-sm"><i id="port_animation_icon" class="fas fa-pause-circle" style="font-size: 24pt;"></i></button>&emsp;<u><b>Network Configuration {{id.1}}</b></u></p>
+		<!--<div style="position:fixed;"><button id="pause_port_animation" class="btn btn-default btn-sm"><i id="port_animation_icon" class="fas fa-pause-circle" style="font-size: 24pt;"></i></button></div>-->
+		<div id="topology2" style="position:fixed;"></div>
 </div>
 </div>
-<div>
+
 <!-- draws current network config -->
 <script>
-	var c = document.getElementById("topology2");
 	{% include "middlebox/port_graphic.html"%}
+	draw(document.getElementById("topology2"));
 </script>
 
 </body>

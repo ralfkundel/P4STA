@@ -18,21 +18,27 @@
 <html lang="en">
 {% load static %}
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="shortcut icon" type="image/x-icon" href="{% static 'includes/favicon.ico' %}"/>
-	<link rel="stylesheet" href="{% static 'includes/bootstrap.min.css' %}">
-	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
-	<script src="{% static 'includes/jquery.min.js' %}"></script>
-	<script src="{% static 'includes/popper.min.js' %}"></script>
-	<script src="{% static 'includes/bootstrap.min.js' %}"></script>
-	<!-- jquery ajax -->
+	{% include "middlebox/includes.html"%}
+
 	<script type="text/javascript">
-		$(document).ready(function(){ 
+		$(document).ready(function(){
+			refreshStatus();
+			
+			$("#p4_dev_status").click(function() {
+				refreshStatus();
+			});
+
 			$("#visualization").click(function() {
 				$("#output_visualization").html('<img src="{% static 'images/spinner.svg' %}" />');
 				$.get("/visualization/", function(data) {
 					$("#output_visualization").html(data);
+				}, "html");
+			});
+
+			$("#stop_p4_dev_software").click(function() {
+				$("#output_p4_dev_status").html('<img src="{% static 'images/spinner.svg' %}" />');
+				$.get("/stop_p4_dev_software/", function(data) {
+					location.reload();
 				}, "html");
 			});
 		});
@@ -42,19 +48,9 @@
 						$("#output_p4_dev_status").html(data);
 					}, "html");
 		}
-		$( document ).ready(function() {
-			refreshStatus();
-			$("#p4_dev_status").click(function() {
-				refreshStatus();
-			});
-		});
-
 	</script>
-	<!-- jquery ajax end -->
-	<style>
-	body {overflow-x: hidden;}
-	</style>
-	</head>
+
+</head>
 <body>
 
 {% include "middlebox/navbar.html"%}
@@ -73,7 +69,10 @@
 <div style="margin-top:20px;"></div>
 <div class="container-fluid">
 <div class="row">
-	<div class="col-md-2"><button id="p4_dev_status" type="button" class="save btn btn-secondary">Refresh status</button></div>
+	<div class="col-md-2">
+		<button id="p4_dev_status" type="button" style="margin: 2px;" class="save btn btn-secondary">Refresh status</button>
+		<button id="stop_p4_dev_software" type="button" style="margin: 2px;" class="save btn btn-secondary">Stop P4 dev software</button>
+	</div>
 	<div class="col-md-9"><div id="output_p4_dev_status" class="card card-body"></div></div>
 </div>
 <hr/>

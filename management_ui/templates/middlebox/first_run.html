@@ -1,0 +1,198 @@
+<!--
+# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->
+
+<!DOCTYPE html>
+{% load static %}
+{% load management_ui %}
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="shortcut icon" type="image/x-icon" href="{% static 'includes/favicon.ico' %}"/>
+	<link rel="stylesheet" href="{% static 'includes/bootstrap.min.css' %}">
+	<link rel="stylesheet" href="{% static 'includes/P4STA_style.css' %}">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+	<script src="{% static 'includes/jquery.min.js' %}"></script>
+	<script src="{% static 'includes/popper.min.js' %}"></script>
+	<script src="{% static 'includes/bootstrap.min.js' %}"></script>
+	<script type="text/javascript">
+		$(document).ready(function(){
+			$("#modal1").modal();
+			$('[data-toggle="tooltip"]').tooltip(); 
+		});
+
+		function forward_to_p4sta(){
+			window.location.href="/";
+		}
+
+		function check_ssh(user, ip, output){
+			var el = document.getElementsByName("csrfmiddlewaretoken");
+			csrf_value = el[0].getAttribute("value");
+			$.ajax({
+			      type: "POST",
+			      url: "/first_run_ssh_checker/",
+			      data: {
+				'csrfmiddlewaretoken': csrf_value,
+				'user': user,
+				'ip': ip
+			      },
+			      success: function (response){
+					if(response.ping_works){
+						document.getElementById(output + "_ping").innerHTML = '<span class="dot_green"></span> reachable';
+					} else {
+						document.getElementById(output + "_ping").innerHTML = '<span class="dot_red"></span> not reachable';
+					}
+					if(response.ssh_works){
+						document.getElementById(output + "_ssh").innerHTML = '<span class="dot_green"></span> SSH Pubkey works';
+					} else {
+						document.getElementById(output + "_ssh").innerHTML = '<span class="dot_red"></span> SSH Pubkey does not work';
+					}
+			
+	   		}});
+		}
+
+		function check_ssh_multiple(user, ips, output){
+			document.getElementById(output + "_ping").innerHTML = ""
+			document.getElementById(output + "_ssh").innerHTML = ""
+			var el = document.getElementsByName("csrfmiddlewaretoken");
+			csrf_value = el[0].getAttribute("value");
+			ip_list = ips.split(",");
+
+			var new_ip_list = []
+			for (const elem of ip_list){
+				let new_ip = elem.replace(' ', '');
+				console.log(new_ip);
+				new_ip_list.push(new_ip);
+
+				$.ajax({
+				      type: "POST",
+				      url: "/first_run_ssh_checker/",
+				      data: {
+					'csrfmiddlewaretoken': csrf_value,
+					'user': user,
+					'ip': new_ip
+				      },
+				      success: function (response){
+						if(response.ping_works){
+							document.getElementById(output + "_ping").innerHTML = document.getElementById(output + "_ping").innerHTML + '<p><span class="dot_green"></span> ' + new_ip + ' reachable</p>';
+						} else {
+							document.getElementById(output + "_ping").innerHTML = document.getElementById(output + "_ping").innerHTML + '<p><span class="dot_red"></span> ' + new_ip + ' not reachable</p>';
+						}
+						if(response.ssh_works){
+							document.getElementById(output + "_ssh").innerHTML = document.getElementById(output + "_ssh").innerHTML + '<p><span class="dot_green"></span> ' + new_ip + ' SSH Pubkey works</p>';
+						} else {
+							document.getElementById(output + "_ssh").innerHTML = document.getElementById(output + "_ssh").innerHTML + '<p><span class="dot_red"></span> ' + new_ip + ' SSH Pubkey does not work</p>';
+						}
+				
+		   		}});
+				
+			}
+		}
+	</script>
+<style>
+	body {overflow-x: hidden;}
+	.dot_red {
+	  height: 15px;
+	  width: 15px;
+	  background-color: #F00;
+	  border-radius: 50%;
+	  display: inline-block;
+	}
+	.dot_green {
+	  height: 15px;
+	  width: 15px;
+	  background-color: #008000;
+	  border-radius: 50%;
+	  display: inline-block;
+	}
+</style>
+</head>
+<body>
+
+{% include "middlebox/navbar.html"%}
+{% csrf_token %}
+
+<!-- Modal -->
+<div class="modal fade" id="modal1" tabindex="-1" role="dialog" aria-labelledby="Modal1Label" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Welcome to P4STA!</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+	<form class="form-horizontal" id="config_form" method="POST" autocomplete="off">{% csrf_token %}
+      <div class="modal-body">
+         <p>It looks like it's the first time you start P4STA because there is no <b>config.json</b>.</p>
+	<p><span style="color: green">We created a new one for you!</span></p>
+	<p>If you want to generate a install.sh script for you please enter the following data, if you prefer to enter your data in the script manually, press <b>CANCEL</b>:<p>
+	<!--<form class="form-horizontal" id="config_form" method="POST" autocomplete="off">{% csrf_token %}-->
+	<div class="table-responsive">
+		<table id="tbl_install_script" class="table table-bordered table-striped table-highlight">
+			<thead>
+				<th></th>
+				<th>SSH IP</th>
+				<th>SSH user</th>
+				<th>Check SSH</th>
+			</thead>
+			<tbody>
+				<tr>
+					<td>Stamper</td>
+					<td><input id="stamper_ip" type="text" class="form-control" name="stamper_ip" value=""/><div id="output_check_stamper_ping"></div></td>
+					<td><input id="stamper_user" type="text" class="form-control" name="stamper_user" value=""/><div id="output_check_stamper_ssh"></div></td>
+					<td><button type="button" class="btn btn-secondary" onclick="check_ssh(document.getElementById('stamper_user').value, document.getElementById('stamper_ip').value, 'output_check_stamper');">Check</button></td>
+				</tr>
+				<tr>
+					<td>External Host</td>
+					<td><input id="ext_host_ip" type="text" class="form-control" name="ext_host_ip" value=""/><div id="output_check_ext_host_ping"></div></td>
+					<td><input id="ext_host_user" type="text" class="form-control" name="ext_host_user" value=""/><div id="output_check_ext_host_ssh"></div></td>
+					<td><button type="button" class="btn btn-secondary" onclick="check_ssh(document.getElementById('ext_host_user').value, document.getElementById('ext_host_ip').value, 'output_check_ext_host');">Check</button></td>
+				</tr>
+				<tr>
+					<td>Loadgenerators</td>
+					<td>
+						<div class="row">
+							<div class="col-sm-10"><input id="loadgen_ips" type="text" class="form-control" name="loadgen_ips" value=""/></div>
+							<div class="col-sm-2"><button id="log" type="button" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Please enter IPs seperated by ',': 1.2.3.4, 4.3.2.1"><i class="fas fa-info-circle" style="font-size: 18pt; color:gray"></i></button></div>
+						</div>
+						<div id="output_check_loadgen_ping"></div>
+					</td>
+					<td>
+						<div class="row">
+							<div class="col-sm-10"><input id="loadgen_user" type="text" class="form-control" name="loadgen_user" value=""/></div>
+							<div class="col-sm-2"><button id="log" type="button" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Same user for all loadgenerators"><i class="fas fa-info-circle" style="font-size: 18pt; color:gray"></i></button></div>
+						</div>
+						<div id="output_check_loadgen_ssh"></div>
+					</td>
+					<td><button type="button" class="btn btn-secondary" onclick="check_ssh_multiple(document.getElementById('loadgen_user').value, document.getElementById('loadgen_ips').value, 'output_check_loadgen');">Check</button></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<!--</form>-->
+	<p>Please run the install script by running ./install.sh in your P4STA directory.</p>
+      </div>
+      <div class="modal-footer">
+	<button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="forward_to_p4sta()">CANCEL</button>
+	<button type="submit" class="btn btn-primary">GENERATE</button>
+      </div>
+</form>
+    </div>
+  </div>
+</div>
+
+
+</body>

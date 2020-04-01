@@ -59,7 +59,6 @@ else:
     print("##################################")
 
 
-
 go = True
 # sets the process name for identification
 setproctitle.setproctitle("target_bmv2_mininet_module")
@@ -98,10 +97,11 @@ class ReturnIngress(Node):
     def config(self, **params):
         super(ReturnIngress, self).config(**params)
         # start script which returns all incoming packets
-        self.cmd("sudo " + directory + "/return_ingress.py --interface f1-eth1 &")
+        self.pid_to_kill = self.cmd("sudo " + directory + "/return_ingress.py --interface f1-eth1 & echo $!")
+        print("PID of ReturnIngress: " + str(self.pid_to_kill))
 
     def terminate(self):
-        self.cmd("sudo killall raw_socket_returner")
+        self.cmd("sudo kill " + str(self.pid_to_kill))
         super(ReturnIngress, self).terminate()
 
 
@@ -224,14 +224,6 @@ def main():
     s1.cmd("sysctl -w net.ipv6.conf.all.disable_ipv6=1")
     s1.cmd("sysctl -w net.ipv6.conf.default.disable_ipv6=1")
     s1.cmd("sysctl -w net.ipv6.conf.lo.disable_ipv6=1")
-
-    lag = "SimplePreLAG"
-    cmd = [args.cli, "--pre", lag, "--json", json_path, "--thrift-port", str(22223)]
-    with open(directory[0:directory.find("scripts")] + "data/" + "commands1_middlebox1.txt", "r") as f:
-        try:
-            output = subprocess.check_output(cmd, stdin=f)
-        except subprocess.CalledProcessError as e:
-            print (e)
 
     print("Ready !")
 

@@ -21,14 +21,14 @@ Further upcoming targets are:
 
 **Note: This is a alpha-state prelease**
 The following features are not part of the GitHub project as they are not yet fully integrated:
-* DPDK-based packet capturing
+* DPDK-based packet capturing (hidden access only)
 * Analytics functions (P4STA-Analytics) (e.g. service curve calculations, ...)
 * Load generator control abstractions (currently only iPerf3 is fully integrated)
 
 
 # Publications
-* "How to measure the speed of light with programmable data plane hardware?"@ 2nd P4Europe Workshop: [Demo Paper](https://www.kom.tu-darmstadt.de/research-results/publications/publications-details/?no_cache=1&pub_id=KSK19)
-* "P4STA: High Performance Packet Timestamping with Programmable Packet Processors"@ IEEE/IFIP NOMS: coming soon!
+* "How to measure the speed of light with programmable data plane hardware?"@ 2nd P4Europe Workshop: [Demo Paper](https://ieeexplore.ieee.org/abstract/document/8901871)
+* "P4STA: High Performance Packet Timestamping with Programmable Packet Processors"@ IEEE/IFIP NOMS: [Paper](https://www.kom.tu-darmstadt.de/research-results/publications/publications-details/?no_cache=1&pub_id=KSB%2B20)
 
 
 # Architecture
@@ -71,12 +71,12 @@ After cloning this repository on any server/machine (management server) in your 
 ```
 ./install.sh
 ```
-4. Compile the P4-Code from target directory to your P4-device. For BMV2 (Mininet) this is not necessary as this repository contains compiled P4-code.
+4. In case of Barefoot Tofino Compile the P4-Code from the target on your P4-device. For BMV2 (Mininet) and Netronome this is not necessary as this repository contains the compiler output.
 
 
 ## Dependencies Management Server
 If you **don't** use the install.sh script ensure that the following requirements are installed at the management server. Otherwise **IGNORE THIS**.
-* Python >= 3.5 with pip3 _AND_ Python 2.7 with pip at all servers
+* Python >= 3.5 with pip3 at all servers
 * Django >= 2.2
 * matplotlib >= 3.0.3
 * numpy >= 1.16.2
@@ -94,12 +94,12 @@ sudo apt install python3-matplotlib
 pip3 install tabulate Django numpy rpyc	
 ```
 # Dependencies External Host
-* Python 2.7 with pip
+* Python 3 with pip3
 * setproctitle >= 1.1.10
 <br />
-Older versions may also work, but have not been verified. If you want to install the dependencies by yourself and not automatically with install.sh the packages can be installed at the Managament Server as follows:
+Older versions may also work, but are not continuously tested. If you want to install the dependencies by yourself and not automatically with install.sh the packages can be installed at the Managament Server as follows:
 ```
-pip install setproctitle
+pip3 install setproctitle
 ```
 
 # Dependencies Loadgenerator Servers
@@ -107,12 +107,12 @@ The following dependencies are automatically installed with ./install.sh if Ubun
 * iPerf3 >= 3.1.3
 
 ## Stamper Targets
-P4STA supports different targets, currently P4-BMv2, Barefoot Tofino and Netronome SmartNICs.
+P4STA supports different Stamper targets, currently P4-BMv2, Barefoot Tofino and Netronome SmartNICs.
 For each target there exists a subfolder in "targets". Further targets can be easily installed by copying the corresponding driver.
-Currently, part of this repository is only the BMv2 version. For access to the Netronome SmartNIC and Barefoot Tofino code please contact Ralf Kundel directly.
+Currently, part of this repository is only the BMv2 and Netronome implementation. For access to the Barefoot Tofino code please contact Ralf Kundel directly.
 
 
-## BMV2 environment
+## BMV2/Mininet environment
 
 The following dependencies are _not_ automatically installed with ./install.sh:
 * Mininet >= 2.3.0d5. see: http://mininet.org/download/ Please use Option 2: Native Installation from Source

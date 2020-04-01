@@ -16,14 +16,10 @@
 
 import argparse
 import signal
-import setproctitle
 import time
 from socket import socket, AF_PACKET, SOCK_RAW, htons
 
-setproctitle.setproctitle("raw_socket_returner")
-
 parser = argparse.ArgumentParser(description='raw socket which returns the incoming packet as it is')
-
 parser.add_argument('--interface', help='Interface to listen to',
                     type=str, action="store", required=True)
 
@@ -49,7 +45,6 @@ while go:
         #print(message.encode("hex")[12:24])
         # to not duplicate packets which are from this host (in case of ping for example)
         if message.encode("hex")[12:24] != "aaaaaaaaff02":
-
             s.send(message)
 
     except Exception as e: # s.recv throws exception if it gets terminated while receiving

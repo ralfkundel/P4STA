@@ -19,14 +19,16 @@ from django.conf.urls.static import static
 from . import views
 
 urlpatterns = [
-    path('', views.index, name='index'),
-    path('1/', views.index),
-    path('2/', views.two),
-    path('3/', views.three),
-    path('4/', views.four),
+    path('', views.configure_page, name='index'),
+    path('first_run/', views.first_run),
+    path('first_run_ssh_checker/', views.first_run_ssh_checker),
+    path('configuration/', views.configure_page),
+    path('deploy/', views.page_deploy),
+    path('run/', views.page_run),
+    path('analyze/', views.page_analyze),
     path('run_loadgens/', views.run_loadgens_first),
     path('loadgen_results/', views.read_loadgen_results_again),
-    path('deploy/', views.deploy),
+    path('deploy_device/', views.deploy),
     path('show_ports/', views.p4_dev_ports),
     path('host_iface_status/', views.host_iface_status),
     path('ping/', views.ping),
@@ -44,6 +46,7 @@ urlpatterns = [
     path('externalResults/', views.external_results),
     path('downloadExtResults/', views.download_external_results),
     path('deleteData/', views.delete_data), #delete measurement on analyze page
+    path('deleteNamespace/', views.delete_namespace),
     path('downloadSwitch/', views.download_p4_dev_results),
     path('downloadLoadgen/', views.download_loadgen_results),
     path('fetch_iface/', views.fetch_iface),
@@ -54,3 +57,4 @@ urlpatterns = [
     path('deleteConfig/', views.delete_selected_config),
     path('saveConfig/', views.save_config_as_file),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

@@ -1,0 +1,1087 @@
+<!--
+# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->
+
+<!DOCTYPE html>
+{% load static %}
+{% load management_ui %}
+<html lang="en">
+<head>
+	{% include "middlebox/includes.html"%}
+	
+	<script type="text/javascript">
+		$(document).ready(function(){
+			$('[data-toggle="tooltip"]').tooltip(); 
+		});
+		// idea: leave only first server/client when fw mode layer 1
+		function changedForwardingMode(){
+			fw_selector = document.getElementById("forwarding_mode");
+			layer = fw_selector.options[fw_selector.selectedIndex].value;
+			if(layer == 1){
+				num_clients = document.getElementById("num_clients").value;
+				if(num_clients > 1){
+					for(id = num_clients; id > 1; id--){
+						delClient(id);
+					}
+				}
+				num_servers = document.getElementById("num_server").value;
+				if(num_servers > 1){
+					for(id = num_servers; id > 1; id--){
+						delServer(id);
+					}
+				}
+			}
+		}
+
+		jQuery(document).keydown(function(event) {
+			// If Control or Command key is pressed and the S key is pressed
+			// run save function. 83 is the key code for S.
+			if((event.ctrlKey || event.metaKey) && event.which == 83) {
+			    event.preventDefault();
+				submit_main_table();
+			}
+		});
+		
+	var del_id;
+	$(document).ready(function(){
+		$("#add_loadgen_server").click(function() {
+			document.getElementById("add_server").value="1";
+			exec_submit = check_all_fields();
+			if(exec_submit){
+				document.getElementById("config_form").submit();
+			}
+		});
+		$("#add_loadgen_client").click(function() {
+			document.getElementById("add_client").value="1";
+			exec_submit = check_all_fields();
+			if(exec_submit){
+				document.getElementById("config_form").submit();
+			}
+		});
+		if("{{dut_2_use_port}}" == "checked"){
+			document.getElementById('dut2_real').disabled = false;
+			if (document.getElementById('dut2_speed') !== null){
+				document.getElementById('dut2_speed').disabled = false;
+			}
+			document.getElementById('dut_2_outgoing_stamp').disabled = false;
+			{% for entry in target_cfg.inputs.input_table %}
+				{% with dut2="dut2_" %}{% with key=dut2|add:entry.target_key %}{% with current=cfg|getkeyvalue:key %}
+					document.getElementById('{{key}}').disabled = false;
+				{% endwith %}{% endwith %}{% endwith %}
+			{% endfor %}
+		} else {
+			document.getElementById('dut2_real').disabled = true;
+			if (document.getElementById('dut2_speed') !== null){
+				document.getElementById('dut2_speed').disabled = true;
+			}
+			document.getElementById('dut_2_outgoing_stamp').disabled = true;
+			{% for entry in target_cfg.inputs.input_table %}
+				{% with dut2="dut2_" %}{% with key=dut2|add:entry.target_key %}{% with current=cfg|getkeyvalue:key %}
+					document.getElementById('{{key}}').disabled = true;
+				{% endwith %}{% endwith %}{% endwith %}
+			{% endfor %}
+		}
+	});
+	function delServer(id){
+		document.getElementById('tbl_server').deleteRow(id);
+		document.getElementById("num_server").value --;
+		// no auto submit when DELETING, leaves the possibility to reaload page if accidentally clicked delete
+		//document.getElementById("config_form").submit();
+	}
+	function delClient(id){
+		del_id = id;
+		num_clients = document.getElementById("num_clients").value;
+		e = document.getElementById("forwarding_mode");
+		layer = e.options[e.selectedIndex].value;
+		if(num_clients < 2 && layer == 1){
+			$("#modal1").modal();
+		} else {
+			submitDelClient(true);
+		}	
+	}
+
+	function submitDelClient(delete_it){
+		if(delete_it){
+			document.getElementById('tbl_client').deleteRow(del_id);
+			document.getElementById("num_clients").value --;
+			del_id = null;
+			// no auto submit when DELETING, leaves the possibility to reaload page if accidentally clicked delete
+			//document.getElementById("config_form").submit();
+		} else {
+			del_id = null;
+		}	
+	}
+
+	function box_changed(){
+		document.getElementById('dut2_real').disabled = !document.getElementById('dut2_real').disabled;
+		if (document.getElementById('dut2_speed') !== null){
+			document.getElementById('dut2_speed').disabled = !document.getElementById('dut2_speed').disabled;
+		}
+		document.getElementById('dut_2_outgoing_stamp').disabled = !document.getElementById('dut_2_outgoing_stamp').disabled;
+
+		{% for entry in target_cfg.inputs.input_table %}
+			{% with dut2="dut2_" %}{% with key=dut2|add:entry.target_key %}{% with current=cfg|getkeyvalue:key %}
+				document.getElementById('{{key}}').disabled = !document.getElementById('{{key}}').disabled;
+			{% endwith %}{% endwith %}{% endwith %}
+		{% endfor %}
+	}
+
+	function retrieveIF(type, id){
+		const sleep = (milliseconds) => {
+		  return new Promise(resolve => setTimeout(resolve, milliseconds))
+		}
+
+		ssh_ip = document.getElementById(type+'_'+id+'_ssh').value;
+		user = document.getElementById(type+'_'+id+'_user').value;
+		iface = document.getElementById(type+'_'+id+'_iface').value;
+
+		if (document.getElementById(type+'_'+id+'_namespace') !== null){
+			namespace = document.getElementById(type+'_'+id+'_namespace').value;
+		} else {
+			namespace = "";
+		}
+
+		var el = document.getElementsByName("csrfmiddlewaretoken");
+		csrf_value = el[0].getAttribute("value");	
+
+		$.ajax({
+		      type: "POST",
+		      url: "/fetch_iface/",
+		      data: {
+				'csrfmiddlewaretoken': csrf_value,
+				'ssh_ip': ssh_ip,
+				'user': user,
+				'iface': iface,
+				'namespace': namespace
+		      },
+		      success: function (response) {
+			if(response.up_state == "up"){
+				document.getElementById(type+'_'+id+'_iface').className = "form-control is-valid";
+				document.getElementById(type+'_'+id+'_iface_up').className = "valid-feedback";
+				document.getElementById(type+'_'+id+'_iface_up').innerHTML = "Status: UP";
+
+			} else if (response.up_state == "down"){
+				document.getElementById(type+'_'+id+'_iface').className = "form-control is-invalid";
+				document.getElementById(type+'_'+id+'_iface_up').className = "invalid-feedback";
+				if (response.iface_found){
+					document.getElementById(type+'_'+id+'_iface_up').innerHTML = "Status: DOWN, Press 'set IP' to UP";
+				} else {
+					document.getElementById(type+'_'+id+'_iface_up').innerHTML = "Iface not found";
+				}
+			}
+
+			if(response.ip != ""){
+				document.getElementById(type+'_'+id+'_ip').value = response.ip + response.prefix;
+			} else {
+				old_ip = document.getElementById(type+'_'+id+'_ip').value;
+				document.getElementById(type+'_'+id+'_ip').value = "##error##";
+				sleep(2000).then(() => {
+					document.getElementById(type+'_'+id+'_ip').value = old_ip;
+				})
+			}
+
+			if(response.mac != ""){	
+				document.getElementById(type+'_'+id+'_mac').value = response.mac;	
+			} else {
+				old_mac = document.getElementById(type+'_'+id+'_mac').value;
+				document.getElementById(type+'_'+id+'_mac').value = "##error##";
+				sleep(2000).then(() => {
+					document.getElementById(type+'_'+id+'_mac').value = old_mac;
+				})
+			}
+		      }
+   		});
+	}
+
+	// if input field is marked valid/invalid (green/red) after it will get into normal state after 5 seconds
+	function clear_input_feedback(){
+		setTimeout(function (){ alert("waiting"); }, 5000);
+	}
+
+	function timeout_clear(type, id){
+		setTimeout(function (){
+			document.getElementById(type+"_"+id+"_ip").className = "form-control ip_addr";
+			document.getElementById(type+"_"+id+"_ip_set").className = "";
+			document.getElementById(type+"_"+id+"_ip_set").innerHTML = "";
+
+			document.getElementById(type+"_"+id+"_namespace").className = "form-control";
+			document.getElementById(type+"_"+id+"_namespace_up").className = "";
+			document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "";
+		}, 5000);
+	}
+	
+	function setIP(type, id){
+		ssh_ip = document.getElementById(type+'_'+id+'_ssh').value;
+		user = document.getElementById(type+'_'+id+'_user').value;
+		iface = document.getElementById(type+'_'+id+'_iface').value;
+		iface_ip = document.getElementById(type+'_'+id+'_ip').value;
+		
+		if (document.getElementById(type+'_'+id+'_namespace') !== null){
+			namespace = document.getElementById(type+'_'+id+'_namespace').value;
+		} else {
+			namespace = "";
+		}
+
+		var el = document.getElementsByName("csrfmiddlewaretoken");
+		csrf_value = el[0].getAttribute("value");
+		$.ajax({
+		      type: "POST",
+		      url: "/set_iface/",
+		      data: {
+				'csrfmiddlewaretoken': csrf_value,
+				'ssh_ip': ssh_ip,
+				'user': user,
+				'iface': iface,
+				'iface_ip': iface_ip,
+				'namespace': namespace
+		      },
+		      success: function (response) {
+				if (response.error){
+					document.getElementById(type+"_"+id+"_ip").className = "form-control is-invalid";
+					document.getElementById(type+"_"+id+"_ip_set").className = "invalid-feedback";
+					document.getElementById(type+"_"+id+"_ip_set").innerHTML = "IP set unsuccessfully";
+
+					document.getElementById(type+"_"+id+"_namespace").className = "form-control is-invalid";
+					document.getElementById(type+"_"+id+"_namespace_up").className = "invalid-feedback order-last";
+					document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "netns set unsuccessfully";
+				} else {
+					document.getElementById(type+"_"+id+"_ip").className = "form-control is-valid";
+					document.getElementById(type+"_"+id+"_ip_set").className = "valid-feedback";
+					document.getElementById(type+"_"+id+"_ip_set").innerHTML = "IP set successfully";
+
+					document.getElementById(type+"_"+id+"_namespace").className = "form-control is-valid";
+					document.getElementById(type+"_"+id+"_namespace_up").className = "valid-feedback order-last";
+					document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "netns set successfully";
+				}
+				timeout_clear(type, id);
+				//setTimeout(function (){ document.getElementById(type+"_"+id+"_ip").className = "form-control"; }, 5000);
+				retrieveIF(type, id);
+		      },
+		      error: function (response) {
+				document.getElementById(type+"_"+id+"_ip").className = "form-control is-invalid";
+				document.getElementById(type+"_"+id+"_ip_set").className = "invalid-feedback";
+				document.getElementById(type+"_"+id+"_ip_set").innerHTML = "IP set unsuccessfully";
+
+				document.getElementById(type+"_"+id+"_namespace").className = "form-control is-invalid";
+				document.getElementById(type+"_"+id+"_namespace_up").className = "invalid-feedback order-last";
+				document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "netns set unsuccessfully";
+
+				timeout_clear(type, id);
+		      },
+   		});
+
+	}
+	
+	window.onload = function() {
+		window.setTimeout(fadeout, 5000); //5 seconds
+	}
+
+	function fadeout() {
+		f = document.getElementById('fade');
+		if(f!=null){
+			document.getElementById('fade').style.opacity = '0';
+		}
+	}
+
+	function load_status_overview() {
+		$("#status_overview").html('<img src="{% static 'images/spinner.svg' %}" />');
+		$.get("/status_overview/", function(data) {
+			$("#status_overview").html(data);
+		}, "html");
+		document.getElementById("show_status").innerHTML = "Refresh";
+	}
+
+	function react_to_validity(valid, field){
+		if (!valid) {
+			var parent = field.parentNode;
+			var children = parent.childNodes;
+			if (children.length > 0) {
+				var last_child = children[children.length - 1];
+				// only add error message if it is not present
+				if (last_child !== undefined && last_child.className !== "invalid-feedback") {
+					var dv = document.createElement("div");
+					dv.innerHTML = "Please enter valid IPv4";
+					dv.className = "invalid-feedback";
+					parent.appendChild(dv);
+				}
+				field.classList.add("is-invalid");
+			}
+			return false
+		} else {
+			class_list = field.classList;
+			class_list.remove("is-invalid");
+			return true;
+		}
+	}
+
+	function check_all_fields(){
+		var exec_submit = true;
+		// first validate IP input fields
+		ip_input_fields = document.getElementsByClassName("ip_addr");
+		for (var i = 0; i < ip_input_fields.length; i++) {
+			valid = IPV4validate(ip_input_fields[i].value);
+			if (!valid){
+				exec_submit = false;
+				var parent = ip_input_fields[i].parentNode;
+				var children = parent.childNodes;
+				if(children.length > 0){
+					var last_child = children[children.length-1];
+					// only add error message if it is not present
+					if(last_child !== undefined && last_child.className !== "invalid-feedback"){
+						var dv = document.createElement("div");  
+						dv.innerHTML = "Please enter valid IPv4";
+						dv.className = "invalid-feedback";
+						parent.appendChild(dv);
+					}
+					ip_input_fields[i].classList.add("is-invalid");
+				}
+			} else { // clear error field, if "is-invalid" is not present nothing happens
+				class_list = ip_input_fields[i].classList;
+				class_list.remove("is-invalid");
+			}
+		}
+		// next check MAC length, this is enough because only valid MAC addresses can be entered (managed by event listener)
+		mac_input_fields = document.getElementsByClassName("mac_addr");
+		for (var i = 0; i < mac_input_fields.length; i++) {
+			if(mac_input_fields[i].value.length !== 17){
+				exec_submit = false;
+				var parent = mac_input_fields[i].parentNode;
+				var children = parent.childNodes;
+				if(children.length > 0){
+					var last_child = children[children.length-1];
+					// only add error message if it is not present
+					if(last_child !== undefined && last_child.className !== "invalid-feedback"){
+						var dv = document.createElement("div");  
+						dv.innerHTML = "Please enter valid MAC-Address aa:bb:...";
+						dv.className = "invalid-feedback";
+						parent.appendChild(dv);
+					}
+					mac_input_fields[i].classList.add("is-invalid");
+				}
+			} else { // clear error field, if "is-invalid" is not present nothing happens
+				class_list = mac_input_fields[i].classList;
+				class_list.remove("is-invalid");	
+			}
+		}
+
+		var empty_checker = function(cls, message){
+			input_fields = document.getElementsByClassName(cls)
+			for (var i = 0; i < input_fields.length; i++) {
+				if(input_fields[i].value.length === 0){
+					exec_submit = false;
+					var parent = input_fields[i].parentNode;
+					var children = parent.childNodes;
+					if(children.length > 0){
+						var last_child = children[children.length-1];
+						// only add error message if it is not present
+						if(last_child !== undefined && last_child.className !== "invalid-feedback"){
+							var dv = document.createElement("div");  
+							dv.innerHTML = message;
+							dv.className = "invalid-feedback";
+							parent.appendChild(dv);
+						}
+						input_fields[i].classList.add("is-invalid");
+					}
+				} else { // clear error field, if "is-invalid" is not present nothing happens
+					class_list = input_fields[i].classList;
+					class_list.remove("is-invalid");	
+				}
+			}
+		}
+
+		// check ssh_user input fields
+		empty_checker("ssh_usr", "Please enter username");
+		// check interface input fields
+		empty_checker("iface_inp", "Please enter interface")
+		// check front port input fields
+		empty_checker("real_port_inp", "Please enter port")
+
+
+		return exec_submit;
+	}
+
+	var added_force_save_btn = false;
+
+	function submit_main_table(force=false){
+		exec_submit = check_all_fields();
+		if(exec_submit || force){ // spawn warning if no duplication is selected
+			if(!(document.getElementById("dut_1_outgoing_stamp").checked||document.getElementById("dut_2_outgoing_stamp").checked)){
+				$("#duplication_warning").modal();
+			} else {
+				document.getElementById("save_main_table").click();
+			}
+		} else {
+			console.log("aborted submit due to invalid fields.")
+			if (!added_force_save_btn){
+				new_btn = document.createElement("BUTTON");
+				new_btn.innerHTML = "Force Save";
+				new_btn.className = "btn btn-danger";
+				new_btn.style = "margin-left: 5px;";
+				new_btn.onclick = function () { submit_main_table(true); };
+				document.getElementById("save_button_wrapper").appendChild(new_btn);
+				added_force_save_btn = true;
+			}
+		}
+		
+	}
+
+	// formats mac address from aabbccdd to aa:bb:cc... and filters not allowed chars
+	function MACformat(event) {
+		var reg = /([a-f0-9]{2})([a-f0-9]{2})/i;
+		var str = event.target.value.replace(/[^a-f0-9]/ig, "");
+
+		while (reg.test(str)) {
+			str = str.replace(reg, '$1' + ':' + '$2');
+		}
+		event.target.value = str.slice(0, 17);
+	}
+	
+	// filters not allowed chars (allowed: 0-9)
+	function IPV4format(e) {
+		var str = event.target.value.replace(/[^0-9./]/ig, "");
+		e.target.value = str;
+	}
+
+	function IPV4validate(input_ip){
+		if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(input_ip)) { 
+			return true;  
+		}  else {
+			// workaround for subnetmask, TODO: better regex
+			if (input_ip.search("/") > 0){
+				return true;
+			}
+			return false;
+		} 
+	}
+
+	// automatically adjust user inputs for MAC and IP addresses 
+	$(document).ready(function(){
+		mac_input_fields = document.getElementsByClassName("mac_addr");
+		for (var i = 0; i < mac_input_fields.length; i++) {
+			
+			mac_input_fields[i].addEventListener("keyup", MACformat, false);
+		}
+		ip_input_fields = document.getElementsByClassName("ip_addr");
+		for (var i = 0; i < ip_input_fields.length; i++) {
+			ip_input_fields[i].addEventListener("keyup", IPV4format, false);
+		}
+	});
+
+	function add_namespace_input(id){
+		div = document.getElementById(id + "_div");
+		inp_html = '<div class="input-group mb-3">'
+		inp_html = inp_html + '<input id="' + id + '" type="text" class="form-control" name="' + id + '" />';
+		inp_html = inp_html + '<div class="input-group-append"><button type="button" class="btn btn-outline-secondary" onclick="delete_namespace_input(\'' + id + '\')"><i class="far fa-trash-alt"></i></button></div></div>';
+		div.innerHTML = inp_html;
+	}
+
+	function delete_namespace_input(id){
+		div = document.getElementById(id + "_div");
+		div.innerHTML = '<button type="button" style="margin:auto; display:block; font-size: 18pt" class="btn btn-default btn-sm" onclick="add_namespace_input(\'' + id + '\')"><i class="fa fa-plus"></i></button>';
+	}
+</script>
+
+<!-- Layer 1 warning modal -->
+<div class="modal fade" id="modal1" tabindex="-1" role="dialog" aria-labelledby="Modal1Label" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Layer 1 warning</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        Please note that Layer 1 forwarding for one group only supports one server. Some Loadgenerators like iPerf3 don't support one server only.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="submitDelClient(false);">Cancel</button>
+	<button type="button" class="btn btn-primary" onclick="submitDelClient(true);">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Initial Setup modal-->
+<div class="modal fade" id="select_template" tabindex="-1" role="dialog" aria-labelledby="selectTemplateModalTitle" aria-hidden="true">
+	<form method="POST">{% csrf_token %}
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="selectTemplateModalTitle">Select the P4STA target you want to create a config for:</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<div class="form-check">
+					{% for target in all_available_targets %}
+					<input type="radio" name="selected_cfg_template" value="{{target}}" checked> {{target}}<br>
+					{% endfor %}
+					</div>
+				</div>
+				<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+				<button type="submit" class="btn btn-success" formaction="/createConfig/">Create config</button>
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+<!-- No duplication selected Modal -->
+<div class="modal fade" id="duplication_warning" tabindex="-1" role="dialog" aria-labelledby="StampWarningModalTitle" aria-hidden="true">
+	<form method="POST">{% csrf_token %}
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="StampWarningModalTitle">Timestamping Warning</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<p>Currently no timestamping stream is selected, therefore p4sta only forwards packets as configured but no timestamping will occur.</p>
+					<p>If you want to change this, please select timestamping at <b>Stamp outgoing packets</b></p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Change config</button>
+					<button type="button" class="btn btn-primary" onclick='document.getElementById("save_main_table").click();'>Proceed anyway</button>
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+
+
+</head>
+<body>
+
+{% include "middlebox/navbar.html"%}
+
+<div class="jumbotron text-center" style="margin-bottom:0">
+<h5>
+<u>configure switch</u>
+&emsp;<i class="fas fa-arrow-right"></i>
+&emsp;<span style="color:grey">deploy configuration</span>
+&emsp;<i class="fas fa-arrow-right"></i>
+&emsp;<span style="color:grey">run tests </span>
+&emsp;<i class="fas fa-arrow-right"></i>
+&emsp;<span style="color:grey">analyze results</span>
+</h5>
+</div>
+
+	<div class="" style="margin: 5px; padding-bottom: 20px; float:right;">
+		<div>
+			<h5>Load/Save Configuration:</h5>
+		</div>
+		<div class="form-inline">
+			
+			<button id="btn_new_cfg" type="button" data-toggle="modal" data-target="#select_template" class="save btn btn-secondary p4sta_loadbutton" style="margin-right: 5px;"><i class="far fa-file"></i> New Configuration</button>
+			
+			{% if available_configs|length > 0 %}
+			<form method="POST">{% csrf_token %}
+				<div style="padding: 3px; margin-right: 5px; border-style: solid; border-width: 1px; border-radius: 2px;border-color:#dee2e6">
+				<select class="form-control" id="selected_cfg_file" name="selected_cfg_file" class="form-control p4sta_loadbutton" style="width: 190px;">4
+					{%for other_cfg in available_configs%}
+						<option value="{{other_cfg}}">{{other_cfg}}</option>
+					{%endfor%}
+				</select>
+				<button id="btn_new_cfg" type="submit" formaction="/openConfig/" class="save btn btn-secondary p4sta_loadbutton"><i class="far fa-folder-open"></i> Open</button>
+				<button id="btn_del_cfg" type="submit" formaction="/deleteConfig/" class="save btn btn-secondary p4sta_loadbutton"> <i class="far fa-trash-alt"></i> Delete</button>
+				</div>
+			</form>
+			{% endif %}
+			<button id="btn_save_cfg" type="submit" formaction="/saveConfig/" form="config_form" class="save btn btn-secondary p4sta_loadbutton"> <i class="far fa-save"></i> Save</button>
+
+		</div>
+	</div>
+
+	<form class="form-horizontal" id="config_form" method="POST" autocomplete="off">{% csrf_token %}
+	
+	<h2 style="padding-top: 50px;">General Settings:</h2>
+	<div class="table-responsive">
+		<table id="tbl_general_settings" class="table table-bordered table-striped table-highlight" style="max-width:1000px">
+			<tbody>
+				<tr>
+					<td width="400em">Target:
+						<small id="passwordHelpBlock" class="form-text text-muted" data-toggle="tooltip" data-placement="top" title="e.g. 'Wedge100B65'">
+								Select the stamper device type.
+						</small>
+					</td>
+					<td width="500em">
+							<select class="form-control" id="target" name="target" value="{{target}}">
+								<option value="{{selected_target}}" selected="selected">{{selected_target}}</option>
+								{% for target in targets_without_selected %}
+								<option value="{{target}}">{{target}}</option>
+								{% endfor %}
+							</select>
+					</td>
+				</tr>
+				<tr>
+					<td width="400em">Stamp Packets:
+							<small id="passwordHelpBlock" class="form-text text-muted" data-toggle="tooltip" data-placement="top" title="e.g. 'TCP'">
+									Select the packet type (if supported) to stamp
+							</small>
+					</td>
+					<td width="500em">
+					<p>TCP <input id="stamp_tcp" name="stamp_tcp" type="checkbox" value="checked" {{stamp_tcp}} {% if target_cfg.stamping_capabilities.tcp != True %} data-toggle="tooltip" data-placement="top" title="The selected P4-Device does not support TCP stamping." disabled {% endif %}/></p>
+					UDP <input id="stamp_udp" type="checkbox" name="stamp_udp" value="checked" {{stamp_udp}} {% if target_cfg.stamping_capabilities.udp != True %} data-toggle="tooltip" data-placement="top" title="The selected P4-Device does not support UDP stamping." disabled {% endif %}/>
+
+					</td>
+				</tr>
+
+
+				<tr>
+					<td>Packet Forwarding Mode:</td>
+					<td>
+						<div>
+							<select class="form-control" id="forwarding_mode" name="forwarding_mode" value="{{forwarding_mode}}" onchange="changedForwardingMode()">
+								<option value="1">Layer 1 (1 server and 1 client only)</option>
+								<option value="2" {% if forwarding_mode == "2" %} selected {% endif %}>Layer 2</option>
+								<option value="3" {% if forwarding_mode == "3" %} selected {% endif %}>Layer 3</option>
+							</select>
+						</div>
+					</td>
+					
+				</tr>
+				<tr>
+					<td>
+						Duplication downscale factor:
+						<small id="passwordHelpBlock" class="form-text text-muted">
+								A threshold of 50 causes every 50th packet to be duplicated.
+						</small>
+					</td>
+					<td><div class="needs-validation">
+						<input id="multicast" class="form-control" type="number" min="1" name="multicast" value="{{ multicast }}" style="width: 150px;" required/>
+						<div class="invalid-feedback">
+						Please choose a minimum value of 1.
+						</div>
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<th colspan="2">Stamper specific configuration:</th>
+				</tr>
+				{% for entry in target_cfg.inputs.input_individual %}
+						<tr>
+							<td  width="400em">{{entry.title}}
+								<small id="passwordHelpBlock" class="form-text text-muted">
+									{{entry.description}}
+								</small>
+							</td>
+						<td width="500em">
+						{% with current=cfg|getkeyvalue:entry.target_key %}
+						{% if entry.type == "drop-down" %}
+							<select class="form-control" id="{{entry.target_key}}" name="{{entry.target_key}}">
+							<option value="{{current}}">{{current}}</option>
+							{% for val in entry.values %}
+								{% if current != val %}
+								<option value="{{val}}">{{val}}</option>
+								{% endif %}
+							{% endfor %}
+							</select>
+						
+						
+						{% elif entry.type == "input" %}
+							<input id="{{entry.target_key}}" type="text" class="form-control" name="{{entry.target_key}}" value="{{current}}" />
+						{% endif %}
+						{% endwith %}
+						</td></tr>
+				{% endfor %}
+
+				<tr>
+					<th colspan="2">Load generator configuration:</th>
+				</tr>
+				<tr>
+					<td>
+						Packet Generator:
+						<small id="passwordHelpBlock" class="form-text text-muted">
+								Please choose from the available packet generators.
+						</small>
+					</td>
+					<td>
+						<div>
+							<select class="form-control" id="selected_loadgen" name="selected_loadgen" value="{{forwarding_mode}}">
+							<option value="{{selected_loadgen}}">{{selected_loadgen}}</option>
+							{% for loadgen in available_loadgens %}
+								<option value="{{loadgen}}">{{loadgen}}</option>
+							{% endfor %}
+							</select>
+						</div>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<h2>Configuration of Load Generators:</h2>
+	<div class="table-responsive">
+		<table id="tbl_server" class="table table-bordered table-striped table-highlight">
+			<thead><tr>
+				<th>Loadgen Group 1</th>
+				<th>SSH IP (e.g. 172.10.5.9)</th>
+				<th>SSH Username</th>
+				<th data-toggle="tooltip" data-placement="top" title="For iPerf3 packets">Loadgen Iface (e.g. eth0)</th>
+				<th data-toggle="tooltip" data-placement="top" title="Retrieve MAC and IP from host. SSH user, SSH ip and loadgen interface are needed!">Fetch config</th>
+				<th>Loadgen MAC(e.g. ca:fe:..)</th>
+				<th>Loadgen IP(e.g. 10.0.0.1)</th>
+				<th>Namespace</th>
+				<th data-toggle="tooltip" data-placement="top" title="Set IP to given (namespace) interface. Use /netmask if necessary. SSH user, SSH ip and loadgen interface are needed and visudo must allow sudo for ifconfig!!">Set IP/Namespace</th>
+				<th data-toggle="tooltip" data-placement="top" title="Switch front-panel port">{% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
+				{% if port_mapping %}<th data-toggle="tooltip" data-placement="top" title="Only for internal settings">Internal Port</th>{% endif %}
+				<!--<th>Link Speed old(e.g. 10G)</th>-->
+				{% for entry in target_cfg.inputs.input_table %}
+					<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
+				{% endfor %}
+				<th> <button type="button" id="add_loadgen_server" class="btn btn-default btn-sm"><i class="fa fa-plus" style="font-size: 28pt; color:green"></i></button></th>
+			</tr></thead>
+			<tbody>
+				<input type="hidden" id="num_server" name="num_server" value="{{loadgen_servers|length}}">
+				<input type="hidden" id="add_server" name="add_server" value="0">
+				{% for loadgen_server in loadgen_servers %}
+				<tr>
+						<td data-toggle="tooltip" data-placement="top" title="Receives packets from client">Server 1.{{ loadgen_server.id }}</td>
+						<td><input id="s_{{loadgen_server.id}}_ssh" type="text" class="form-control ip_addr" name="s_{{loadgen_server.id}}_ssh_ip" value="{{loadgen_server.ssh_ip}}" /></td>
+						<td><input id="s_{{loadgen_server.id}}_user" type="text" class="form-control ssh_usr" name="s_{{loadgen_server.id}}_ssh_user" value="{{loadgen_server.ssh_user}}" /></td>
+						<td><input id="s_{{loadgen_server.id}}_iface" type="text" class="form-control iface_inp" name="s_{{loadgen_server.id}}_loadgen_iface" value="{{loadgen_server.loadgen_iface}}" /><div id="s_{{loadgen_server.id}}_iface_up"></div></td>
+						<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveIF('s', {{forloop.counter}});"><i class="fa fa-search"></button></td>
+						<td style="min-width: 160px"><input id="s_{{loadgen_server.id}}_mac" type="text" class="form-control mac_addr" name="s_{{loadgen_server.id}}_loadgen_mac" value="{{loadgen_server.loadgen_mac}}" /></td>
+						<td><input id="s_{{loadgen_server.id}}_ip" type="text" class="form-control ip_addr" name="s_{{loadgen_server.id}}_loadgen_ip" value="{{loadgen_server.loadgen_ip}}" /><div id="s_{{loadgen_server.id}}_ip_set"></div></td>
+						<td><div id="s_{{loadgen_server.id}}_namespace_div" style="text-align: center">
+							{% if loadgen_server.namespace_id is not None %}
+							<div class="input-group mb-3">
+								<input id="s_{{loadgen_server.id}}_namespace" type="text" class="form-control" name="s_{{loadgen_server.id}}_namespace" value="{{ loadgen_server.namespace_id }}" />
+								<div id="s_{{loadgen_server.id}}_namespace_up"></div>
+								<div class="input-group-append"><button type="button" class="btn btn-outline-secondary" onclick="delete_namespace_input('s_{{loadgen_server.id}}_namespace')"><i class="far fa-trash-alt"></i></button></div>
+								
+							</div>
+							{%else%}
+							<button type="button" style="margin:auto; display:block; font-size: 18pt" class="btn btn-default btn-sm" onclick="add_namespace_input('s_{{loadgen_server.id}}_namespace')"><i class="fa fa-plus"></i></button>{%endif%}
+						</div></td>
+						<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="setIP('s', {{forloop.counter}});"><i class="fa fa-wrench"></button></td>
+						<td><input id="s_{{loadgen_server.id}}_real_port" type="text" class="form-control real_port_inp" name="s_{{loadgen_server.id}}_real_port" value="{{ loadgen_server.real_port }}" /></td>
+						{% if port_mapping %}<td><input type="text" class="form-control" placeholder="{{ loadgen_server.p4_port }}" readonly /></td>{% endif %}
+						{% for entry in target_cfg.inputs.input_table %}
+						<td>
+						{% with current=loadgen_server|getkeyvalue:entry.target_key %}
+						{% if entry.type == "drop-down" %}
+							<select class="form-control" id="s_{{loadgen_server.id}}_{{entry.target_key}}" name="s_{{loadgen_server.id}}_{{entry.target_key}}" style="width: auto;">
+							<option value="{{current}}">{{current}}</option>
+							{% for val in entry.values %}
+								{% if current != val %}
+								<option value="{{val}}">{{val}}</option>
+								{% endif %}
+							{% endfor %}
+							</select>
+						
+						
+						{% elif entry.type == "input" %}
+							<input id="s_{{loadgen_server.id}}_{{entry.target_key}}" type="text" class="form-control" name="s_{{loadgen_server.id}}_{{entry.target_key}}" value="{{current}}" />
+						{% endif %}
+						{% endwith %}
+						</td>
+						{% endfor %}
+						{% if loadgen_servers|length > 1 %}
+						<td><button type="button" id="delete_loadgen_server" class="btn btn-default btn-sm" onclick="delServer({{ forloop.counter }});"><i class="fa fa-trash" style="font-size: 28pt; color:red"></i></button></td>
+						
+						{% else %}
+						<td><button type="button" id="delete_loadgen_server" class="btn btn-default btn-sm"><i class="fa fa-trash" style="font-size: 28pt; color:gray"></i></button></td>
+						{% endif %}
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	<div class="table-responsive">
+		<table id="tbl_client" class="table table-bordered table-striped table-highlight">
+			<thead>
+				<tr>
+					<th>Loadgen Group 2</th>
+					<th>SSH IP (e.g. 172.10.5.9)</th>
+					<th>SSH Username</th>
+					<th data-toggle="tooltip" data-placement="top" title="For iPerf3 packets">Loadgen Iface (e.g. eth0)</th>
+					<th data-toggle="tooltip" data-placement="top" title="Retrieve MAC and IP from host. SSH user, ip and loadgen interface are needed!">Fetch config</th>
+					<th>Loadgen MAC(e.g. ca:fe:..)</th>
+					<th>Loadgen IP(e.g. 10.0.0.1)</th>
+					<th>Namespace</th>
+					<th data-toggle="tooltip" data-placement="top" title="Set IP to given (namespace) interface. Use /netmask if necessary. SSH user, SSH ip and loadgen interface are needed and visudo must allow sudo for ifconfig!">Set IP/Namespace</th>
+					<th data-toggle="tooltip" data-placement="top" title="Switch front-panel port">{% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
+					{% if port_mapping %}<th data-toggle="tooltip" data-placement="top" title="Only for internal settings">Internal Port</th>{% endif %}
+					<!--<th>Link Speed (e.g. 10G)</th>-->
+					{% for entry in target_cfg.inputs.input_table %}
+						<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
+					{% endfor %}
+					<th> <button type="button" id="add_loadgen_client" class="btn btn-default btn-sm"><i class="fa fa-plus" style="font-size: 28pt; color:green"></i></button></th>
+				</tr>
+			</thead>
+			<tbody>
+					<input type="hidden" id="num_clients" name="num_clients" value="{{loadgen_clients|length}}">
+					<input type="hidden" id="add_client" name="add_client" value="0">
+					{% for loadgen_client in loadgen_clients %}
+					<tr>
+							<td data-toggle="tooltip" data-placement="top" title="Receives packets from client">Server 2.{{ forloop.counter }}</td>
+							<td><input id="c_{{loadgen_client.id}}_ssh" type="text" class="form-control ip_addr" name="c_{{loadgen_client.id}}_ssh_ip" value="{{loadgen_client.ssh_ip}}" /></td>
+							<td><input id="c_{{loadgen_client.id}}_user" type="text" class="form-control ssh_usr" name="c_{{loadgen_client.id}}_ssh_user" value="{{loadgen_client.ssh_user}}" /></td>
+							<td><input id="c_{{loadgen_client.id}}_iface" type="text" class="form-control iface_inp" name="c_{{loadgen_client.id}}_loadgen_iface" value="{{loadgen_client.loadgen_iface}}" /><div id="c_{{loadgen_client.id}}_iface_up"></div></td>
+							<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveIF('c', {{forloop.counter}});"><i class="fa fa-search"></button></td>
+							<td style="min-width: 160px"><input id="c_{{loadgen_client.id}}_mac" type="text" class="form-control mac_addr" name="c_{{loadgen_client.id}}_loadgen_mac" value="{{loadgen_client.loadgen_mac}}" /></td>
+							<td><input id="c_{{loadgen_client.id}}_ip" type="text" class="form-control ip_addr" name="c_{{loadgen_client.id}}_loadgen_ip" value="{{loadgen_client.loadgen_ip}}" /><div id="c_{{loadgen_client.id}}_ip_set"></div></td>
+							<td><div id="c_{{loadgen_client.id}}_namespace_div" style="text-align: center">
+								{% if loadgen_client.namespace_id is not None %}
+								<div class="input-group mb-3">
+									<input id="c_{{loadgen_client.id}}_namespace" type="text" class="form-control" name="c_{{loadgen_client.id}}_namespace" value="{{ loadgen_client.namespace_id }}" />
+									<div id="c_{{loadgen_client.id}}_namespace_up"></div>
+									<div class="input-group-append"><button type="button" class="btn btn-outline-secondary" onclick="delete_namespace_input('c_{{loadgen_client.id}}_namespace')"><i class="far fa-trash-alt"></i></button></div>
+								</div>
+								{%else%}
+								<button type="button" style="margin:auto; display:block; font-size: 18pt" class="btn btn-default btn-sm" onclick="add_namespace_input('c_{{loadgen_client.id}}_namespace')"><i class="fa fa-plus"></i></button>{%endif%}
+							</div></td>
+							<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="setIP('c', {{forloop.counter}});"><i class="fa fa-wrench"></button></td>
+							<td><input id="s_{{loadgen_client.id}}_real_port" type="text" class="form-control real_port_inp" name="c_{{loadgen_client.id}}_real_port" value="{{ loadgen_client.real_port }}" /></td>
+							{% if port_mapping %}<td><input type="text" class="form-control" placeholder="{{ loadgen_client.p4_port }}" readonly /></td>{% endif %}
+						{% for entry in target_cfg.inputs.input_table %}
+						<td>
+						{% with current=loadgen_client|getkeyvalue:entry.target_key %}
+						{% if entry.type == "drop-down" %}
+							<select class="form-control" id="c_{{loadgen_client.id}}_{{entry.target_key}}" name="c_{{loadgen_client.id}}_{{entry.target_key}}" style="width: auto;">
+							<option value="{{current}}">{{current}}</option>
+							{% for val in entry.values %}
+								{% if current != val %}
+								<option value="{{val}}">{{val}}</option>
+								{% endif %}
+							{% endfor %}
+							</select>
+						
+						
+						{% elif entry.type == "input" %}
+							<input id="c_{{loadgen_client.id}}_{{entry.target_key}}" type="text" class="form-control" name="c_{{loadgen_client.id}}_{{entry.target_key}}" value="{{current}}" />
+						{% endif %}
+						{% endwith %}
+						</td>
+						{% endfor %}
+						<td>
+							<button type="button" id="delete_loadgen_client" class="btn btn-default btn-sm" onclick="delClient({{ forloop.counter }});">
+								<i class="fa fa-trash" style="font-size: 28pt; color:red"></i>
+							</button>
+						</td>
+					</tr>
+					{% endfor %}
+			</tbody>
+		</table>
+	</div>
+	<h2>Stamper</h2>
+	<div class="table-responsive">
+		<table class="table table-bordered table-striped table-highlight">
+			<thead>
+				<tr>
+					<th data-toggle="tooltip" data-placement="top" title="The DUT needs to support the selected mode!">Use port?</th>
+					<th>DUT</th>
+					<th data-toggle="tooltip" data-placement="top" title="Switch front-panel port">{% if port_mapping %}Front Port (e.g. 1/0){%else%}Port{%endif%}</th>
+					{% if port_mapping %}<th data-toggle="tooltip" data-placement="top" title="Only for internal settings">Internal Port</th>{%endif%}
+					{% for entry in target_cfg.inputs.input_table %}
+						<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
+					{% endfor %}
+					<th data-toggle="tooltip" data-placement="top" title="Defines which flow gets stamped and duplicated to the external host. 'outgoing' referes to the Stamper device. ">Stamp outgoing packets</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><input type="checkbox" checked disabled/></td>
+					<td>Device Under Test Port A:</td>
+					<td><input id="dut1_real" type="text" class="form-control real_port_inp" name="dut1_real" value="{{ dut1_real }}" /></td>
+					{% if port_mapping %}<td><input type="text" class="form-control" placeholder="{{ dut1 }}" readonly /></td>{% endif %}
+					{% for entry in target_cfg.inputs.input_table %}
+						<td>
+						{% with dut1="dut1_" %}
+						{% with key=dut1|add:entry.target_key %}
+						{% with current=cfg|getkeyvalue:key %}
+						
+						{% if entry.type == "drop-down" %}
+							<select class="form-control" id="{{key}}" name="{{key}}">
+							<option value="{{current}}">{{current}}</option>
+							{% for val in entry.values %}
+								{% if current != val %}
+								<option value="{{val}}">{{val}}</option>
+								{% endif %}
+							{% endfor %}
+							</select>
+						
+						
+						{% elif entry.type == "input" %}
+							<input id="{{key}}" type="text" class="form-control" name="{{key}}" value="{{current}}" />
+						{% endif %}
+						{% endwith %}
+						{% endwith %}
+						{% endwith %}
+						</td>
+						{% endfor %}
+					<td><input id="dut_1_outgoing_stamp" type="checkbox" name="dut_1_outgoing_stamp" value="checked" onchange="outgoing_stamp_changed('DUT A')" {{dut_1_outgoing_stamp}} /></td>
+				</tr>
+				<tr>
+					<td><input id="dut_2_use_port" type="checkbox" name="dut_2_use_port" onclick="box_changed();" value="checked" {{dut_2_use_port}}></td>
+					<td>Device Under Test Port B:</td>
+					<td><input id="dut2_real" type="text" class="form-control" name="dut2_real" value="{{ dut2_real }}"/></td>
+					{% if port_mapping %}<td><input type="text" class="form-control" placeholder="{{ dut2 }}" readonly /></td>{% endif %}
+					{% for entry in target_cfg.inputs.input_table %}
+						<td>
+						{% with dut2="dut2_" %}
+						{% with key=dut2|add:entry.target_key %}
+						{% with current=cfg|getkeyvalue:key %}
+						
+						{% if entry.type == "drop-down" %}
+							<select class="form-control" id="{{key}}" name="{{key}}">
+							<option value="{{current}}">{{current}}</option>
+							{% for val in entry.values %}
+								{% if current != val %}
+								<option value="{{val}}">{{val}}</option>
+								{% endif %}
+							{% endfor %}
+							</select>
+						
+						
+						{% elif entry.type == "input" %}
+							<input id="{{key}}" type="text" class="form-control" name="{{key}}" value="{{current}}" />
+						{% endif %}
+						{% endwith %}
+						{% endwith %}
+						{% endwith %}
+						</td>
+						{% endfor %}
+					<td><input id="dut_2_outgoing_stamp" type="checkbox" name="dut_2_outgoing_stamp" value="checked" onchange="outgoing_stamp_changed('DUT B')" {{dut_2_outgoing_stamp}} /></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div class="table-responsive">
+		<table class="table table-bordered table-striped table-highlight">
+			<thead>
+				<tr>
+					<th> Other</th>
+					<th>SSH IP (e.g. 172.10.5.9)</th>
+					<th>SSH Username</th>
+					<th data-toggle="tooltip" data-placement="top" title="For iPerf3 packets">Interface (e.g. eth0)</th>
+					<th data-toggle="tooltip" data-placement="top" title="Choose front-panel port, e.g. 1/0 or bf_pci0">{% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
+					{% if port_mapping %}<th data-toggle="tooltip" data-placement="top" title="Only for internal settings">Internal Port</th>{% endif %}
+					<!--<th>Link Speed (e.g. 10G)</th>-->
+					{% for entry in target_cfg.inputs.input_table %}
+						<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
+					{% endfor %}
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td data-toggle="tooltip" data-placement="top" title="Receives duplicated packets for python-script">External Host:</td>
+					<td><input id="ext_host_ssh" type="text" class="form-control ip_addr" name="ext_host_ssh" value="{{ext_host_ssh}}" /></td>
+					<td><input id="ext_host_user" type="text" class="form-control ssh_usr" name="ext_host_user" value="{{ ext_host_user }}" /></td>
+					<td><input id="ext_host_if" type="text" class="form-control iface_inp" name="ext_host_if" value="{{ext_host_if}}" /></td>
+					<td><input id="ext_host_real" type="text" class="form-control real_port_inp" name="ext_host_real" value="{{ ext_host_real }}" /></td>
+					{% if port_mapping %}<td><input type="text" class="form-control" placeholder="{{ ext_host }}" readonly /></td>{% endif %}
+					{% for entry in target_cfg.inputs.input_table %}
+						<td>
+						{% with ext_host="ext_host_" %}
+						{% with key=ext_host|add:entry.target_key %}
+						{% with current=cfg|getkeyvalue:key %}
+						
+						{% if entry.type == "drop-down" %}
+							<select class="form-control" id="{{key}}" name="{{key}}" width="20">
+							<option value="{{current}}">{{current}}</option>
+							{% for val in entry.values %}
+								{% if current != val %}
+								<option value="{{val}}">{{val}}</option>
+								{% endif %}
+							{% endfor %}
+							</select>
+						
+						
+						{% elif entry.type == "input" %}
+							<input id="{{key}}" type="text" class="form-control" name="{{key}}" value="{{current}}" />
+						{% endif %}
+						{% endwith %}
+						{% endwith %}
+						{% endwith %}
+						</td>
+						{% endfor %}
+				</tr>
+				<tr>
+					<td>Stamper P4 Device (for SSH):</td>
+					<td><input id="p4_dev_ssh" type="text" class="form-control ip_addr" name="p4_dev_ssh" value="{{p4_dev_ssh}}"/></td>
+					<td><input id="p4_dev_user" type="text" class="form-control ssh_usr" name="p4_dev_user" value="{{p4_dev_user}}"/></td>
+					<td></td>
+					<td></td>
+					{% if port_mapping %}<td></td>{% endif %}
+					{% for entry in target_cfg.inputs.input_table %}
+					<td></td>
+					{% endfor %}
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	{% if saved == False %}
+		<span id="fade" style="color:red; float:right;"><b>Please enter correct values!&emsp;</b></span>
+	{% elif saved == True %}
+		<span id="fade" style="color:green; float:right;"><b>Sucessfully saved.&emsp;</b></span>
+	{% endif %}
+	<div class="table-responsive">
+	<table class="table table-bordered table-striped table-highlight">
+
+		<tbody>
+			<td>
+			<div class="container-fluid">
+				<div class="form-group row flex-v-center">
+					<div class="col-sm-4">
+					</div>
+					<div class="col-sm-4"></div>
+					<div class="col-sm-4">
+						<div style="float: right;">
+							<div class="form-group row flex-v-center" id="save_button_wrapper">
+									<!-- hidden form submit button to be "clicked" by submit_main_table(), purpose: checking input fields in JS -->
+									<button type="submit" id="save_main_table" name="btn_submit" class="btn btn-dark" style="display: none;">Save</button>
+									<button type="button" id="save_main_table_button" name="btn_submit" class="btn btn-dark" style="float: right;" onclick="submit_main_table();">Save</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			</td>
+		</tbody>
+		</thead>
+	</table>
+	</div>
+</form>
+<div class="row">
+<div class="col-lg-6">
+	<div class="topology_viewer">
+	<center>
+		<!-- don't show the topology if the screen is smaller 500px -->
+		<h2>Current Topology<button id="pause_port_animation" class="btn btn-default btn-sm"><i id="port_animation_icon" class="fas fa-pause-circle" style="font-size: 24pt;"></i></button></h2>
+		<!--<canvas id="topology" width="375" height="375">Your browser does not support the HTML5 canvas tag.</canvas>-->
+		<div id="topology"></div>
+	</center>
+	</div>
+</div>
+<div class="col-lg-6"><h2>Current Status <button id="show_status" type="button" class="save btn btn-secondary" onclick="load_status_overview();">Show</button></h2> <div id="status_overview"></div></div>
+</div>
+
+
+<!--- draws the current network configuration -->
+<script>
+	{% include "middlebox/port_graphic.html"%}
+
+	function outgoing_stamp_changed(dut){
+		draw(document.getElementById("topology"), changed=true);
+	}
+	draw(document.getElementById("topology"));
+</script>
+
+</body>
+</html>
+

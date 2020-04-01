@@ -14,47 +14,206 @@
 # limitations under the License.
 */
 
-	var server_y = 65;
-	var client_y = 255;
-	var ctx = c.getContext("2d");
-	ctx.font = "20px Segoe UI";
-	ctx.beginPath();
-	ctx.moveTo(90, 20);
-	ctx.lineTo(240, 20);
-	ctx.moveTo(240, 20);
-	ctx.lineTo(240, 320);
-	ctx.moveTo(240, 320);
-	ctx.lineTo(90, 320);
-	ctx.moveTo(90, 320);
-	ctx.lineTo(90, 20);
-	ctx.moveTo(90, 60);
-	ctx.lineTo(60, 60);
-	ctx.fillText("G1", 0, 65);
-	{% for server in loadgen_servers %}
-		ctx.fillText("{{ server.real_port }}", 100, {% widthratio forloop.counter0 1 20 %} + 65);
-	{% endfor %}
-	
-	ctx.fillText("<--->", 140, 65);
-	ctx.fillText("{{ dut1_real }}", 195, 65);
-	ctx.moveTo(90, 250);
-	ctx.lineTo(60, 250);
-	ctx.fillText("G2", 0, 255);
-	{% for client in loadgen_clients %}
-		ctx.fillText("{{ client.real_port }}", 100 , {% widthratio forloop.counter0 1 20 %} + 255);
-	{% endfor %}
+function execute_drawing(output, loadgen_groups, duts, flows){
+    var rect_dimensions = {width: 180, height: 300, x: 300, y: 180};
+    // Make an instance of two and place it on the page.
+	var params = { width: 700, height: 500 };
+	output.innerHTML = "";
+    var two = new Two(params).appendTo(output);
 
-	ctx.fillText("<--->", 140, 255);
-	ctx.fillText("{{ dut2_real }}", 195, 255);
-	ctx.moveTo(240,60);
-	ctx.lineTo(300, 60);
-	ctx.moveTo(300,60);
-	ctx.lineTo(300, 250);
-	ctx.moveTo(300,250);
-	ctx.lineTo(240, 250);
-	ctx.fillText("P4 Dev", 140, 160);
-	ctx.fillText("DUT", 310, 160);
-    ctx.moveTo(165,320);
-    ctx.lineTo(165,350);
-    ctx.fillText("{{ ext_host_real }}", 145, 310);
-    ctx.fillText("external host", 120, 375);
-	ctx.stroke();
+    // two has convenience methods to create shapes.
+    var rect = two.makeRectangle(rect_dimensions.x, rect_dimensions.y, rect_dimensions.width, rect_dimensions.height);
+    rect.stroke = 'black'
+    rect.linewidth = 3;
+
+    var all_hosts = {}
+
+    for(var t=0; t<loadgen_groups.length; t++){
+        start_y = (rect_dimensions.height/loadgen_groups.length)*t
+        end_y = (rect_dimensions.height/loadgen_groups.length)*(t+1)
+        var text_y = start_y + (end_y - start_y)/2 - loadgen_groups[t].length*10 + 10 + 30 //+ 10 in case only one element in list; + 30 is offset from top
+        for(var i=0; i<loadgen_groups[t].length; i++){
+            var text = new Two.Text(loadgen_groups[t][i].ip + " | " + loadgen_groups[t][i].iface, 0, text_y);
+			text.alignment = "left";
+			text.size = 18;
+            two.add(text)
+            var text = new Two.Text(loadgen_groups[t][i].port, 195, text_y);
+			text.alignment = "right";
+			text.size = 18;
+            two.add(text);
+            two.makeLine(rect_dimensions.x-100, text_y, rect_dimensions.x-90, text_y);
+            all_hosts[loadgen_groups[t][i].ip] = {x: rect_dimensions.x-90, y: text_y};
+
+            text_y = text_y + 30;
+        }
+    }
+    
+    for(var x=0; x<duts.length; x++){
+        start_y = (rect_dimensions.height/duts.length)*x;
+        end_y = (rect_dimensions.height/duts.length)*(x+1);
+        var text_y = start_y + (end_y - start_y)/2 + 30 // + 30 is offset from top
+
+        two.makeLine(rect_dimensions.x+100, text_y, rect_dimensions.x+90, text_y);
+        all_hosts[duts[x].name] = {x: rect_dimensions.x+90, y: text_y};
+
+        var text = new Two.Text(duts[x].port + " | " + duts[x].name, 405, text_y);
+		text.alignment = "left";
+		text.size = 18;
+        two.add(text);
+    }
+
+	var colors = ["darkmagenta", "darkred", "darkblue", "darkslategrey", "darkgreen", "darkmagenta", "darkred", "darkblue", "darkslategrey", "darkgreen"];
+
+	var i = 0;
+	var arrows = [];
+    flows.forEach(flow => {
+        arrow1 = two.makeArrow(all_hosts[flow.from1].x, all_hosts[flow.from1].y, all_hosts[flow.to1].x-2, all_hosts[flow.to1].y+5);
+		arrow1.stroke = colors[i];
+		arrow1.opacity = 0.8;
+        if (flow.stamp){
+            arrow1.linewidth = 4;
+        }
+        arrow2 = two.makeArrow(all_hosts[flow.from2].x, all_hosts[flow.from2].y, all_hosts[flow.to2].x+2, all_hosts[flow.to2].y-5);
+		arrow2.stroke = colors[i];
+		arrow2.opacity = 0.8;
+        if (flow.stamp){
+            arrow2.linewidth = 4;
+		}
+		arrows.push(arrow1);
+		arrows.push(arrow2);
+        i++;
+    });
+
+    two.makeLine(rect_dimensions.x, 330, rect_dimensions.x, 340);
+	text = two.makeText("external host", rect_dimensions.x, 350);
+	text.size = 18;
+
+	play = true;
+	document.getElementById("pause_port_animation").addEventListener("click", function(){
+		if (document.getElementById("port_animation_icon").className === "fas fa-pause-circle"){
+			document.getElementById("port_animation_icon").className = "fas fa-play-circle";
+		} else if (document.getElementById("port_animation_icon").className === "fas fa-play-circle"){
+			document.getElementById("port_animation_icon").className = "fas fa-pause-circle";
+		}
+		play = !play;
+	}); 
+
+	//two.update();
+	// 60 frames per second
+	two.bind('update', function(frameCount) {
+		if(frameCount%60===0 && frameCount%120!==0 && play){
+			//arrows.forEach(arrow => {arrow.opacity=0});
+			two.remove(arrows);
+			arrows.length = 0;
+			var i = 0;
+			flows.forEach(flow => {
+				var x_to = all_hosts[flow.from1].x + ((all_hosts[flow.to1].x-2 - all_hosts[flow.from1].x)/2);
+				var y_to = all_hosts[flow.from1].y + ((all_hosts[flow.to1].y+5 - all_hosts[flow.from1].y)/2);
+
+				arrow1 = two.makeArrow(all_hosts[flow.from1].x, all_hosts[flow.from1].y, x_to, y_to);
+				arrow1.stroke = colors[i];
+				arrow1.opacity = 0.8;
+				if (flow.stamp){
+					arrow1.linewidth = 4;
+				}
+
+				var x_to2 = all_hosts[flow.from2].x + ((all_hosts[flow.to2].x+2 - all_hosts[flow.from2].x)/2);
+				var y_to2 = all_hosts[flow.from2].y + ((all_hosts[flow.to2].y-5 - all_hosts[flow.from2].y)/2);
+
+				arrow2 = two.makeArrow(all_hosts[flow.from2].x, all_hosts[flow.from2].y, x_to2, y_to2);
+				arrow2.stroke = colors[i];
+				arrow2.opacity = 0.8;
+				if (flow.stamp){
+					arrow2.linewidth = 4;
+				}
+				arrows.push(arrow1);
+				arrows.push(arrow2);
+				i++;
+			});
+		} else if (frameCount%120===0 && play) {
+			two.remove(arrows);
+			arrows.length = 0;
+			//arrows.forEach(arrow => {arrow.opacity=0});//two.remove(arrow)
+			var i = 0;
+			flows.forEach(flow => {
+				arrow1 = two.makeArrow(all_hosts[flow.from1].x, all_hosts[flow.from1].y, all_hosts[flow.to1].x-2, all_hosts[flow.to1].y+5);
+				arrow1.stroke = colors[i];
+				arrow1.opacity = 0.8;
+				if (flow.stamp){
+					arrow1.linewidth = 4;
+				}
+				arrow2 = two.makeArrow(all_hosts[flow.from2].x, all_hosts[flow.from2].y, all_hosts[flow.to2].x+2, all_hosts[flow.to2].y-5);
+				arrow2.stroke = colors[i];
+				arrow2.opacity = 0.8;
+				if (flow.stamp){
+					arrow2.linewidth = 4;
+				}
+				arrows.push(arrow1);
+				arrows.push(arrow2);
+				i++;
+			});
+		}
+	}).play();
+}
+// global vars (flow needed for onchange event in checkbox)
+var flows = [];
+var loadgen_groups;
+var duts;
+function draw(output, changed=false){
+	var t_loadgen_groups = [[],[]];
+
+	// TODO: create loadgen_groups dynamically
+
+	{% for server in loadgen_servers %}
+	t_loadgen_groups[0].push({"ip": "{{server.loadgen_ip}}", "iface": "{{server.loadgen_iface}}", "port": "{{server.real_port}}"});
+	{% endfor %}
+	{% for client in loadgen_clients %}
+	t_loadgen_groups[1].push({"ip": "{{client.loadgen_ip}}", "iface": "{{client.loadgen_iface}}", "port": "{{client.real_port}}"});
+	{% endfor %}
+	loadgen_groups = t_loadgen_groups;
+
+	var t_duts = []
+	t_duts.push({"name": "DUT A", "port": "{{dut1_real}}"});
+	t_duts.push({"name": "DUT B", "port": "{{dut2_real}}"});
+	duts = t_duts;
+
+	if (!changed){
+		var t_flows = []
+		{% for client in loadgen_clients %}
+
+		{% if dut_2_outgoing_stamp == "checked" %}
+		t_flows.push({"stamp": true, "from1": "{{client.loadgen_ip}}", "to1": "DUT B", "from2": "DUT A", "to2": "{{loadgen_servers.0.loadgen_ip}}"});
+		{% else %}
+		t_flows.push({"stamp": false, "from1": "{{client.loadgen_ip}}", "to1": "DUT B", "from2": "DUT A", "to2": "{{loadgen_servers.0.loadgen_ip}}"});
+		{% endif %}
+
+		{% if dut_1_outgoing_stamp == "checked" %}
+		t_flows.push({"stamp": true, "from1": "{{loadgen_servers.0.loadgen_ip}}", "to1": "DUT A", "from2": "DUT B", "to2": "{{client.loadgen_ip}}"});
+		{% else %}
+		t_flows.push({"stamp": false, "from1": "{{loadgen_servers.0.loadgen_ip}}", "to1": "DUT A", "from2": "DUT B", "to2": "{{client.loadgen_ip}}"});
+		{% endif %}
+		{% endfor %}
+
+		flows = t_flows;
+	} else {
+		flows.forEach(flow => {
+			flow.stamp = false;
+		});
+		if (document.getElementById("dut_1_outgoing_stamp").checked){
+			flows.forEach(flow => {
+				if(flow.to1 === "DUT A"){
+					flow.stamp = true;
+				}
+			});
+		}
+		if (document.getElementById("dut_2_outgoing_stamp").checked){
+			flows.forEach(flow => {
+				if(flow.to1 === "DUT B"){
+					flow.stamp = true;
+				}
+			});
+		}
+	}
+
+	execute_drawing(output, t_loadgen_groups, t_duts, flows);
+}

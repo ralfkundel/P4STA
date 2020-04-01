@@ -1,0 +1,4 @@
+{
+	"name": "DpdkExtHost",
+	"driver": "dpdkHostDriver.py"
+}

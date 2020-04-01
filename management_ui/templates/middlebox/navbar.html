@@ -18,13 +18,13 @@
 <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
 	 <div class="collapse navbar-collapse" id="collapsibleNavbar">
 		<ul class="navbar-nav">
-		<li class="nav-item {% if request.resolver_match.view_name == "index" %} active {% endif %}"><a class="nav-link" href="/">Configuration</a></li>
-		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views.two" %} active {% endif %}"><a class="nav-link" href="/2/">Deploy</a></li>
-		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views.three" %} active {% endif %}"><a class="nav-link" href="/3/">Run</a></li>
-		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views.four" %} active {% endif %}"><a class="nav-link" href="/4/">Analyze</a></li>
+		<li class="nav-item {% if request.resolver_match.view_name == "index" or request.resolver_match.view_name == "management_ui.views.index" %} active {% endif %}"><a class="nav-link" href="/configuration/">Configuration</a></li>
+		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views.page_deploy" %} active {% endif %}"><a class="nav-link" href="/deploy/">Deploy</a></li>
+		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views.page_run" %} active {% endif %}"><a class="nav-link" href="/run/">Run</a></li>
+		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views.page_analyze" %} active {% endif %}"><a class="nav-link" href="/analyze/">Analyze</a></li>
 		</ul>
 		<ul class="navbar-nav ml-auto">
-			<a class="navbar-brand" href="/">P4STA configuration environment</a>
+			<a class="navbar-brand" href="/">P4STA</a>
 			<a class="navbar-brand" href="/" style="background-color:white; padding:2px; border-radius:2px; height: 60px">
 				<img src="{% static 'images/kom.png' %}" style="height: 99%"/ >
 				<img src="{% static 'images/tud_weblogo.gif' %}" style="height: 99%" />

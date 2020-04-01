@@ -126,7 +126,10 @@ def main(file_id, multicast, results_path):
             packet_list.append(0)
             min_packets = min(packet_list[1:-1], default=0)  # ignores the first and last second to prevent min = 0
             max_packets = max(packet_list, default=0)
-            ave_packet_sec = round((len(throughput_at_time)/(len(packet_list)-2)) * 10, 2)  # -2 because we added 0 at beginning and end. *10 because of 0.1s steps
+            if len(packet_list) != 2:
+                ave_packet_sec = round((len(throughput_at_time)/(len(packet_list)-2)) * 10, 2)  # -2 because we added 0 at beginning and end. *10 because of 0.1s steps
+            else:
+                ave_packet_sec = 0
 
             plot_graph(latency_list, count_list, "Latency of DUT for every " + multicast + ". packet", "Packets", "Latency", "latency", True, False)
             plot_graph(latency_list, count_list_sec, "Latency of DUT for every " + multicast + ". packet", "t[s]", "Latency", "latency_sec", True, False)
