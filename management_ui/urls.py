@@ -20,8 +20,10 @@ from . import views
 
 urlpatterns = [
     path('', views.configure_page, name='index'),
-    path('first_run/', views.first_run),
-    path('first_run_ssh_checker/', views.first_run_ssh_checker),
+    path('setup_devices/', views.setup_devices),
+    path('run_setup_script/', views.run_setup_script),
+    path('stop_shellinabox_redirect_to_config/', views.stop_shellinabox_redirect_to_config),
+    path('setup_ssh_checker/', views.setup_ssh_checker),
     path('configuration/', views.configure_page),
     path('deploy/', views.page_deploy),
     path('run/', views.page_run),
@@ -40,7 +42,6 @@ urlpatterns = [
     path('stop_p4_dev_software/', views.stop_p4_dev_software),
     path('reboot/', views.reboot),
     path('refresh_links/', views.refresh_links),
-    path('visualization/', views.visualization),
     path('startExternal/', views.start_external),
     path('stopExternal/', views.stop_external),
     path('externalResults/', views.external_results),
@@ -56,5 +57,6 @@ urlpatterns = [
     path('openConfig/', views.open_selected_config),
     path('deleteConfig/', views.delete_selected_config),
     path('saveConfig/', views.save_config_as_file),
+    path('dygraph/', views.dygraph)
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

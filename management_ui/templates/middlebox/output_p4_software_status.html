@@ -16,7 +16,7 @@
 {% load static %}
 	<script type="text/javascript">
 		$(document).ready(function(){
-			getPorts();
+			{% if dev_is_running == True %}getPorts();{% endif %}
 			getIfaceStatus();
 
 			$("#deploy").click(function() {
@@ -31,7 +31,9 @@
 				$("#output_start").html('<img src="{% static 'images/spinner.svg' %}" />');
 				$.get("/start_p4_dev_software/", function(data) {
 					$("#output_start").html(data);
-					location.reload();
+					if (data.search("modal_timeout") == -1){
+						location.reload();
+					}
 				}, "html");
 			});
 

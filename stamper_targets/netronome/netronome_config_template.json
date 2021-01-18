@@ -1,0 +1,62 @@
+{
+  "dut_ports": [
+    {
+      "id": "1",
+      "p4_port": "",
+      "real_port": "",
+      "speed": "n/a",
+      "stamp_outgoing": "checked",
+      "use_port": "checked"
+    },
+    {
+      "id": "2",
+      "p4_port": "",
+      "real_port": "",
+      "speed": "n/a",
+      "stamp_outgoing": "checked",
+      "use_port": "checked"
+    }
+  ],
+  "ext_host": "",
+  "ext_host_if": "",
+  "ext_host_real": "",
+  "ext_host_ssh": "",
+  "ext_host_user": "",
+  "forwarding_mode": "2",
+  "loadgen_clients": [
+    {
+      "id": 1,
+      "loadgen_iface": "",
+      "loadgen_ip": "",
+      "loadgen_mac": "",
+      "p4_port": "",
+      "real_port": "",
+      "ssh_ip": "",
+      "ssh_user": ""
+    }
+  ],
+  "loadgen_servers": [
+    {
+      "id": 1,
+      "loadgen_iface": "",
+      "loadgen_ip": "",
+      "loadgen_mac": "",
+      "p4_port": "",
+      "real_port": "",
+      "ssh_ip": "",
+      "ssh_user": ""
+    }
+  ],
+  "multicast": "20",
+  "program": "middlebox_v7",
+  "thrift_port": "20206",
+  "nfpfw": "stamper_targets/netronome/p4_src/build/firmware.nffw",
+  "pif_design_json": "stamper_targets/netronome/p4_src/build/pif_design.json",
+  "selected_loadgen": "iperf3",
+  "selected_target": "netronome",
+  "selected_extHost": "PythonExtHost",
+  "p4_dev_ssh": "",
+  "p4_dev_user": "",
+  "stamp_tcp": "checked",
+  "stamp_udp": "checked"
+}

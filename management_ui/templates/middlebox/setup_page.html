@@ -1,0 +1,319 @@
+<!--
+# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->
+
+<!DOCTYPE html>
+{% load static %}
+{% load management_ui %}
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="shortcut icon" type="image/x-icon" href="{% static 'includes/favicon.ico' %}"/>
+	<link rel="stylesheet" href="{% static 'includes/bootstrap.min.css' %}">
+	<link rel="stylesheet" href="{% static 'includes/P4STA_style.css' %}">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+	<script src="{% static 'includes/jquery.min.js' %}"></script>
+	<script src="{% static 'includes/popper.min.js' %}"></script>
+	<script src="{% static 'includes/bootstrap.min.js' %}"></script>
+	<script type="text/javascript">
+		$(document).ready(function(){
+			$("#modal1").modal();
+			$('[data-toggle="tooltip"]').tooltip(); 
+		});
+
+		function forward_to_p4sta(){
+			window.location.href="/";
+		}
+
+		function check_ssh_loadgen(id){
+			var ip = document.getElementById('loadgen_ip_'+id).value;
+			var user = document.getElementById('loadgen_user_'+id).value;
+			check_ssh(user, ip, 'output_check_loadgen_'+id);
+		}
+
+		function check_ssh(user, ip, output){
+			var el = document.getElementsByName("csrfmiddlewaretoken");
+			csrf_value = el[0].getAttribute("value");
+			$.ajax({
+			      type: "POST",
+			      url: "/setup_ssh_checker/",
+			      data: {
+				'csrfmiddlewaretoken': csrf_value,
+				'user': user,
+				'ip': ip
+			      },
+			      success: function (response){
+					if(response.ping_works){
+						document.getElementById(output + "_ping").innerHTML = '<span class="dot_green"></span> reachable';
+					} else {
+						document.getElementById(output + "_ping").innerHTML = '<span class="dot_red"></span> not reachable';
+					}
+					if(response.ssh_works){
+						document.getElementById(output + "_ssh").innerHTML = '<span class="dot_green"></span> SSH Pubkey works';
+					} else {
+						document.getElementById(output + "_ssh").innerHTML = '<span class="dot_red"></span> SSH Pubkey does not work';
+					}
+			
+	   		}});
+		}
+
+		function removeRow(btn) {
+        	var tbl = document.getElementById('tbl_install_script_loadgen');
+        	tbl.deleteRow(btn.parentNode.parentNode.rowIndex);
+    	}
+
+		var nextId=2;
+		function addRow(){
+			var tbl = document.getElementById('tbl_install_script_loadgen');
+			var rowCnt = tbl.rows.length;
+        	var tr = tbl.insertRow(rowCnt);
+
+			var cell1 = tr.insertCell(0);
+			var cell2 = tr.insertCell(1);
+			var cell3 = tr.insertCell(2);
+			var cell4 = tr.insertCell(3);
+			var cell5 = tr.insertCell(4);
+
+			cell1.innerHTML = "Loadgenerator:";
+			cell2.innerHTML ="";
+			cell3.innerHTML = '<div class="col-sm-12"><input id="loadgen_ip_'+nextId+'" type="text" class="form-control" name="loadgen_ip_'+nextId+'" value="" required/></div>  <div id="output_check_loadgen_'+nextId+'_ping"></div>';
+			cell4.innerHTML = '<div class="col-sm-12"><input id="loadgen_user_'+nextId+'" type="text" class="form-control" name="loadgen_user_'+nextId+'" value="" required/></div> <div id="output_check_loadgen_'+nextId+'_ssh">';
+			cell5.innerHTML = '<button type="button" class="btn btn-secondary" onclick="check_ssh_loadgen('+nextId+');"> Check </button>';
+			cell5.innerHTML += '<button type="button" id="delete_loadgen_client" class="btn btn-default btn-sm" onclick="removeRow(this);" style="float: right;"> <i class="fa fa-trash" style="font-size: 28pt; color:red;"></i> </button>';
+			nextId = nextId+1;
+		}
+
+		function box_stamper_changed(){
+			if(document.getElementById('enable_stamper').checked == false){
+				document.getElementById('stamper_ip').disabled = true;
+				document.getElementById('stamper_ip').required =false;
+				document.getElementById('stamper_user').disabled = true;
+				document.getElementById('stamper_user').required =false;
+				document.getElementById('stamper_check').disabled = true;
+				document.getElementById('selected_stamper').disabled = true;
+			}else{
+				document.getElementById('stamper_ip').disabled = false;
+				document.getElementById('stamper_ip').required =true;
+				document.getElementById('stamper_user').disabled = false;
+				document.getElementById('stamper_user').required =true;
+				document.getElementById('stamper_check').disabled = false;
+				document.getElementById('selected_stamper').disabled = false;
+			}
+		}
+
+		function box_ext_host_changed(){
+			if(document.getElementById('enable_ext_host').checked == false){
+				document.getElementById('ext_host_ip').disabled = true;
+				document.getElementById('ext_host_ip').required =false;
+				document.getElementById('ext_host_user').disabled = true;
+				document.getElementById('ext_host_user').required =false;
+				document.getElementById('ext_host_check').disabled = true;
+				document.getElementById('selected_extHost').disabled = true;
+			}else{
+				document.getElementById('ext_host_ip').disabled = false;
+				document.getElementById('ext_host_ip').required =true;
+				document.getElementById('ext_host_user').disabled = false;
+				document.getElementById('ext_host_user').required =true;
+				document.getElementById('ext_host_check').disabled = false;
+				document.getElementById('selected_extHost').disabled = false;
+			}
+		}
+
+		function selected_stamper_changed(){
+			var selected_stamper = document.getElementById("selected_stamper").value;
+			{% autoescape off %}
+			var all_target_cfg = {{all_target_cfg}}
+			var div = document.getElementById("target_specific_cfg");
+			try{
+				div.innerHTML = "";
+				if(selected_stamper in all_target_cfg && "config" in all_target_cfg[selected_stamper] && "stamper_specific" in all_target_cfg[selected_stamper]["config"]){
+					var options = all_target_cfg[selected_stamper]["config"]["stamper_specific"];
+					div.appendChild(document.createElement("hr"));
+					var header = document.createElement("p")
+					header.innerHTML = "<b><u>Stamper-target specific config:</u></b>";
+					div.appendChild(header);
+					options.forEach(opt => {
+						var p = document.createElement("p");
+						bold = document.createElement('strong');
+						var node = document.createTextNode(opt["title"] + ": ");
+						bold.appendChild(node);
+						p.appendChild(bold);
+						
+						if(opt["type"] == "input"){
+							var input = document.createElement("input");
+							input.name = opt["target_key"];
+							input.placeholder = opt["description"];
+							input.type="text";
+							input.className="form-control";
+							input.style="width:350px; display:inline";
+						}
+						p.appendChild(input)
+						div.appendChild(p);
+					});
+					div.appendChild(document.createElement("hr"));
+				}
+			} catch (e) {
+				var error = "An error occured during parsing target specific config. The setup script MAY not work properly. Error : " + e;
+				console.log(error);
+				div.innerHTML = error;
+			}
+			{% endautoescape %}
+		}
+
+
+	</script>
+<style>
+	body {overflow-x: hidden;}
+	.dot_red {
+	  height: 15px;
+	  width: 15px;
+	  background-color: #F00;
+	  border-radius: 50%;
+	  display: inline-block;
+	}
+	.dot_green {
+	  height: 15px;
+	  width: 15px;
+	  background-color: #008000;
+	  border-radius: 50%;
+	  display: inline-block;
+	}
+</style>
+</head>
+<body>
+
+{% include "middlebox/navbar.html"%}
+{% csrf_token %}
+
+<!-- Modal -->
+<div class="modal fade" id="modal1" tabindex="-1" role="dialog" aria-labelledby="Modal1Label" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Welcome to P4STA!</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			<span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+	<form class="form-horizontal" id="config_form" method="POST" autocomplete="off">{% csrf_token %}
+      <div class="modal-body">
+		{% if isFirstRun %}
+    	<p>It looks like it's the first time you start P4STA because there is no <b>config.json</b>.</p>
+		<p><span style="color: green">We created a new one for you!</span></p>
+		{% endif %}
+	<p>If you want to generate a install_server.sh script, which installs all load generators, stamper and external host for you, please enter the following data, if you prefer to setup your server manually, press <b>Skip Setup</b>:<p>
+	<p>This tool creates a bassh script (install_server.sh) in the p4sta directory, which must be executed in the next step.</p>
+
+	<p><b>Please insert in the following the IPv4 addresses and user names of the servers you want to configure. Please disable (checkbox or red trash can) a category if you do not want to install this kind of server. </b></p>
+	<div class="table-responsive">
+		<table id="tbl_install_script" class="table table-bordered table-striped table-highlight">
+			<thead>
+				<tr>
+					<th>Enable</th>
+					<th></th>
+					<th></th>
+					<th>SSH IP</th>
+					<th>SSH user</th>
+					<th>Check SSH</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><input id="enable_stamper" type="checkbox" name="enable_stamper" onclick="box_stamper_changed();" checked></td>
+					<td>Stamper</td>
+					<td>
+						<div>
+							<select class="form-control" id="selected_stamper" name="selected_stamper" onchange="selected_stamper_changed()">
+							{% for stamper in stampers %}
+								<option value="{{stamper}}">{{stamper}}</option>
+							{% endfor %}
+							</select>
+						</div>
+					</td>
+					<td><input id="stamper_ip" type="text" class="form-control" name="stamper_ip" value="" required/><div id="output_check_stamper_ping"></div></td>
+					<td><input id="stamper_user" type="text" class="form-control" name="stamper_user" value="" required/><div id="output_check_stamper_ssh"></div></td>
+					<td><button type="button" id="stamper_check" class="btn btn-secondary" onclick="check_ssh(document.getElementById('stamper_user').value, document.getElementById('stamper_ip').value, 'output_check_stamper');">Check</button></td>
+				</tr>
+				<tr>
+					<td><input id="enable_ext_host" type="checkbox" name="enable_ext_host" onclick="box_ext_host_changed();" checked></td>
+					<td>External Host</td>
+					<td>
+						<div>
+							<select class="form-control" id="selected_extHost" name="selected_extHost">
+							{% for extHost in extHosts %}
+								<option value="{{extHost}}">{{extHost}}</option>
+							{% endfor %}
+							</select>
+						</div>
+					</td>
+					<td><input id="ext_host_ip" type="text" class="form-control" name="ext_host_ip" value="" required/><div id="output_check_ext_host_ping"></div></td>
+					<td><input id="ext_host_user" type="text" class="form-control" name="ext_host_user" value="" required/><div id="output_check_ext_host_ssh"></div></td>
+					<td><button type="button" id="ext_host_check" class="btn btn-secondary" onclick="check_ssh(document.getElementById('ext_host_user').value, document.getElementById('ext_host_ip').value, 'output_check_ext_host');">Check</button></td>
+				</tr>
+			</tbody>
+		</table>
+
+		<div id="target_specific_cfg"></div>
+
+		<table id="tbl_install_script_loadgen" class="table table-bordered table-striped table-highlight">
+				<thead>
+					<tr>
+						<th>Loadgenerators:</th>
+						<th>
+							<div>
+								<select class="form-control" id="selected_loadgen" name="selected_loadgen">
+								{% for loadgen in loadgens %}
+									<option value="{{loadgen}}">{{loadgen}}</option>
+								{% endfor %}
+								</select>
+							</div>
+						</th>
+						<th>SSH IP</th>
+						<th>SSH user</th>
+						<th><button type="button" id="add_loadgen_client" class="btn btn-default btn-sm" style="float: right;" onclick="addRow()"><i class="fa fa-plus" style="font-size: 28pt; color:green;"></i></button></th>
+					</tr>
+				</thead>
+				<tbody>	
+				<tr>
+					<td>Loadgenerator:</td>
+					<td></td>
+					<td>
+						<div class="col-sm-12"><input id="loadgen_ip_1" type="text" class="form-control" name="loadgen_ip_1" value="" required/></div>
+						<div id="output_check_loadgen_1_ping"></div>
+					</td>
+					<td>
+						<div class="col-sm-12"><input id="loadgen_user_1" type="text" class="form-control" name="loadgen_user_1" value="" required/></div>
+						<div id="output_check_loadgen_1_ssh"></div>
+					</td>
+					<td>
+						<button type="button" class="btn btn-secondary" onclick="check_ssh_loadgen(1);">Check</button>
+						<button type="button" id="delete_loadgen_client" class="btn btn-default btn-sm" onclick="removeRow(this);" style="float: right;"> <i class="fa fa-trash" style="font-size: 28pt; color:red;"></i> </button>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+      </div>
+      <div class="modal-footer">
+	<button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="forward_to_p4sta()">Skip Setup</button>
+	<button type="submit" class="btn btn-primary" name="create_setup_script_button">Create Setup Script</button>
+      </div>
+</form>
+    </div>
+  </div>
+</div>
+
+
+</body>

@@ -11,16 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import json
+import os
+import rpyc
+import subprocess
+import time
+import traceback
+import zipfile
 
 from django.http import HttpResponse
-from django.http import JsonResponse
 from django.http import HttpResponseRedirect
-
+from django.http import JsonResponse
 from django.shortcuts import render
-
-import os, subprocess, threading, time, traceback, json, zipfile, shutil, sys
-import rpyc
 from pathlib import Path
+
 # custom python modules
 from calculate import calculate
 from core import P4STA_utils
@@ -48,26 +52,6 @@ def get_all_targets():
     targets = P4STA_utils.flt(core_conn.root.get_all_targets())
     return targets
 
-# builds list of available speeds without the selected one
-def speedlist(port_speed):
-    speed_list = core_conn.root.speed_list()
-    #speed_list = P4STA_utils.flt(speed_list)
-    speed_list_result = []
-    try:
-        for i in range(0, len(speed_list)):
-            if port_speed != speed_list[i]:
-                speed_list_result.append(speed_list[i])
-        return speed_list_result
-    except:
-        return speed_list
-
-# returns list of loadgens found in "load_generators" directory without the current selected
-def get_loadgens(cfg):
-    loadgens = []
-    for elem in next(os.walk('./load_generators'))[1]:
-        if elem != "__pycache__" and elem != cfg["selected_loadgen"]:
-            loadgens.append(elem)
-    return loadgens
 
 def fetch_iface(request):
     if not request.method == "POST":
@@ -79,6 +63,7 @@ def fetch_iface(request):
         ipv4 = mac = prefix = up_state = "timeout"
         print("Exception fetch iface: "+ str(e))
     return JsonResponse({"mac": mac, "ip": ipv4, "prefix": prefix, "up_state": up_state, "iface_found": iface_found})
+
 
 def set_iface(request):
     if request.method == "POST":
@@ -101,171 +86,158 @@ def status_overview(request):
 
 
 def updateCfg(request):
+    print(request.POST)
     cfg = P4STA_utils.read_current_cfg()
     target_cfg = core_conn.root.get_target_cfg()
     ports = core_conn.root.get_ports()
     real_ports = ports["real_ports"]
     logical_ports = ports["logical_ports"]
     try:
-        cfg["selected_target"] = request.POST["target"]
+        # if target has changed first request all port config again
+        if cfg["selected_target"] is not request.POST["target"]:
+            cfg["selected_target"] = request.POST["target"]
+            cfg = P4STA_utils.flt(cfg)
+            P4STA_utils.write_config(cfg)
+            target_cfg = core_conn.root.get_target_cfg()
+            ports = core_conn.root.get_ports()
+            real_ports = ports["real_ports"]
+            logical_ports = ports["logical_ports"]
+
         cfg["selected_loadgen"] = request.POST["selected_loadgen"]
-        num_servers = int(request.POST["num_server"])
-        servers = cfg["loadgen_servers"] = [] #loss of hidden information!?!
-        i = 1
-        for j in range(1, num_servers+1):
-            s = {}
-            s["id"] = j
-            #while "s_"+str(i)+"_speed" not in request.POST:
-            while "s_" + str(i) + "_real_port" not in request.POST:
-                i += 1
-                if i == 99:
-                    break
-            s["real_port"] = str(request.POST["s_"+str(i)+"_real_port"])
-            try:
-                s["p4_port"] = logical_ports[real_ports.index(s["real_port"])].strip("\n")
-            except Exception as e:
-                print("FAILED: Finding: " + str(e))
-                s["p4_port"] = ""
-            s["ssh_ip"] = str(request.POST["s_"+str(i)+"_ssh_ip"])
-            s["ssh_user"] = str(request.POST["s_"+str(i)+"_ssh_user"])
-            s["loadgen_iface"] = str(request.POST["s_"+str(i)+"_loadgen_iface"])
-            s["loadgen_mac"] = str(request.POST["s_"+str(i)+"_loadgen_mac"])
-            s["loadgen_ip"] = str(request.POST["s_"+str(i)+"_loadgen_ip"]).split(" ")[0].split("/")[0]
-            #s["speed"] = str(request.POST["s_"+str(i)+"_speed"])
-            if "s_"+str(i)+"_namespace" in request.POST:
-                s["namespace_id"] = str(request.POST["s_"+str(i)+"_namespace"])
-            # read target specific config from webinterface
-            for t_inp in target_cfg["inputs"]["input_table"]:
+        cfg["selected_extHost"] = request.POST["selected_extHost"]
+
+        # rebuild loadgen_groups list based on user choice
+        if len(cfg["loadgen_groups"]) != int(request.POST["num_loadgen_groups"]):
+            cfg["loadgen_groups"] = []
+            for i in range(1, int(request.POST["num_loadgen_groups"])+1):
+                cfg["loadgen_groups"].append({"group": i, "loadgens": []})
+
+        for loadgen_grp in cfg["loadgen_groups"]: # falls anzahl sich ändert?!
+            num_servers = int(request.POST["num_grp_" + str(loadgen_grp["group"])])
+            servers = []
+            i = 1
+            for j in range(1, num_servers + 1):
+                s = {}
+                s["id"] = j
+                while "s" + str(loadgen_grp["group"]) + "_" + str(i) + "_real_port" not in request.POST:
+                    i += 1
+                    if i == 99:
+                        break
+                s["real_port"] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_real_port"])
                 try:
-                    s[t_inp["target_key"]] = str(request.POST["s_"+str(i)+"_"+t_inp["target_key"]])
+                    s["p4_port"] = logical_ports[real_ports.index(s["real_port"])].strip("\n")
                 except Exception as e:
-                    print("#\n#\n#\n#\n#\n#\n#\nError parsing special target config parameters:" + str(e))
-            servers.append(s)
-            i += 1
+                    print("FAILED: Finding: " + str(e))
+                    s["p4_port"] = s["real_port"]
+                s["ssh_ip"] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_ssh_ip"])
+                s["ssh_user"] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_ssh_user"])
+                s["loadgen_iface"] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_loadgen_iface"])
+                s["loadgen_mac"] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_loadgen_mac"])
+                s["loadgen_ip"] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_loadgen_ip"]).split(" ")[0].split("/")[0]
 
-        if str(request.POST["add_server"]) == "1":
-            s = {}
-            s["id"] = num_servers + 1
-            s["real_port"] = ""
-            s["p4_port"] = ""
-            s["loadgen_ip"] = ""
-            s["ssh_ip"] = ""
-            s["ssh_user"] = ""
-            s["loadgen_iface"] = ""
-            #s["speed"] = "1G"
-            servers.append(s)
-
-        num_clients = int(request.POST["num_clients"])
-        clients = cfg["loadgen_clients"] = []
-        i = 1
-        for j in range(1, num_clients+1):
-            c = {}
-            c["id"] = j
-            #while "c_"+str(i)+"_speed" not in request.POST:
-            while "c_" + str(i) + "_real_port" not in request.POST:
-                i += 1
-                if i == 99:
-                    break
-            c["real_port"] = str(request.POST["c_"+str(i)+"_real_port"])
-            try:
-                    c["p4_port"] = logical_ports[real_ports.index(c["real_port"])].strip("\n")
-            except Exception as e:
-                print("FAILED: Finding: " + str(e))
-                c["p4_port"] = ""
-            c["ssh_ip"] = str(request.POST["c_"+str(i)+"_ssh_ip"])
-            c["ssh_user"] = str(request.POST["c_"+str(i)+"_ssh_user"])
-            c["loadgen_iface"] = str(request.POST["c_"+str(i)+"_loadgen_iface"])
-            c["loadgen_mac"] = str(request.POST["c_"+str(i)+"_loadgen_mac"])
-            c["loadgen_ip"] = str(request.POST["c_"+str(i)+"_loadgen_ip"]).split(" ")[0].split("/")[0]
-            #c["speed"] = str(request.POST["c_"+str(i)+"_speed"])
-            if "c_"+str(i)+"_namespace" in request.POST:
-                c["namespace_id"] = str(request.POST["c_"+str(i)+"_namespace"])
+                if "s" + str(loadgen_grp["group"]) + "_" + str(i) + "_namespace" in request.POST:
+                    s["namespace_id"] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_namespace"])
                 # read target specific config from webinterface
-            for t_inp in target_cfg["inputs"]["input_table"]:
-                try:
-                    c[t_inp["target_key"]] = str(request.POST["c_"+str(i)+"_"+t_inp["target_key"]])
-                except Exception as e:
-                    print(e)
+                for t_inp in target_cfg["inputs"]["input_table"]:
+                    try:
+                        if "s" + str(loadgen_grp["group"]) + "_" + str(i) + "_" + t_inp["target_key"] in request.POST:
+                            s[t_inp["target_key"]] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_" + t_inp["target_key"]])
+                        elif "restrict" not in t_inp or t_inp["restrict"] == "loadgen":
+                            s[t_inp["target_key"]] = ""
+                    except Exception as e:
+                        print(traceback.format_exc())
+                        print("\n#\nError parsing special target config parameters:" + str(e))
+                servers.append(s)
+                i += 1
 
-            clients.append(c)
-            i += 1
+            if str(request.POST["add_to_grp_" + str(loadgen_grp["group"])]) == "1":
+                s = {}
+                s["id"] = num_servers + 1
+                s["real_port"] = ""
+                s["p4_port"] = ""
+                s["loadgen_ip"] = ""
+                s["ssh_ip"] = ""
+                s["ssh_user"] = ""
+                s["loadgen_iface"] = ""
+                servers.append(s)
 
-        if str(request.POST["add_client"]) == "1":
-            c = {}
-            c["id"] = num_clients + 1
-            c["real_port"] = ""
-            c["p4_port"] = ""
-            c["loadgen_ip"] = ""
-            c["ssh_ip"] = ""
-            c["ssh_user"] = ""
-            c["loadgen_iface"] = ""
-            #c["speed"] = "1G"
-            clients.append(c)
+            loadgen_grp["loadgens"] = servers
+
+        cfg["dut_ports"] = []
+        for loadgen_grp in cfg["loadgen_groups"]:
+            cfg["dut_ports"].append({"id": loadgen_grp["group"]})
 
         try:  # read target specific config from webinterface
             for t_inp in target_cfg["inputs"]["input_individual"]:
-                cfg[t_inp["target_key"]] = str(request.POST[t_inp["target_key"]])
+                if t_inp["target_key"] in request.POST:
+                    cfg[t_inp["target_key"]] = str(request.POST[t_inp["target_key"]])
+                else:
+                    cfg[t_inp["target_key"]] = ""
 
             for t_inp in target_cfg["inputs"]["input_table"]:
-                cfg["dut1_" + t_inp["target_key"]] = str(request.POST["dut1_" + t_inp["target_key"]])
-                try:
-                    cfg["dut2_" + t_inp["target_key"]] = str(request.POST["dut2_" + t_inp["target_key"]])
-                except: # exception when dut2 is unused
-                    pass
-                cfg["ext_host_" + t_inp["target_key"]] = str(request.POST["ext_host_" + t_inp["target_key"]])
+                for dut in cfg["dut_ports"]:
+                    if "dut" + str(dut["id"]) + "_" + t_inp["target_key"] in request.POST:
+                        dut[t_inp["target_key"]] = str(request.POST["dut" + str(dut["id"]) + "_" + t_inp["target_key"]])
+                    elif "restrict" not in t_inp or t_inp["restrict"] == "dut":
+                        cfg["dut" + str(dut["id"]) + "_" + t_inp["target_key"]] = ""
+
+                if "ext_host_" + t_inp["target_key"] in request.POST:
+                    cfg["ext_host_" + t_inp["target_key"]] = str(request.POST["ext_host_" + t_inp["target_key"]])
+                elif "restrict" not in t_inp or t_inp["restrict"] == "ext_host":
+                    cfg["ext_host_" + t_inp["target_key"]] = ""
 
         except Exception as e:
             print("EXCEPTION: " + str(e))
+            print(traceback.format_exc())
 
         cfg["ext_host_real"] = str(request.POST["ext_host_real"])
         try:
             cfg["ext_host"] = logical_ports[real_ports.index(cfg["ext_host_real"])].strip("\n")
         except Exception as e:
             print("FAILED: Finding Ext-Host Real Port: " + str(e))
-        cfg["dut1_real"] = str(request.POST["dut1_real"])
-        try:
-            cfg["dut1"] = logical_ports[real_ports.index(cfg["dut1_real"])].strip("\n")
-        except Exception as e:
-            print("FAILED: Finding Dut1 Real Port: " + str(e))
-        #cfg["dut1_speed"] = str(request.POST["dut1_speed"])
 
         # check if second dut port should be used or not
-        try:
-            if request.POST["dut_2_use_port"] == "checked":
-                cfg["dut_2_use_port"] = "checked"
+        for dut in cfg["dut_ports"]:
+            if int(dut["id"]) == 1:
+                dut["use_port"] = "checked"
             else:
-                cfg["dut_2_use_port"] = "unchecked"
-        except:
-            cfg["dut_2_use_port"] = "unchecked"
+                try:
+                    if "dut_" + str(dut["id"]) + "_use_port" in request.POST:
+                        dut["use_port"] = request.POST["dut_" + str(dut["id"]) + "_use_port"]
+                    else:
+                        dut["use_port"] = "unchecked"
+                except:
+                    dut["use_port"] = "checked"
 
-        if cfg["dut_2_use_port"] == "checked":
-            cfg["dut2_real"] = str(request.POST["dut2_real"])
+            for loadgen_grp in cfg["loadgen_groups"]:
+                if loadgen_grp["group"] == dut["id"]:
+                    loadgen_grp["use_group"] = dut["use_port"]
+
             try:
-                cfg["dut2"] = logical_ports[real_ports.index(cfg["dut2_real"])].strip("\n")
-            except Exception as e:
-                print("FAILED: Finding Dut2 Real Port: " + str(e))
-            #cfg["dut2_speed"] = str(request.POST["dut2_speed"])
-        else:
-            cfg["dut2_real"] = cfg["dut1_real"]
-            cfg["dut2"] = cfg["dut1"]
-            if "dut1_speed" in cfg:
-                cfg["dut2_speed"] = cfg["dut1_speed"]
+                if "dut_" + str(dut["id"]) + "_outgoing_stamp" in request.POST:
+                    dut["stamp_outgoing"] = str(request.POST["dut_" + str(dut["id"]) + "_outgoing_stamp"])
+                else:
+                    dut["stamp_outgoing"] = "unchecked"
+            except:
+                print(traceback.format_exc())
+                dut["stamp_outgoing"] = "checked"
 
-        #cfg["ext_host_speed"] = str(request.POST["ext_host_speed"])
+            if "dut" + str(dut["id"]) + "_real" in request.POST:
+                dut["real_port"] = str(request.POST["dut" + str(dut["id"]) + "_real"])
+                try:
+                    dut["p4_port"] = logical_ports[real_ports.index(dut["real_port"])].strip("\n")
+                except:
+                    dut["p4_port"] = ""
+            else:
+                dut["real_port"] = ""
+                dut["p4_port"] = ""
+
         cfg["multicast"] = str(request.POST["multicast"])
         cfg["p4_dev_ssh"] = str(request.POST["p4_dev_ssh"])
         cfg["ext_host_ssh"] = str(request.POST["ext_host_ssh"])
         cfg["ext_host_user"] = str(request.POST["ext_host_user"])
         cfg["p4_dev_user"] = str(request.POST["p4_dev_user"])
         cfg["ext_host_if"] = str(request.POST["ext_host_if"])
-        try:
-            cfg["dut_1_outgoing_stamp"] = str(request.POST["dut_1_outgoing_stamp"])
-        except:
-            cfg["dut_1_outgoing_stamp"] = "unchecked"
-        try:
-            cfg["dut_2_outgoing_stamp"] = str(request.POST["dut_2_outgoing_stamp"])
-        except:
-            cfg["dut_2_outgoing_stamp"] = "unchecked"
         cfg["program"] = str(request.POST["program"])
         cfg["forwarding_mode"] = str(request.POST["forwarding_mode"])
 
@@ -280,40 +252,129 @@ def updateCfg(request):
 
         # save config to file "database"
         print("write config")
-        cfg = P4STA_utils.flt(cfg) # TODO
-
+        cfg = P4STA_utils.flt(cfg)
         P4STA_utils.write_config(cfg)
         print("finished config write")
-        # DELETE when all targets are ported to thrift, no need for creation of txt file anymore
 
         return True, cfg
 
     except Exception as e:
         print("EXCEPTION: " + str(e))
+        print(traceback.format_exc())
 
         return False, cfg
 
-def first_run(request):
-    if request.method == "POST":
-        first_time_cfg = {}
-        first_time_cfg["stamper_user"] = request.POST["stamper_user"]
-        first_time_cfg["stamper_ssh"] = request.POST["stamper_ip"]
-        first_time_cfg["ext_host_user"] = request.POST["ext_host_user"]
-        first_time_cfg["ext_host_ssh"] = request.POST["ext_host_ip"]
-        first_time_cfg["loadgen_user"] = request.POST["loadgen_user"]
-        first_time_cfg["loadgen_ips"] = request.POST["loadgen_ips"].replace(" ", "").split(",")
-        core_conn.root.write_install_script(first_time_cfg)
-        return HttpResponseRedirect("/")
-    else:
-        print("### FIRST RUN #####")
-        core_conn.root.first_run_finished()
-        return render(request, "middlebox/first_run.html")
 
-def first_run_ssh_checker(request):
+def setup_devices(request):
+    if request.method == "POST":
+        print(request.POST)
+        setup_devices_cfg = {}
+        if request.POST.get("enable_stamper") == "on":
+            setup_devices_cfg["stamper_user"] = request.POST["stamper_user"]
+            setup_devices_cfg["stamper_ssh_ip"] = request.POST["stamper_ip"]
+            setup_devices_cfg["selected_stamper"] = request.POST["selected_stamper"]
+            target_cfg = core_conn.root.get_target_cfg(setup_devices_cfg["selected_stamper"])
+            setup_devices_cfg["target_specific_dict"] = {}
+            if "config" in target_cfg and "stamper_specific" in target_cfg["config"]:
+                for cfg in target_cfg["config"]["stamper_specific"]:
+                    if cfg["target_key"] in request.POST:
+                        setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = request.POST[cfg["target_key"]]
+
+        if request.POST.get("enable_ext_host") == "on" and "ext_host_user" in request.POST:
+            setup_devices_cfg["ext_host_user"] = request.POST["ext_host_user"]
+            setup_devices_cfg["ext_host_ssh_ip"] = request.POST["ext_host_ip"]
+            setup_devices_cfg["selected_extHost"] = request.POST["selected_extHost"]
+
+        setup_devices_cfg["selected_loadgen"] = request.POST["selected_loadgen"]
+        setup_devices_cfg["loadgens"] = []
+        for i in range(1, 99):
+            if ("loadgen_user_"+str(i)) in request.POST:
+                loadgen = {}
+                loadgen["loadgen_user"] = request.POST["loadgen_user_"+str(i)]
+                loadgen["loadgen_ssh_ip"] = request.POST["loadgen_ip_"+str(i)]
+                setup_devices_cfg["loadgens"].append(loadgen)
+
+        print("===================================================")
+        print("=== Setup Device Config from management UI:  ======")
+        print("===================================================")
+        print(setup_devices_cfg)
+        # only create install script if button is clicked
+        if "create_setup_script_button" in request.POST:
+            core_conn.root.write_install_script(setup_devices_cfg)
+            return HttpResponseRedirect("/run_setup_script/")
+
+        # now write config.json with new data
+        if request.POST.get("enable_stamper") == "on":
+            path = core_conn.root.get_template_cfg_path(request.POST["selected_stamper"])
+            cfg = core_conn.root.open_cfg_file(path)
+            cfg["p4_dev_ssh"] = request.POST["stamper_ip"]
+            cfg["p4_dev_user"] = request.POST["stamper_user"]
+            if request.POST.get("enable_ext_host") == "on" and "ext_host_user" in request.POST:
+                cfg["ext_host_user"] = request.POST["ext_host_user"]
+                cfg["ext_host_ssh"] = request.POST["ext_host_ip"]
+                cfg["selected_extHost"] = request.POST["selected_extHost"]
+            cfg["selected_loadgen"] = request.POST["selected_loadgen"]
+
+            # add all loadgens to loadgen group 1 and 2
+            cfg["loadgen_groups"] = [{"group": 1, "loadgens": [], "use_group": "checked"},
+                                     {"group": 2, "loadgens": [], "use_group": "checked"}]
+            grp1 = setup_devices_cfg["loadgens"][len(setup_devices_cfg["loadgens"]) // 2:]
+            grp2 = setup_devices_cfg["loadgens"][:len(setup_devices_cfg["loadgens"]) // 2]
+            id_c = 1
+            for loadgen in grp1:
+                cfg["loadgen_groups"][0]["loadgens"].append({"id": id_c, "loadgen_iface": "", "loadgen_ip": "", "loadgen_mac": "", "real_port": "", "p4_port": "", "ssh_ip": loadgen["loadgen_ssh_ip"], "ssh_user": loadgen["loadgen_user"]})
+                id_c = id_c + 1
+            id_c = 1
+            for loadgen in grp2:
+                cfg["loadgen_groups"][1]["loadgens"].append({"id": id_c, "loadgen_iface": "", "loadgen_ip": "", "loadgen_mac": "", "real_port": "", "p4_port": "", "ssh_ip": loadgen["loadgen_ssh_ip"], "ssh_user": loadgen["loadgen_user"]})
+                id_c = id_c + 1
+
+            if core_conn.root.check_first_run():
+                P4STA_utils.write_config(cfg)
+        core_conn.root.first_run_finished()
+
+        return HttpResponseRedirect("/")
+    else: # request the page
+        print("### Setup Devices #####")
+        params = {}
+        params["stampers"] = P4STA_utils.flt( core_conn.root.get_all_targets() )
+        params["stampers"].sort(key=lambda y: y.lower())
+        params["extHosts"] = P4STA_utils.flt( core_conn.root.get_all_extHost() )
+        params["extHosts"].sort(key=lambda y: y.lower())
+        if "PythonExtHost" in params["extHosts"]: # bring python on position 1
+            params["extHosts"].insert(0, params["extHosts"].pop(params["extHosts"].index("PythonExtHost") ) )
+        params["loadgens"] = P4STA_utils.flt( core_conn.root.get_all_loadGenerators() )
+        params["loadgens"].sort(key=lambda y: y.lower())
+
+        params["isFirstRun"] = first_run = core_conn.root.check_first_run()
+
+        all_target_cfg = {}
+        for stamper in params["stampers"]:
+            # directly converting to json style because True would be uppercase otherwise => JS needs "true"
+            all_target_cfg[stamper] = P4STA_utils.flt(core_conn.root.get_stamper_target_obj(target_name=stamper).target_cfg)
+        params["all_target_cfg"] = json.dumps(all_target_cfg)
+        return render(request, "middlebox/setup_page.html", {**params})
+
+
+def run_setup_script(request):
+    def bash_command(cmd):
+        subprocess.Popen(['/bin/bash', '-c', cmd])
+
+    bash_command("pkill shellinaboxd; shellinaboxd -p 4201 --disable-ssl -u $(id -u) --service /:${USER}:${USER}:${PWD}:./core/scripts/spawn_install_server_bash.sh")
+    return render(request, "middlebox/run_setup_script_page.html", {})
+
+def stop_shellinabox_redirect_to_config(request):
+    def bash_command(cmd):
+        subprocess.Popen(['/bin/bash', '-c', cmd])
+    bash_command("pkill shellinaboxd;")
+    print("stop_shellinabox_redirect_to_config")
+    return HttpResponseRedirect("/")
+
+def setup_ssh_checker(request):
     ssh_works = False
     ping_works = (os.system("timeout 1 ping " + request.POST["ip"] + " -c 1") == 0)  # if ping works it should be true
     if ping_works:
-        answer = core_conn.root.execute_ssh(request.POST["user"], request.POST["ip"], "echo ssh_works")
+        answer = P4STA_utils.execute_ssh(request.POST["user"], request.POST["ip"], "echo ssh_works")
         answer = list(answer)
         if len(answer) > 0 and answer[0] == "ssh_works":
             ssh_works = True
@@ -324,22 +385,23 @@ def first_run_ssh_checker(request):
 # input from configure page and reloads configure page
 def configure_page(request):
     if core_conn.root.check_first_run():
-        return HttpResponseRedirect("/first_run")
+        print("FIRST RUN! Redirect to /setup_devices")
+        return HttpResponseRedirect("/setup_devices")
 
     saved = ""
-    target_cfg = core_conn.root.get_target_cfg()
-    target_cfg = P4STA_utils.flt(target_cfg)
+    target_cfg = P4STA_utils.flt(core_conn.root.get_target_cfg())
 
     if type(target_cfg) == dict and "error" in target_cfg:
-        return render(request, "middlebox/timeout.html", {**cfg, **{"inside_ajax": False}})
+        return render(request, "middlebox/timeout.html", {**target_cfg, **{"inside_ajax": False}})
 
     if request.method == "POST":
         saved, cfg = updateCfg(request)
+        target_cfg = P4STA_utils.flt(core_conn.root.get_target_cfg())
     else:
         cfg = P4STA_utils.read_current_cfg()
     cfg["target_cfg"] = target_cfg
 
-    #The following config updates are only for UI representation
+    # The following config updates are only for UI representation
     targets_without_selected = []
     all_targets = get_all_targets()
     for target in all_targets:
@@ -348,25 +410,38 @@ def configure_page(request):
     cfg["targets_without_selected"] = targets_without_selected
     cfg["all_available_targets"] = all_targets
 
-    cfg["available_configs"] = P4STA_utils.flt(core_conn.root.get_available_cfg_files())
+    available_cfg_files = P4STA_utils.flt(core_conn.root.get_available_cfg_files())
+
+    final_sorted_by_target = []
+
+    for target in sorted(all_targets):
+        found = False
+        final_sorted_by_target.append("###" + target)
+        for elem in available_cfg_files:
+            if elem.find(target) > -1:
+                final_sorted_by_target.append(elem)
+                found = True
+        if not found:
+            del final_sorted_by_target[-1]
+
+    cfg["available_configs"] = final_sorted_by_target
 
     cfg["saved"] = saved
-    #for server in cfg["loadgen_servers"]:
-    #    server["speed_list"] = speedlist(server["speed"])
 
-    #for client in cfg["loadgen_clients"]:
-    #    client["speed_list"] = speedlist(client["speed"])
+    loadgens_without_selected = core_conn.root.get_all_loadGenerators()
+    if cfg["selected_loadgen"] in loadgens_without_selected:
+        loadgens_without_selected.remove(cfg["selected_loadgen"])
+    cfg["loadgens_without_selected"] = P4STA_utils.flt(loadgens_without_selected)
 
-    #cfg["speed_list_result_ext_host"] = speedlist(cfg["ext_host_speed"])
-    #cfg["speed_list_result_dut1"] = speedlist(cfg["dut1_speed"])
-    #cfg["speed_list_result_dut2"] = speedlist(cfg["dut2_speed"])
+    exthosts_without_selected = core_conn.root.get_all_extHost()
+    if cfg["selected_extHost"] in exthosts_without_selected:
+        exthosts_without_selected.remove(cfg["selected_extHost"])
+    cfg["exthosts_without_selected"] = P4STA_utils.flt(exthosts_without_selected)
 
-    cfg["available_loadgens"] = get_loadgens(cfg)
     # if field "p4_ports" in target config, target uses separate hardware ports & p4 ports (e.g. tofino)
     # now only hw (front) ports are left but relabeled as "ports" and p4-ports are ignored
     # ports_list in abstract_target creates mapping 1->1
     cfg["port_mapping"] = "p4_ports" in target_cfg
-
     cfg["cfg"] = cfg  # needed for dynamic target input_individual
 
     return render(request, "middlebox/config.html", cfg)
@@ -384,6 +459,35 @@ def create_new_cfg_from_template(request):
 def open_selected_config(request):
     print("OPEN SELECTED CONFIG:")
     cfg = P4STA_utils.read_current_cfg(request.POST["selected_cfg_file"])
+    # check if old style cfg is used and convert to new style
+    if "dut1_real" in cfg and "loadgen_clients" in cfg:
+        print("Old CFG structure -> converting to new style....")
+        cfg["dut_ports"] = [{"id": 1}, {"id": 2}]
+        cfg["dut_ports"][0]["p4_port"] = cfg.pop("dut1")
+        cfg["dut_ports"][0]["real_port"] = cfg.pop("dut1_real")
+        cfg["dut_ports"][0]["stamp_outgoing"] = cfg.pop("dut_1_outgoing_stamp")
+        cfg["dut_ports"][0]["use_port"] = "checked"
+
+        cfg["dut_ports"][1]["p4_port"] = cfg.pop("dut2")
+        cfg["dut_ports"][1]["real_port"] = cfg.pop("dut2_real")
+        cfg["dut_ports"][1]["stamp_outgoing"] = cfg.pop("dut_2_outgoing_stamp")
+        cfg["dut_ports"][1]["use_port"] = cfg.pop("dut_2_use_port")
+
+        to_del = []
+        for key, value in cfg.items():
+            if key.find("dut1") > -1 or key.find("dut2") > -1:
+                to_del.append(key)
+        for key in to_del:
+            cfg.pop(key)
+
+        cfg["loadgen_groups"] = [{"group": 1, "loadgens": [], "use_group": "checked"}, {"group": 2, "loadgens": [], "use_group": "checked"}]
+        for host in cfg["loadgen_servers"]:
+            cfg["loadgen_groups"][0]["loadgens"].append(host)
+        cfg.pop("loadgen_servers")
+        for host in cfg["loadgen_clients"]:
+            cfg["loadgen_groups"][1]["loadgens"].append(host)
+        cfg.pop("loadgen_clients")
+
     P4STA_utils.write_config(cfg)
     return HttpResponseRedirect("/")
 
@@ -443,7 +547,7 @@ def host_iface_status(request):
 
 
 def p4_dev_status_wrapper(request, html_file):
-    p4_dev_status = rpyc.timed(core_conn.root.p4_dev_status, 20)
+    p4_dev_status = rpyc.timed(core_conn.root.p4_dev_status, 40)
     p4_dev_status_job = p4_dev_status()
     try:
         p4_dev_status_job.wait()
@@ -462,10 +566,14 @@ def p4_dev_status_wrapper(request, html_file):
 def start_p4_dev_software(request):
     if request.is_ajax():
         try:
-            start_stamper = rpyc.timed(core_conn.root.start_p4_dev_software, 80) ##netronome takes very long time
+            # some stamper targets take long time to start
+            start_stamper = rpyc.timed(core_conn.root.start_p4_dev_software, 80)
             answer = start_stamper()
             answer.wait()
-            time.sleep(1) #TODO target dependend
+            if answer.value is not None:
+                raise Exception(answer.value)
+
+            time.sleep(1)
             return render(request, "middlebox/empty.html")
         except Exception as e:
             return render(request, "middlebox/timeout.html", {"inside_ajax": True, "error": ("start stamper "+str(e))})
@@ -480,12 +588,12 @@ def get_p4_dev_startup_log(request):
         return render(request, "middlebox/timeout.html", {"inside_ajax": True, "error": ("stamper Log: "+str(e))})
 
 
- # pushes p4 table entries and port settings onto p4 device
+# pushes p4 table entries and port settings onto p4 device
 def deploy(request):
     if not request.is_ajax():
         return
     try:
-        deploy = rpyc.timed(core_conn.root.deploy, 20)
+        deploy = rpyc.timed(core_conn.root.deploy, 40)
         answer = deploy()
         answer.wait()
         try:
@@ -528,20 +636,7 @@ def refresh_links(request):
         except Exception as e:
             return render(request, "middlebox/timeout.html", {"inside_ajax": True, "error": ("refresh links error: "+str(e))})
 
-        
 
-
-# loads visualization html from p4 device if there is one.
-def visualization(request):
-    if request.is_ajax():
-        try:
-            html = core_conn.root.visualization()
-            return HttpResponse(html)
-        except Exception as e:
-            return render(request, "middlebox/timeout.html", {"inside_ajax": True, "error": ("visualization error: "+str(e))})
-
-
-        
 ####################################################################
 ################# RUN ##############################################
 ####################################################################
@@ -549,6 +644,7 @@ def visualization(request):
 def page_run(request):
     cfg = P4STA_utils.read_current_cfg()
     return render(request, "middlebox/page_run.html", cfg)
+
 
 # executes ping test
 def ping(request):
@@ -560,21 +656,47 @@ def ping(request):
         except Exception as e:
             return render(request, "middlebox/timeout.html", {"inside_ajax": True, "error": ("ping error: "+str(e))})
 
+
 # starts python receiver instance at external host
 def start_external(request):
     if request.is_ajax():
         cfg = P4STA_utils.read_current_cfg()
+
+        ext_host_cfg = core_conn.root.get_current_extHost_obj().host_cfg
+        if "status_check" in ext_host_cfg and "needed_sudos_to_add" in ext_host_cfg["status_check"]:
+            sudos_ok = []
+            indx_of_sudos_missing = []
+            for found_sudo in core_conn.root.check_sudo(cfg["ext_host_user"], cfg["ext_host_ssh"]):
+                if found_sudo.find("Error checking sudo status") > -1:
+                    return render(request, "middlebox/timeout.html", {"inside_ajax": True, "error": "Error checking sudo status of ext host, sure it is reachable?"})
+                i = 0
+                for needed_sudo in ext_host_cfg["status_check"]["needed_sudos_to_add"]:
+                    if found_sudo.find(needed_sudo) > -1:
+                        sudos_ok.append(True)
+                    elif i not in indx_of_sudos_missing:
+                        indx_of_sudos_missing.append(i)
+                    i = i + 1
+            if len(sudos_ok) < len(ext_host_cfg["status_check"]["needed_sudos_to_add"]):
+                error_msg = "Missing visudos: "
+                for i in indx_of_sudos_missing:
+                    error_msg = error_msg + ext_host_cfg["status_check"]["needed_sudos_to_add"][i] + "  |  "
+                return render(request, "middlebox/timeout.html", {"inside_ajax": True, "error": error_msg})
+
         new_id = core_conn.root.set_new_measurement_id()
+        print("\nSET NEW MEASUREMENT ID")
+        print(new_id)
+        print("###############################\n")
         try:
             p4_dev_running, errors = core_conn.root.start_external()
-
             mtu_list = []
-            for host in cfg["loadgen_servers"] + cfg["loadgen_clients"]:
-                if "namespace_id" in host and host["namespace_id"] != "":
-                    host["mtu"] = core_conn.root.fetch_mtu(host['ssh_user'], host['ssh_ip'], host['loadgen_iface'], host["namespace_id"])
-                else:
-                    host["mtu"] = core_conn.root.fetch_mtu(host['ssh_user'], host['ssh_ip'], host['loadgen_iface'])
-                mtu_list.append(int(host["mtu"]))
+            for loadgen_grp in cfg["loadgen_groups"]:
+                if loadgen_grp["use_group"] == "checked":
+                    for host in loadgen_grp["loadgens"]:
+                        if "namespace_id" in host and host["namespace_id"] != "":
+                            host["mtu"] = core_conn.root.fetch_mtu(host['ssh_user'], host['ssh_ip'], host['loadgen_iface'], host["namespace_id"])
+                        else:
+                            host["mtu"] = core_conn.root.fetch_mtu(host['ssh_user'], host['ssh_ip'], host['loadgen_iface'])
+                        mtu_list.append(int(host["mtu"]))
 
             return render(request, "middlebox/external_started.html", {"running": p4_dev_running, "errors": list(errors), "cfg": cfg, "min_mtu": min(mtu_list)})
 
@@ -605,8 +727,9 @@ def stop_external(request):
             return render(request, "middlebox/timeout.html", {"inside_ajax": True, "error": ("stop external host error: "+str(e))})
 
 
-def run_loadgens_first(request): #called at Run if "Start" is clicked
+def run_loadgens_first(request):  # called at Run if "Start" is clicked
     if request.method == "POST":
+        print(request.POST)
         if "duration" in request.POST:
             try:
                 duration = int(request.POST["duration"])
@@ -617,12 +740,41 @@ def run_loadgens_first(request): #called at Run if "Start" is clicked
             duration = 10
         l4_selected = request.POST["l4_selected"]
         packet_size_mtu = request.POST["packet_size_mtu"]
+        if "loadgen_rate_limit" in request.POST:
+            try:
+                loadgen_rate_limit = int(request.POST["loadgen_rate_limit"])
+            except ValueError:
+                print("loadgen_rate_limit is not a number, no rate limit set.")
+                loadgen_rate_limit = 0
+        else:
+            loadgen_rate_limit = 0
+        if "loadgen_flows" in request.POST:
+            try:
+                loadgen_flows = int(request.POST["loadgen_flows"])
+            except ValueError:
+                loadgen_flows = 3
+                print("loadgen_flows is not a number, set 3 flows")
+        else:
+            loadgen_flows = 3
+        if "loadgen_server_groups[]" in request.POST:
+            try:
+                loadgen_server_groups = []
+                for item in request.POST.getlist("loadgen_server_groups[]"):
+                    loadgen_server_groups.append(int(item))
+            except:
+                loadgen_server_groups = [1]
+                print(traceback.format_exc())
+        else:
+            loadgen_server_groups = [1]
         try:
-            t_timeout = round(duration*1.5 + 20) 
-            start_loadgens =  rpyc.timed(core_conn.root.start_loadgens, t_timeout) 
-            file_id = start_loadgens(duration, l4_selected, packet_size_mtu)
+            t_timeout = round(duration*2*loadgen_flows + 60)
+            start_loadgens = rpyc.timed(core_conn.root.start_loadgens, t_timeout)
+            file_id = start_loadgens(duration, l4_selected, packet_size_mtu, loadgen_rate_limit, loadgen_flows, loadgen_server_groups)
             file_id.wait()
-            return render_loadgens(request, file_id.value, duration=duration)
+            file_id_val = file_id.value
+            global selected_run_id
+            selected_run_id = file_id_val
+            return render_loadgens(request, file_id_val, duration=duration)
 
         except Exception as e:
             print("Exception in run_loadgens: "+ str(e))
@@ -659,7 +811,7 @@ def render_loadgens(request, file_id, duration=10):
         return render(request, "middlebox/output_loadgen.html",
                     {"cfg": cfg, "output": output, "total_gbits": calculate.find_unit_bit_byte(total_bits, "bit"), "cachebuster": str(time.time()).replace(".", ""),
                     "total_retransmits": total_retransmits, "total_gbyte": calculate.find_unit_bit_byte(total_byte, "byte"), "error": error, "custom_attr": custom_attr,
-                    "filename": file_id, "time": time.strftime('%H:%M:%S %d.%m.%Y', time.localtime(int(file_id)))})#"mean_rtt": mean_rtt, "min_rtt": min_rtt, "max_rtt": max_rtt,
+                    "filename": file_id, "time": time.strftime('%H:%M:%S %d.%m.%Y', time.localtime(int(file_id)))})
     except Exception as e:
         print(e)
         return render(request, "middlebox/timeout.html", {"inside_ajax": True, "error": ("render loadgen error: "+str(e))})
@@ -740,6 +892,7 @@ def p4_dev_results(request):
             print(e)
             return render(request, "middlebox/timeout.html", {"inside_ajax": True, "error": ("render stamper results error: "+str(e))})
 
+
 # displays results from external host python receiver from return of calculate module
 def external_results(request):
     global selected_run_id
@@ -754,24 +907,16 @@ def external_results(request):
             latency_range = extH_results["max_latency"] - extH_results["min_latency"]
 
             display = True
-            
-            # list for "Dygraph" javascript graph
-            graph_list = []
-            counter = 1
-            adjusted_latency_list, unit = calculate.find_unit(extH_results["latency_list"])
-            for latency in adjusted_latency_list:
-                graph_list.append([counter, latency])
-                counter = counter + 1 #TODO use duplication factor instead of 1?
 
             time_created = time.strftime('%H:%M:%S %d.%m.%Y', time.localtime(int(selected_run_id)))
 
             return render(request, "middlebox/external_results.html",
                         {"display": display, "filename": selected_run_id, "raw_packets": extH_results["num_raw_packets"], 'time': time_created, "cfg": cfg, "cachebuster": str(time.time()).replace(".", ""),
                         "processed_packets": extH_results["num_processed_packets"], "average_latency": calculate.find_unit(extH_results["avg_latency"]),
-                        "min_latency": calculate.find_unit(extH_results["min_latency"]), "max_latency": calculate.find_unit(extH_results["max_latency"]), "total_throughput": extH_results["total_throughput"], "unit": unit,
+                        "min_latency": calculate.find_unit(extH_results["min_latency"]), "max_latency": calculate.find_unit(extH_results["max_latency"]), "total_throughput": extH_results["total_throughput"], # "unit": unit,
                         "min_ipdv": calculate.find_unit(extH_results["min_ipdv"]), "max_ipdv": calculate.find_unit(extH_results["max_ipdv"]), "ipdv_range": calculate.find_unit(ipdv_range), "min_pdv": calculate.find_unit(extH_results["min_pdv"]),
                         "max_pdv": calculate.find_unit([extH_results["max_pdv"]]), "ave_pdv": calculate.find_unit(extH_results["avg_pdv"]), "pdv_range": calculate.find_unit(pdv_range), "min_rate_jitter": extH_results["min_packets_per_second"],
-                        "max_rate_jitter": extH_results["max_packets_per_second"], "ave_packet_sec": extH_results["avg_packets_per_second"], "rate_jitter_range": rate_jitter_range, "threshold": cfg["multicast"], "latencies": graph_list,
+                        "max_rate_jitter": extH_results["max_packets_per_second"], "ave_packet_sec": extH_results["avg_packets_per_second"], "rate_jitter_range": rate_jitter_range, "threshold": cfg["multicast"],# "latencies": graph_list,
                         "ave_ipdv": calculate.find_unit(extH_results["avg_ipdv"]), "latency_range": calculate.find_unit(latency_range), "ave_abs_ipdv": calculate.find_unit(extH_results["avg_abs_ipdv"]),
                         "latency_std_deviation": calculate.find_unit(extH_results["latency_std_deviation"]), "latency_variance": calculate.find_unit_sqr(extH_results["latency_variance"])})
 
@@ -780,11 +925,10 @@ def external_results(request):
             return render(request, "middlebox/timeout.html", {"inside_ajax": True, "error": ("render external error: "+str(traceback.format_exc()))})
 
 
-
 # packs zip object for results from external host
 def download_external_results(request):
     global selected_run_id
-    core_conn.root.external_results(selected_run_id) ## create output_external_host_...
+    core_conn.root.external_results(selected_run_id)
     file_id = str(selected_run_id)
     files = [
         "management_ui/generated/latency.svg",
@@ -818,7 +962,7 @@ def download_external_results(request):
     f.write("python3 calculate/calculate.py --id "+ file_id)
     f.close()
     os.chmod("create_graphs.sh", 0o777) # make run script executable
-    files.append(["create_graphs.sh", "create_graphs.sh"])    
+    files.append(["create_graphs.sh", "create_graphs.sh"])
 
     files.append([folder+"/config_" + file_id + ".json", "data/config_" + file_id + ".json"])
 
@@ -835,7 +979,7 @@ def download_external_results(request):
 # packs zip object for results from p4 registers
 def download_p4_dev_results(request):
     global selected_run_id
-    folder =  P4STA_utils.get_results_path(selected_run_id)
+    folder = P4STA_utils.get_results_path(selected_run_id)
     files = [
                 [folder+"/p4_dev_" + str(selected_run_id) + ".json", "results/p4_dev_" + str(selected_run_id) + ".json"], 
                 [folder+"/output_p4_device_" + str(selected_run_id) + ".txt", "results/output_p4_device_" + str(selected_run_id) + ".txt"]
@@ -853,9 +997,9 @@ def download_loadgen_results(request):
         ["management_ui/generated/loadgen_1.svg", "loadgen_1.svg"],
         ["management_ui/generated/loadgen_2.svg", "loadgen_2.svg"],
         ["management_ui/generated/loadgen_3.svg", "loadgen_3.svg"]
-             ]
+    ]
 
-    folder =  P4STA_utils.get_results_path(selected_run_id)
+    folder = P4STA_utils.get_results_path(selected_run_id)
     file_id = str(file_id)
     files.append([folder+"/output_loadgen_" + file_id + ".txt", "output_loadgen_" + file_id + ".txt"])
     zip_file = pack_zip(request, files, file_id, cfg["selected_loadgen"] + "_")
@@ -877,3 +1021,32 @@ def pack_zip(request, files, file_id, zip_name):
       response["Content-Disposition"] = "attachment; filename={}".format(zip_name + str(file_id) + ".zip")
 
     return response
+
+
+def dygraph(request):
+    global selected_run_id
+    if request.is_ajax():
+        cfg = P4STA_utils.read_result_cfg(selected_run_id)
+        try:
+            extH_results = calculate.main(str(selected_run_id), cfg["multicast"], P4STA_utils.get_results_path(selected_run_id))
+            # list for "Dygraph" javascript graph
+            graph_list = []
+            counter = 1
+            adjusted_latency_list, unit = calculate.find_unit(extH_results["latency_list"])
+            for latency in adjusted_latency_list:
+                graph_list.append([counter, latency])
+                counter = counter + 1
+
+            timestamp1_list = calculate.read_csv(P4STA_utils.get_results_path(selected_run_id), "timestamp1_list", str(selected_run_id))
+            timestamp2_list = calculate.read_csv(P4STA_utils.get_results_path(selected_run_id), "timestamp2_list", str(selected_run_id))
+
+            time_throughput = [] # time in ms when packet was timestamped but starting at 0 ms
+            if len(timestamp1_list) > 0 and len(timestamp1_list) == len(timestamp2_list):
+                for i in range(0, len(timestamp1_list)):
+                    time_throughput.append(int(round((timestamp2_list[i] - timestamp2_list[0]) / 1000000)))
+
+            return render(request, "middlebox/dygraph.html", {"latencies": graph_list, "time_throughput": time_throughput, "unit": unit})
+
+        except Exception as e:
+            print(traceback.format_exc())
+            return render(request, "middlebox/timeout.html",{"inside_ajax": True, "error": ("render external error: " + str(traceback.format_exc()))})

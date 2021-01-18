@@ -1,0 +1,84 @@
+{
+"dataplane_duplication": "0",
+  "dut_ports": [
+    {
+      "an": "",
+      "fec": "",
+      "id": "1",
+      "p4_port": "",
+      "real_port": "",
+      "shape": "",
+      "speed": "",
+      "stamp_outgoing": "checked",
+      "use_port": "unchecked"
+    },
+    {
+      "an": "",
+      "fec": "",
+      "id": "2",
+      "p4_port": "",
+      "real_port": "",
+      "shape": "",
+      "speed": "",
+      "stamp_outgoing": "checked",
+      "use_port": "checked"
+    }
+  ],
+  "ext_host": "",
+  "ext_host_an": "",
+  "ext_host_fec": "",
+  "ext_host_if": "",
+  "ext_host_real": "",
+  "ext_host_speed": "",
+  "ext_host_ssh": "",
+  "ext_host_user": "",
+  "forwarding_mode": "1",
+  "loadgen_groups": [
+    {
+      "group": 1,
+      "loadgens": [
+        {
+          "an": "default",
+          "fec": "NONE",
+          "id": 1,
+          "loadgen_iface": "",
+          "loadgen_ip": "",
+          "loadgen_mac": "",
+          "p4_port": "",
+          "real_port": "",
+          "speed": "10G",
+          "ssh_ip": "",
+          "ssh_user": "root"
+        }
+      ],
+      "use_group": "checked"
+    },
+    {
+      "group": 2,
+      "loadgens": [
+        {
+          "an": "default",
+          "fec": "NONE",
+          "id": 1,
+          "loadgen_iface": "",
+          "loadgen_ip": "",
+          "loadgen_mac": "",
+          "p4_port": "",
+          "real_port": "",
+          "speed": "10G",
+          "ssh_ip": "",
+          "ssh_user": "root"
+        }
+      ],
+      "use_group": "checked"
+    }
+  ],
+  "multicast": "1",
+  "program": "tofino_stamper_v1_0_1",
+  "sde": "/opt/bf-sde-9.3.0",
+  "selected_loadgen": "iperf3",
+  "selected_target": "Stordis_BF6064XT",
+  "selected_extHost": "PythonExtHost",
+  "p4_dev_ssh": "",
+  "p4_dev_user": ""
+}

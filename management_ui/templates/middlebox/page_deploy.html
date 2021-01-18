@@ -28,13 +28,6 @@
 				refreshStatus();
 			});
 
-			$("#visualization").click(function() {
-				$("#output_visualization").html('<img src="{% static 'images/spinner.svg' %}" />');
-				$.get("/visualization/", function(data) {
-					$("#output_visualization").html(data);
-				}, "html");
-			});
-
 			$("#stop_p4_dev_software").click(function() {
 				$("#output_p4_dev_status").html('<img src="{% static 'images/spinner.svg' %}" />');
 				$.get("/stop_p4_dev_software/", function(data) {
@@ -75,11 +68,8 @@
 	</div>
 	<div class="col-md-9"><div id="output_p4_dev_status" class="card card-body"></div></div>
 </div>
-<hr/>
-<div class="row">
-	<div class="col-md-2"><button id="visualization" type="button" class="save btn btn-secondary">Load Visualization</button></div>
-	<div class="col-md-9"><div id="output_visualization" class="card card-body"></div></div>
-</div>
+
+
 </div>
 
 </body>

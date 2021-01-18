@@ -12,16 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import socket
-from socket import AF_PACKET, SOCK_RAW, htons
-import signal
-import time
-import traceback
-import sys
 import argparse
 import csv
 import setproctitle
+import signal
+import socket
+from socket import AF_PACKET, SOCK_RAW, htons
+import sys
+import time
+import traceback
+
 csv.field_size_limit(sys.maxsize)
 
 setproctitle.setproctitle("external_host_python_receiver")
@@ -70,7 +70,6 @@ except Exception as e:
 
 # handles SIGTERM and SIGINT signals to write csv files when terminating
 def stop_signals_handler(signum, frame):
-    # print("STOP REQUESTED")
     global go
     go = False
 
@@ -84,11 +83,11 @@ while go:
         message = s.recv(4096).hex()  # message contains whole packet (max 4096byte) as hex string
         raw_packet_counter = raw_packet_counter + 1
         ether_type = message[24:28]
-        if ether_type == "0800" and len(message) > 64:
+        if ether_type == "0800":
             ihl = int(message[29], 16)                             # ip header length in 32 bit words
             ipv4_protocol = int(message[46:48], 16)                # 17 = UDP and 6 = TCP
             l4_start = 28 + ihl * 4 * 2                            # 28 is ethernet header length in bytes*2
-            if ipv4_protocol == 6:                                 # TCP
+            if ipv4_protocol == 6 and len(message) > 140:          # 14 byte eth + 20 IPv4 + 20 TCP + 16 options = 70 byte
                 try:
                     tcp_data_offs = int(message[l4_start + 24], 16)    # tcp header length in in 32 bit words
                     tcp_options_len = tcp_data_offs - 5                # tcp header always has at least 5x32bit
@@ -105,7 +104,7 @@ while go:
                             break
                 except:
                     print(traceback.format_exc())
-            elif ipv4_protocol == 17:                                              # UDP
+            elif ipv4_protocol == 17 and len(message) > 84:                        # 14 byte eth + 20 IPv4 + 8 UDP (16 byte options in payload!) = 42 byte
                 try:
                     ts_start = l4_start + 16                                       # UDP header is 64 bit big (8 byte) => 64/4 => move 16 hex digits forward (4 bit = 1 hex digit)
                     timestamps_udp = message[ts_start:ts_start+32]

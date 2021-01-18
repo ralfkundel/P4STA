@@ -1,0 +1,4232 @@
+{
+  "header_types" : [
+    {
+      "name" : "scalars_0",
+      "id" : 0,
+      "fields" : [
+        ["tmp", 16, false],
+        ["tmp_0", 32, false],
+        ["tmp_1", 32, false],
+        ["tmp_2", 32, false],
+        ["tmp_3", 32, false],
+        ["tmp_4", 32, false],
+        ["tmp_5", 32, false],
+        ["tmp_6", 32, false],
+        ["tmp_7", 32, false],
+        ["tmp_8", 32, false],
+        ["tmp_9", 32, false],
+        ["tmp_10", 32, false],
+        ["tmp_11", 32, false],
+        ["tmp_12", 32, false],
+        ["metadata_t._l4_metadata_added_timestamp20", 1, false],
+        ["metadata_t._l4_metadata_threshold_multicast1", 16, false],
+        ["metadata_t._l4_metadata_multi_counter2", 16, false],
+        ["metadata_t._l4_metadata_tcpLength3", 16, false],
+        ["metadata_t._l4_metadata_added_empty_header4", 1, false],
+        ["metadata_t._l4_metadata_flow_direction5", 1, false],
+        ["metadata_t._timestamp_metadata_delta6", 48, false],
+        ["metadata_t._timestamp_metadata_ave_temp7", 48, false],
+        ["metadata_t._timestamp_metadata_count_temp8", 48, false],
+        ["metadata_t._timestamp_metadata_min_temp9", 32, false],
+        ["metadata_t._timestamp_metadata_max_temp10", 32, false],
+        ["_padding_0", 5, false]
+      ]
+    },
+    {
+      "name" : "standard_metadata",
+      "id" : 1,
+      "fields" : [
+        ["ingress_port", 9, false],
+        ["egress_spec", 9, false],
+        ["egress_port", 9, false],
+        ["clone_spec", 32, false],
+        ["instance_type", 32, false],
+        ["drop", 1, false],
+        ["recirculate_port", 16, false],
+        ["packet_length", 32, false],
+        ["enq_timestamp", 32, false],
+        ["enq_qdepth", 19, false],
+        ["deq_timedelta", 32, false],
+        ["deq_qdepth", 19, false],
+        ["ingress_global_timestamp", 48, false],
+        ["egress_global_timestamp", 48, false],
+        ["lf_field_list", 32, false],
+        ["mcast_grp", 16, false],
+        ["resubmit_flag", 32, false],
+        ["egress_rid", 16, false],
+        ["checksum_error", 1, false],
+        ["recirculate_flag", 32, false],
+        ["parser_error", 32, false],
+        ["_padding", 5, false]
+      ]
+    },
+    {
+      "name" : "ethernet_t",
+      "id" : 2,
+      "fields" : [
+        ["dstAddr", 48, false],
+        ["srcAddr", 48, false],
+        ["etherType", 16, false]
+      ]
+    },
+    {
+      "name" : "ipv4_t",
+      "id" : 3,
+      "fields" : [
+        ["version", 4, false],
+        ["ihl", 4, false],
+        ["diffServ", 8, false],
+        ["paketlen", 16, false],
+        ["id", 16, false],
+        ["flags", 3, false],
+        ["fragOffset", 13, false],
+        ["ttl", 8, false],
+        ["protocol", 8, false],
+        ["header_checksum", 16, false],
+        ["srcAddr", 32, false],
+        ["dstAddr", 32, false]
+      ]
+    },
+    {
+      "name" : "tcp_t",
+      "id" : 4,
+      "fields" : [
+        ["srcPort", 16, false],
+        ["dstPort", 16, false],
+        ["seqNo", 32, false],
+        ["ackNo", 32, false],
+        ["dataOffset", 4, false],
+        ["res", 4, false],
+        ["flags", 8, false],
+        ["window", 16, false],
+        ["checksum", 16, false],
+        ["urgentPtr", 16, false]
+      ]
+    },
+    {
+      "name" : "udp_t",
+      "id" : 5,
+      "fields" : [
+        ["srcPort", 16, false],
+        ["dstPort", 16, false],
+        ["len", 16, false],
+        ["checksum", 16, false]
+      ]
+    },
+    {
+      "name" : "tcp_options_128bit_custom_t",
+      "id" : 6,
+      "fields" : [
+        ["myType", 16, false],
+        ["timestamp1", 48, false],
+        ["empty", 16, false],
+        ["timestamp2", 48, false]
+      ]
+    }
+  ],
+  "headers" : [
+    {
+      "name" : "scalars",
+      "id" : 0,
+      "header_type" : "scalars_0",
+      "metadata" : true,
+      "pi_omit" : true
+    },
+    {
+      "name" : "standard_metadata",
+      "id" : 1,
+      "header_type" : "standard_metadata",
+      "metadata" : true,
+      "pi_omit" : true
+    },
+    {
+      "name" : "ethernet",
+      "id" : 2,
+      "header_type" : "ethernet_t",
+      "metadata" : false,
+      "pi_omit" : true
+    },
+    {
+      "name" : "ipv4",
+      "id" : 3,
+      "header_type" : "ipv4_t",
+      "metadata" : false,
+      "pi_omit" : true
+    },
+    {
+      "name" : "tcp",
+      "id" : 4,
+      "header_type" : "tcp_t",
+      "metadata" : false,
+      "pi_omit" : true
+    },
+    {
+      "name" : "udp",
+      "id" : 5,
+      "header_type" : "udp_t",
+      "metadata" : false,
+      "pi_omit" : true
+    },
+    {
+      "name" : "tcp_options_128bit_custom",
+      "id" : 6,
+      "header_type" : "tcp_options_128bit_custom_t",
+      "metadata" : false,
+      "pi_omit" : true
+    }
+  ],
+  "header_stacks" : [],
+  "header_union_types" : [],
+  "header_unions" : [],
+  "header_union_stacks" : [],
+  "field_lists" : [],
+  "errors" : [
+    ["NoError", 1],
+    ["PacketTooShort", 2],
+    ["NoMatch", 3],
+    ["StackOutOfBounds", 4],
+    ["HeaderTooShort", 5],
+    ["ParserTimeout", 6]
+  ],
+  "enums" : [],
+  "parsers" : [
+    {
+      "name" : "parser",
+      "id" : 0,
+      "init_state" : "start",
+      "parse_states" : [
+        {
+          "name" : "start",
+          "id" : 0,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "ethernet"
+                }
+              ],
+              "op" : "extract"
+            }
+          ],
+          "transitions" : [
+            {
+              "type" : "hexstr",
+              "value" : "0x0800",
+              "mask" : null,
+              "next_state" : "parse_ipv4"
+            },
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : [
+            {
+              "type" : "field",
+              "value" : ["ethernet", "etherType"]
+            }
+          ]
+        },
+        {
+          "name" : "parse_ipv4",
+          "id" : 1,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "ipv4"
+                }
+              ],
+              "op" : "extract"
+            },
+            {
+              "parameters" : [
+                {
+                  "type" : "field",
+                  "value" : ["scalars", "metadata_t._l4_metadata_tcpLength3"]
+                },
+                {
+                  "type" : "expression",
+                  "value" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "&",
+                      "left" : {
+                        "type" : "expression",
+                        "value" : {
+                          "op" : "+",
+                          "left" : {
+                            "type" : "field",
+                            "value" : ["ipv4", "paketlen"]
+                          },
+                          "right" : {
+                            "type" : "hexstr",
+                            "value" : "0xffec"
+                          }
+                        }
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0xffff"
+                      }
+                    }
+                  }
+                }
+              ],
+              "op" : "set"
+            }
+          ],
+          "transitions" : [
+            {
+              "type" : "hexstr",
+              "value" : "0x06",
+              "mask" : null,
+              "next_state" : "parse_tcp"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x11",
+              "mask" : null,
+              "next_state" : "parse_udp"
+            },
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : [
+            {
+              "type" : "field",
+              "value" : ["ipv4", "protocol"]
+            }
+          ]
+        },
+        {
+          "name" : "parse_tcp",
+          "id" : 2,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "tcp"
+                }
+              ],
+              "op" : "extract"
+            }
+          ],
+          "transitions" : [
+            {
+              "type" : "hexstr",
+              "value" : "0x09",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0a",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0b",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0c",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0d",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0e",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0f",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom"
+            },
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : [
+            {
+              "type" : "field",
+              "value" : ["tcp", "dataOffset"]
+            }
+          ]
+        },
+        {
+          "name" : "parse_tcp_options_128bit_custom",
+          "id" : 3,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "field",
+                  "value" : ["scalars", "tmp"]
+                },
+                {
+                  "type" : "lookahead",
+                  "value" : [0, 16]
+                }
+              ],
+              "op" : "set"
+            }
+          ],
+          "transitions" : [
+            {
+              "type" : "hexstr",
+              "value" : "0x0f10",
+              "mask" : null,
+              "next_state" : "parse_tcp_options_128bit_custom_exec"
+            },
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp"]
+            }
+          ]
+        },
+        {
+          "name" : "parse_tcp_options_128bit_custom_exec",
+          "id" : 4,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "tcp_options_128bit_custom"
+                }
+              ],
+              "op" : "extract"
+            }
+          ],
+          "transitions" : [
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : []
+        },
+        {
+          "name" : "parse_udp",
+          "id" : 5,
+          "parser_ops" : [
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "udp"
+                }
+              ],
+              "op" : "extract"
+            },
+            {
+              "parameters" : [
+                {
+                  "type" : "regular",
+                  "value" : "tcp_options_128bit_custom"
+                }
+              ],
+              "op" : "extract"
+            }
+          ],
+          "transitions" : [
+            {
+              "value" : "default",
+              "mask" : null,
+              "next_state" : null
+            }
+          ],
+          "transition_key" : []
+        }
+      ]
+    }
+  ],
+  "parse_vsets" : [],
+  "deparsers" : [
+    {
+      "name" : "deparser",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+        "line" : 349,
+        "column" : 8,
+        "source_fragment" : "DeparserImpl"
+      },
+      "order" : ["ethernet", "ipv4", "tcp", "udp", "tcp_options_128bit_custom"]
+    }
+  ],
+  "meter_arrays" : [],
+  "counter_arrays" : [
+    {
+      "name" : "ingress.ingress_counter",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+        "line" : 86,
+        "column" : 44,
+        "source_fragment" : "ingress_counter"
+      },
+      "size" : 64,
+      "is_direct" : false
+    },
+    {
+      "name" : "ingress.ingress_stamped_counter",
+      "id" : 1,
+      "source_info" : {
+        "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+        "line" : 87,
+        "column" : 44,
+        "source_fragment" : "ingress_stamped_counter"
+      },
+      "size" : 64,
+      "is_direct" : false
+    },
+    {
+      "name" : "egress.egress_counter",
+      "id" : 2,
+      "source_info" : {
+        "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+        "line" : 292,
+        "column" : 44,
+        "source_fragment" : "egress_counter"
+      },
+      "size" : 64,
+      "is_direct" : false
+    },
+    {
+      "name" : "egress.egress_stamped_counter",
+      "id" : 3,
+      "source_info" : {
+        "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+        "line" : 293,
+        "column" : 44,
+        "source_fragment" : "egress_stamped_counter"
+      },
+      "size" : 64,
+      "is_direct" : false
+    }
+  ],
+  "register_arrays" : [
+    {
+      "name" : "ingress.time_average",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+        "line" : 83,
+        "column" : 22,
+        "source_fragment" : "time_average"
+      },
+      "size" : 2,
+      "bitwidth" : 48
+    },
+    {
+      "name" : "ingress.time_delta_min_max",
+      "id" : 1,
+      "source_info" : {
+        "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+        "line" : 84,
+        "column" : 22,
+        "source_fragment" : "time_delta_min_max"
+      },
+      "size" : 2,
+      "bitwidth" : 32
+    },
+    {
+      "name" : "ingress.multi_counter_r",
+      "id" : 2,
+      "source_info" : {
+        "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+        "line" : 85,
+        "column" : 22,
+        "source_fragment" : "multi_counter_r"
+      },
+      "size" : 2,
+      "bitwidth" : 16
+    }
+  ],
+  "calculations" : [
+    {
+      "name" : "calc",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "../p4_src/checksum_16.p4",
+        "line" : 24,
+        "column" : 8,
+        "source_fragment" : "update_checksum(true, { hdr.ipv4.version, hdr.ipv4.ihl, hdr.ipv4.diffServ, ..."
+      },
+      "algo" : "csum16",
+      "input" : [
+        {
+          "type" : "field",
+          "value" : ["ipv4", "version"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "ihl"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "diffServ"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "paketlen"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "id"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "flags"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "fragOffset"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "ttl"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "protocol"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "srcAddr"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "dstAddr"]
+        }
+      ]
+    },
+    {
+      "name" : "calc_0",
+      "id" : 1,
+      "source_info" : {
+        "filename" : "../p4_src/checksum_16.p4",
+        "line" : 29,
+        "column" : 8,
+        "source_fragment" : "update_checksum_with_payload(hdr.tcp.isValid(), { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, ..."
+      },
+      "algo" : "csum16",
+      "input" : [
+        {
+          "type" : "field",
+          "value" : ["ipv4", "srcAddr"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "dstAddr"]
+        },
+        {
+          "type" : "hexstr",
+          "value" : "0x00",
+          "bitwidth" : 8
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "protocol"]
+        },
+        {
+          "type" : "field",
+          "value" : ["scalars", "metadata_t._l4_metadata_tcpLength3"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "srcPort"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "dstPort"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "seqNo"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "ackNo"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "dataOffset"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "res"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "flags"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "window"]
+        },
+        {
+          "type" : "field",
+          "value" : ["tcp", "urgentPtr"]
+        },
+        {
+          "type" : "header",
+          "value" : "tcp_options_128bit_custom"
+        },
+        {
+          "type" : "payload",
+          "value" : null
+        }
+      ]
+    },
+    {
+      "name" : "calc_1",
+      "id" : 2,
+      "source_info" : {
+        "filename" : "../p4_src/checksum_16.p4",
+        "line" : 34,
+        "column" : 2,
+        "source_fragment" : "update_checksum_with_payload(hdr.udp.isValid(), { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, ..."
+      },
+      "algo" : "csum16",
+      "input" : [
+        {
+          "type" : "field",
+          "value" : ["ipv4", "srcAddr"]
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "dstAddr"]
+        },
+        {
+          "type" : "hexstr",
+          "value" : "0x00",
+          "bitwidth" : 8
+        },
+        {
+          "type" : "field",
+          "value" : ["ipv4", "protocol"]
+        },
+        {
+          "type" : "field",
+          "value" : ["udp", "len"]
+        },
+        {
+          "type" : "field",
+          "value" : ["udp", "srcPort"]
+        },
+        {
+          "type" : "field",
+          "value" : ["udp", "dstPort"]
+        },
+        {
+          "type" : "field",
+          "value" : ["udp", "len"]
+        },
+        {
+          "type" : "header",
+          "value" : "tcp_options_128bit_custom"
+        },
+        {
+          "type" : "payload",
+          "value" : null
+        }
+      ]
+    }
+  ],
+  "learn_lists" : [],
+  "actions" : [
+    {
+      "name" : "NoAction",
+      "id" : 0,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "NoAction",
+      "id" : 1,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "NoAction",
+      "id" : 2,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "NoAction",
+      "id" : 3,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "NoAction",
+      "id" : 4,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "NoAction",
+      "id" : 5,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "ingress.send",
+      "id" : 6,
+      "runtime_data" : [
+        {
+          "name" : "egress_port",
+          "bitwidth" : 9
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "egress_spec"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 91,
+            "column" : 2,
+            "source_fragment" : "standard_metadata.egress_spec = egress_port"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.send",
+      "id" : 7,
+      "runtime_data" : [
+        {
+          "name" : "egress_port",
+          "bitwidth" : 9
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "egress_spec"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 91,
+            "column" : 2,
+            "source_fragment" : "standard_metadata.egress_spec = egress_port"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.send",
+      "id" : 8,
+      "runtime_data" : [
+        {
+          "name" : "egress_port",
+          "bitwidth" : 9
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "egress_spec"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 91,
+            "column" : 2,
+            "source_fragment" : "standard_metadata.egress_spec = egress_port"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.no_op",
+      "id" : 9,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "ingress.no_op",
+      "id" : 10,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "ingress.send_to_mc_grp",
+      "id" : 11,
+      "runtime_data" : [
+        {
+          "name" : "grp",
+          "bitwidth" : 16
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "mcast_grp"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 98,
+            "column" : 2,
+            "source_fragment" : "standard_metadata.mcast_grp = grp"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.send_to_mc_grp",
+      "id" : 12,
+      "runtime_data" : [
+        {
+          "name" : "grp",
+          "bitwidth" : 16
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "mcast_grp"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 98,
+            "column" : 2,
+            "source_fragment" : "standard_metadata.mcast_grp = grp"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.add_timestamp2",
+      "id" : 13,
+      "runtime_data" : [
+        {
+          "name" : "threshold",
+          "bitwidth" : 16
+        },
+        {
+          "name" : "direction",
+          "bitwidth" : 1
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_0"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "ingress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 102,
+            "column" : 32,
+            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "ingress.ingress_stamped_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_0"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 102,
+            "column" : 2,
+            "source_fragment" : "ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port)"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_threshold_multicast1"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 103,
+            "column" : 2,
+            "source_fragment" : "meta.l4_metadata.threshold_multicast = (bit<16>)threshold"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "timestamp2"]
+            },
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "ingress_global_timestamp"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 104,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.timestamp2 = (bit<48>)standard_metadata.ingress_global_timestamp"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_added_timestamp20"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x01"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 105,
+            "column" : 2,
+            "source_fragment" : "meta.l4_metadata.added_timestamp2 = 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "-",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["standard_metadata", "ingress_global_timestamp"]
+                      },
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["tcp_options_128bit_custom", "timestamp1"]
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 106,
+            "column" : 2,
+            "source_fragment" : "meta.timestamp_metadata.delta = (bit<48>)standard_metadata.ingress_global_timestamp - hdr.tcp_options_128bit_custom.timestamp1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp7"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp7"]
+                      },
+                      "right" : {
+                        "type" : "expression",
+                        "value" : {
+                          "op" : "&",
+                          "left" : {
+                            "type" : "expression",
+                            "value" : {
+                              "op" : "-",
+                              "left" : {
+                                "type" : "field",
+                                "value" : ["standard_metadata", "ingress_global_timestamp"]
+                              },
+                              "right" : {
+                                "type" : "field",
+                                "value" : ["tcp_options_128bit_custom", "timestamp1"]
+                              }
+                            }
+                          },
+                          "right" : {
+                            "type" : "hexstr",
+                            "value" : "0xffffffffffff"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 107,
+            "column" : 2,
+            "source_fragment" : "meta.timestamp_metadata.ave_temp = meta.timestamp_metadata.ave_temp + (bit<48>)meta.timestamp_metadata.delta"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp8"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp8"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x000000000001"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 108,
+            "column" : 2,
+            "source_fragment" : "meta.timestamp_metadata.count_temp = meta.timestamp_metadata.count_temp + 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 1
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 109,
+            "column" : 2,
+            "source_fragment" : "meta.l4_metadata.flow_direction = direction"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.add_timestamp2",
+      "id" : 14,
+      "runtime_data" : [
+        {
+          "name" : "threshold",
+          "bitwidth" : 16
+        },
+        {
+          "name" : "direction",
+          "bitwidth" : 1
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_1"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "ingress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 102,
+            "column" : 32,
+            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "ingress.ingress_stamped_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_1"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 102,
+            "column" : 2,
+            "source_fragment" : "ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port)"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_threshold_multicast1"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 103,
+            "column" : 2,
+            "source_fragment" : "meta.l4_metadata.threshold_multicast = (bit<16>)threshold"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "timestamp2"]
+            },
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "ingress_global_timestamp"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 104,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.timestamp2 = (bit<48>)standard_metadata.ingress_global_timestamp"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_added_timestamp20"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x01"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 105,
+            "column" : 2,
+            "source_fragment" : "meta.l4_metadata.added_timestamp2 = 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "-",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["standard_metadata", "ingress_global_timestamp"]
+                      },
+                      "right" : {
+                        "type" : "field",
+                        "value" : ["tcp_options_128bit_custom", "timestamp1"]
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 106,
+            "column" : 2,
+            "source_fragment" : "meta.timestamp_metadata.delta = (bit<48>)standard_metadata.ingress_global_timestamp - hdr.tcp_options_128bit_custom.timestamp1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp7"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp7"]
+                      },
+                      "right" : {
+                        "type" : "expression",
+                        "value" : {
+                          "op" : "&",
+                          "left" : {
+                            "type" : "expression",
+                            "value" : {
+                              "op" : "-",
+                              "left" : {
+                                "type" : "field",
+                                "value" : ["standard_metadata", "ingress_global_timestamp"]
+                              },
+                              "right" : {
+                                "type" : "field",
+                                "value" : ["tcp_options_128bit_custom", "timestamp1"]
+                              }
+                            }
+                          },
+                          "right" : {
+                            "type" : "hexstr",
+                            "value" : "0xffffffffffff"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 107,
+            "column" : 2,
+            "source_fragment" : "meta.timestamp_metadata.ave_temp = meta.timestamp_metadata.ave_temp + (bit<48>)meta.timestamp_metadata.delta"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp8"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp8"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x000000000001"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 108,
+            "column" : 2,
+            "source_fragment" : "meta.timestamp_metadata.count_temp = meta.timestamp_metadata.count_temp + 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 1
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 109,
+            "column" : 2,
+            "source_fragment" : "meta.l4_metadata.flow_direction = direction"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.add_timestamp_header_tcp",
+      "id" : 15,
+      "runtime_data" : [
+        {
+          "name" : "direction",
+          "bitwidth" : 1
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_2"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "ingress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 113,
+            "column" : 32,
+            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "ingress.ingress_stamped_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_2"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 113,
+            "column" : 2,
+            "source_fragment" : "ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port)"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "tcp_options_128bit_custom"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 114,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp", "dataOffset"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["tcp", "dataOffset"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x04"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0x0f"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 115,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp.dataOffset = hdr.tcp.dataOffset + 4"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ipv4", "paketlen"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["ipv4", "paketlen"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x0010"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 116,
+            "column" : 2,
+            "source_fragment" : "hdr.ipv4.paketlen = hdr.ipv4.paketlen + 16w0x10"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "myType"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0f10"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 117,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.myType = 16w0x0f10"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_tcpLength3"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["scalars", "metadata_t._l4_metadata_tcpLength3"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x0010"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 118,
+            "column" : 2,
+            "source_fragment" : "meta.l4_metadata.tcpLength = meta.l4_metadata.tcpLength + 16w0x10"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 119,
+            "column" : 2,
+            "source_fragment" : "meta.l4_metadata.flow_direction = direction"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_added_empty_header4"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x01"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 120,
+            "column" : 2,
+            "source_fragment" : "meta.l4_metadata.added_empty_header = 1"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.add_timestamp_header_udp",
+      "id" : 16,
+      "runtime_data" : [
+        {
+          "name" : "direction",
+          "bitwidth" : 1
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_3"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "ingress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 124,
+            "column" : 32,
+            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "ingress.ingress_stamped_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_3"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 124,
+            "column" : 2,
+            "source_fragment" : "ingress_stamped_counter.count((bit<32>) standard_metadata.ingress_port)"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "myType"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0f10"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 125,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.myType = 16w0x0f10"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "timestamp1"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x000000000000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 126,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.timestamp1 = 48w0x0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "empty"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 127,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.empty = 16w0x0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "timestamp2"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x000000000000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 128,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.timestamp2 = 48w0x0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 129,
+            "column" : 2,
+            "source_fragment" : "meta.l4_metadata.flow_direction = direction"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_added_empty_header4"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x01"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 130,
+            "column" : 2,
+            "source_fragment" : "meta.l4_metadata.added_empty_header = 1"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "ingress.count_all_ingress",
+      "id" : 17,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_4"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "ingress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 134,
+            "column" : 24,
+            "source_fragment" : "(bit<32>) standard_metadata.ingress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "ingress.ingress_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_4"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 134,
+            "column" : 2,
+            "source_fragment" : "ingress_counter.count((bit<32>) standard_metadata.ingress_port)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act",
+      "id" : 18,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp7"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_average"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 237,
+            "column" : 4,
+            "source_fragment" : "time_average.read(meta.timestamp_metadata.ave_temp, 0)"
+          }
+        },
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp8"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_average"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000001"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 238,
+            "column" : 4,
+            "source_fragment" : "time_average.read(meta.timestamp_metadata.count_temp, 1)"
+          }
+        },
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_min_temp9"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_delta_min_max"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 239,
+            "column" : 4,
+            "source_fragment" : "time_delta_min_max.read(meta.timestamp_metadata.min_temp, 0)"
+          }
+        },
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_max_temp10"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_delta_min_max"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000001"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 240,
+            "column" : 4,
+            "source_fragment" : "time_delta_min_max.read(meta.timestamp_metadata.max_temp, 1)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_0",
+      "id" : 19,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_5"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 264,
+            "column" : 34,
+            "source_fragment" : "(bit<32>)meta.timestamp_metadata.delta"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_delta_min_max"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_5"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 264,
+            "column" : 6,
+            "source_fragment" : "time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_1",
+      "id" : 20,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_6"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 268,
+            "column" : 33,
+            "source_fragment" : "(bit<32>)meta.timestamp_metadata.delta"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_delta_min_max"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_6"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 268,
+            "column" : 5,
+            "source_fragment" : "time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_2",
+      "id" : 21,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_average"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000000"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_ave_temp7"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 260,
+            "column" : 4,
+            "source_fragment" : "time_average.write(0, meta.timestamp_metadata.ave_temp)"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_average"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000001"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._timestamp_metadata_count_temp8"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 261,
+            "column" : 4,
+            "source_fragment" : "time_average.write(1, meta.timestamp_metadata.count_temp)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_3",
+      "id" : 22,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_7"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 271,
+            "column" : 33,
+            "source_fragment" : "(bit<32>)meta.timestamp_metadata.delta"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.time_delta_min_max"
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00000001"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_7"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 271,
+            "column" : 5,
+            "source_fragment" : "time_delta_min_max.write(1, (bit<32>)meta.timestamp_metadata.delta)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_4",
+      "id" : 23,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_multi_counter2"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 278,
+            "column" : 6,
+            "source_fragment" : "meta.l4_metadata.multi_counter = 0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_8"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 279,
+            "column" : 29,
+            "source_fragment" : "(bit<32>) meta.l4_metadata.flow_direction"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.multi_counter_r"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_8"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 279,
+            "column" : 6,
+            "source_fragment" : "multi_counter_r.write( (bit<32>) meta.l4_metadata.flow_direction, meta.l4_metadata.multi_counter)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_5",
+      "id" : 24,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_multi_counter2"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["scalars", "metadata_t._l4_metadata_multi_counter2"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x0001"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 281,
+            "column" : 6,
+            "source_fragment" : "meta.l4_metadata.multi_counter = meta.l4_metadata.multi_counter + 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_9"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 282,
+            "column" : 29,
+            "source_fragment" : "(bit<32>) meta.l4_metadata.flow_direction"
+          }
+        },
+        {
+          "op" : "register_write",
+          "parameters" : [
+            {
+              "type" : "register_array",
+              "value" : "ingress.multi_counter_r"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_9"]
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_multi_counter2"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 282,
+            "column" : 6,
+            "source_fragment" : "multi_counter_r.write( (bit<32>) meta.l4_metadata.flow_direction, meta.l4_metadata.multi_counter)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "act_6",
+      "id" : 25,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_10"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._l4_metadata_flow_direction5"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 275,
+            "column" : 58,
+            "source_fragment" : "(bit<32>)meta.l4_metadata.flow_direction"
+          }
+        },
+        {
+          "op" : "register_read",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "metadata_t._l4_metadata_multi_counter2"]
+            },
+            {
+              "type" : "register_array",
+              "value" : "ingress.multi_counter_r"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_10"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 275,
+            "column" : 5,
+            "source_fragment" : "multi_counter_r.read(meta.l4_metadata.multi_counter, (bit<32>)meta.l4_metadata.flow_direction)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "NoAction",
+      "id" : 26,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "NoAction",
+      "id" : 27,
+      "runtime_data" : [],
+      "primitives" : []
+    },
+    {
+      "name" : "egress.change_mac",
+      "id" : 28,
+      "runtime_data" : [
+        {
+          "name" : "dst",
+          "bitwidth" : 48
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ethernet", "dstAddr"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 297,
+            "column" : 2,
+            "source_fragment" : "hdr.ethernet.dstAddr = dst"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "egress.add_timestamp1",
+      "id" : 29,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["tcp_options_128bit_custom", "timestamp1"]
+            },
+            {
+              "type" : "field",
+              "value" : ["standard_metadata", "egress_global_timestamp"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 301,
+            "column" : 2,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.timestamp1 = (bit<48>)standard_metadata.egress_global_timestamp"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "egress.count_all_egress",
+      "id" : 30,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_11"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "egress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 305,
+            "column" : 23,
+            "source_fragment" : "(bit<32>) standard_metadata.egress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "egress.egress_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_11"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 305,
+            "column" : 2,
+            "source_fragment" : "egress_counter.count((bit<32>) standard_metadata.egress_port)"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "egress.count_stamped_egress",
+      "id" : 31,
+      "runtime_data" : [],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_12"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["standard_metadata", "egress_port"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 309,
+            "column" : 31,
+            "source_fragment" : "(bit<32>) standard_metadata.egress_port"
+          }
+        },
+        {
+          "op" : "count",
+          "parameters" : [
+            {
+              "type" : "counter_array",
+              "value" : "egress.egress_stamped_counter"
+            },
+            {
+              "type" : "field",
+              "value" : ["scalars", "tmp_12"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 309,
+            "column" : 2,
+            "source_fragment" : "egress_stamped_counter.count((bit<32>) standard_metadata.egress_port)"
+          }
+        }
+      ]
+    }
+  ],
+  "pipelines" : [
+    {
+      "name" : "ingress",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+        "line" : 82,
+        "column" : 8,
+        "source_fragment" : "ingress"
+      },
+      "init_table" : "tbl_count_all_ingress",
+      "tables" : [
+        {
+          "name" : "tbl_count_all_ingress",
+          "id" : 0,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 231,
+            "column" : 2,
+            "source_fragment" : "count_all_ingress()"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [17],
+          "actions" : ["ingress.count_all_ingress"],
+          "base_default_next" : "ingress.t_l1_forwarding",
+          "next_tables" : {
+            "ingress.count_all_ingress" : "ingress.t_l1_forwarding"
+          },
+          "default_entry" : {
+            "action_id" : 17,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "ingress.t_l1_forwarding",
+          "id" : 1,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 138,
+            "column" : 7,
+            "source_fragment" : "t_l1_forwarding"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.ingress_port",
+              "target" : ["standard_metadata", "ingress_port"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 64,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [9, 6],
+          "actions" : ["ingress.no_op", "ingress.send"],
+          "base_default_next" : "ingress.t_l2_forwarding",
+          "next_tables" : {
+            "ingress.no_op" : "ingress.t_l2_forwarding",
+            "ingress.send" : "ingress.t_l2_forwarding"
+          },
+          "default_entry" : {
+            "action_id" : 9,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "ingress.t_l2_forwarding",
+          "id" : 2,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 150,
+            "column" : 7,
+            "source_fragment" : "t_l2_forwarding"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.ingress_port",
+              "target" : ["standard_metadata", "ingress_port"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "hdr.ethernet.dstAddr",
+              "target" : ["ethernet", "dstAddr"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 64,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [10, 7, 11],
+          "actions" : ["ingress.no_op", "ingress.send", "ingress.send_to_mc_grp"],
+          "base_default_next" : "node_5",
+          "next_tables" : {
+            "ingress.no_op" : "node_5",
+            "ingress.send" : "node_5",
+            "ingress.send_to_mc_grp" : "node_5"
+          },
+          "default_entry" : {
+            "action_id" : 10,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "ingress.t_l3_forwarding",
+          "id" : 3,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 164,
+            "column" : 7,
+            "source_fragment" : "t_l3_forwarding"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.ingress_port",
+              "target" : ["standard_metadata", "ingress_port"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "hdr.ipv4.dstAddr",
+              "target" : ["ipv4", "dstAddr"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 64,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [8, 0],
+          "actions" : ["ingress.send", "NoAction"],
+          "base_default_next" : "node_7",
+          "next_tables" : {
+            "ingress.send" : "node_7",
+            "NoAction" : "node_7"
+          },
+          "default_entry" : {
+            "action_id" : 0,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "tbl_act",
+          "id" : 4,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 237,
+            "column" : 4,
+            "source_fragment" : "time_average.read(meta.timestamp_metadata.ave_temp, 0); ..."
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [18],
+          "actions" : ["act"],
+          "base_default_next" : "node_9",
+          "next_tables" : {
+            "act" : "node_9"
+          },
+          "default_entry" : {
+            "action_id" : 18,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "ingress.t_add_timestamp_header_tcp",
+          "id" : 5,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 175,
+            "column" : 7,
+            "source_fragment" : "t_add_timestamp_header_tcp"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "hdr.tcp.dataOffset",
+              "target" : ["tcp", "dataOffset"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.egress_spec",
+              "target" : ["standard_metadata", "egress_spec"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 16,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [15, 1],
+          "actions" : ["ingress.add_timestamp_header_tcp", "NoAction"],
+          "base_default_next" : "node_11",
+          "next_tables" : {
+            "ingress.add_timestamp_header_tcp" : "node_11",
+            "NoAction" : "node_11"
+          },
+          "default_entry" : {
+            "action_id" : 1,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "ingress.t_timestamp2_tcp",
+          "id" : 6,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 186,
+            "column" : 7,
+            "source_fragment" : "t_timestamp2_tcp"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "hdr.tcp.dataOffset",
+              "target" : ["tcp", "dataOffset"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "hdr.tcp_options_128bit_custom.myType",
+              "target" : ["tcp_options_128bit_custom", "myType"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.ingress_port",
+              "target" : ["standard_metadata", "ingress_port"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 16,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [13, 2],
+          "actions" : ["ingress.add_timestamp2", "NoAction"],
+          "base_default_next" : "node_18",
+          "next_tables" : {
+            "ingress.add_timestamp2" : "node_18",
+            "NoAction" : "node_18"
+          },
+          "default_entry" : {
+            "action_id" : 2,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "ingress.t_add_timestamp_header_udp",
+          "id" : 7,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 198,
+            "column" : 7,
+            "source_fragment" : "t_add_timestamp_header_udp"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.egress_spec",
+              "target" : ["standard_metadata", "egress_spec"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 16,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [16, 3],
+          "actions" : ["ingress.add_timestamp_header_udp", "NoAction"],
+          "base_default_next" : "node_16",
+          "next_tables" : {
+            "ingress.add_timestamp_header_udp" : "node_16",
+            "NoAction" : "node_16"
+          },
+          "default_entry" : {
+            "action_id" : 3,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "ingress.timestamp2_udp",
+          "id" : 8,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 208,
+            "column" : 7,
+            "source_fragment" : "timestamp2_udp"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "hdr.tcp_options_128bit_custom.myType",
+              "target" : ["tcp_options_128bit_custom", "myType"],
+              "mask" : null
+            },
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.ingress_port",
+              "target" : ["standard_metadata", "ingress_port"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 16,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [14, 4],
+          "actions" : ["ingress.add_timestamp2", "NoAction"],
+          "base_default_next" : "node_18",
+          "next_tables" : {
+            "ingress.add_timestamp2" : "node_18",
+            "NoAction" : "node_18"
+          },
+          "default_entry" : {
+            "action_id" : 4,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "tbl_act_0",
+          "id" : 9,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 260,
+            "column" : 4,
+            "source_fragment" : "time_average.write(0, meta.timestamp_metadata.ave_temp); ..."
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [21],
+          "actions" : ["act_2"],
+          "base_default_next" : "node_20",
+          "next_tables" : {
+            "act_2" : "node_20"
+          },
+          "default_entry" : {
+            "action_id" : 21,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_act_1",
+          "id" : 10,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 264,
+            "column" : 6,
+            "source_fragment" : "time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta)"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [19],
+          "actions" : ["act_0"],
+          "base_default_next" : "node_25",
+          "next_tables" : {
+            "act_0" : "node_25"
+          },
+          "default_entry" : {
+            "action_id" : 19,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_act_2",
+          "id" : 11,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 268,
+            "column" : 5,
+            "source_fragment" : "time_delta_min_max.write(0, (bit<32>)meta.timestamp_metadata.delta)"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [20],
+          "actions" : ["act_1"],
+          "base_default_next" : "node_25",
+          "next_tables" : {
+            "act_1" : "node_25"
+          },
+          "default_entry" : {
+            "action_id" : 20,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_act_3",
+          "id" : 12,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 271,
+            "column" : 5,
+            "source_fragment" : "time_delta_min_max.write(1, (bit<32>)meta.timestamp_metadata.delta)"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [22],
+          "actions" : ["act_3"],
+          "base_default_next" : "node_27",
+          "next_tables" : {
+            "act_3" : "node_27"
+          },
+          "default_entry" : {
+            "action_id" : 22,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_act_4",
+          "id" : 13,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 275,
+            "column" : 5,
+            "source_fragment" : "multi_counter_r.read(meta.l4_metadata.multi_counter, (bit<32>)meta.l4_metadata.flow_direction)"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [25],
+          "actions" : ["act_6"],
+          "base_default_next" : "node_29",
+          "next_tables" : {
+            "act_6" : "node_29"
+          },
+          "default_entry" : {
+            "action_id" : 25,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "ingress.t_multicast",
+          "id" : 14,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 219,
+            "column" : 7,
+            "source_fragment" : "t_multicast"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.egress_spec",
+              "target" : ["standard_metadata", "egress_spec"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 64,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [12, 5],
+          "actions" : ["ingress.send_to_mc_grp", "NoAction"],
+          "base_default_next" : "tbl_act_5",
+          "next_tables" : {
+            "ingress.send_to_mc_grp" : "tbl_act_5",
+            "NoAction" : "tbl_act_5"
+          },
+          "default_entry" : {
+            "action_id" : 5,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "tbl_act_5",
+          "id" : 15,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 278,
+            "column" : 37,
+            "source_fragment" : "= 0; ..."
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [23],
+          "actions" : ["act_4"],
+          "base_default_next" : null,
+          "next_tables" : {
+            "act_4" : null
+          },
+          "default_entry" : {
+            "action_id" : 23,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "tbl_act_6",
+          "id" : 16,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 281,
+            "column" : 37,
+            "source_fragment" : "= meta.l4_metadata.multi_counter + 1; ..."
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [24],
+          "actions" : ["act_5"],
+          "base_default_next" : null,
+          "next_tables" : {
+            "act_5" : null
+          },
+          "default_entry" : {
+            "action_id" : 24,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        }
+      ],
+      "action_profiles" : [],
+      "conditionals" : [
+        {
+          "name" : "node_5",
+          "id" : 0,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 234,
+            "column" : 5,
+            "source_fragment" : "hdr.ipv4.isValid()"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "d2b",
+              "left" : null,
+              "right" : {
+                "type" : "field",
+                "value" : ["ipv4", "$valid$"]
+              }
+            }
+          },
+          "false_next" : null,
+          "true_next" : "ingress.t_l3_forwarding"
+        },
+        {
+          "name" : "node_7",
+          "id" : 1,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 236,
+            "column" : 6,
+            "source_fragment" : "hdr.tcp.isValid() || hdr.udp.isValid()"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "or",
+              "left" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "d2b",
+                  "left" : null,
+                  "right" : {
+                    "type" : "field",
+                    "value" : ["tcp", "$valid$"]
+                  }
+                }
+              },
+              "right" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "d2b",
+                  "left" : null,
+                  "right" : {
+                    "type" : "field",
+                    "value" : ["udp", "$valid$"]
+                  }
+                }
+              }
+            }
+          },
+          "true_next" : "tbl_act",
+          "false_next" : "node_9"
+        },
+        {
+          "name" : "node_9",
+          "id" : 2,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 244,
+            "column" : 6,
+            "source_fragment" : "hdr.tcp.isValid()"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "d2b",
+              "left" : null,
+              "right" : {
+                "type" : "field",
+                "value" : ["tcp", "$valid$"]
+              }
+            }
+          },
+          "true_next" : "ingress.t_add_timestamp_header_tcp",
+          "false_next" : "node_13"
+        },
+        {
+          "name" : "node_11",
+          "id" : 3,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 246,
+            "column" : 7,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.myType == 16w0x0f10"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "field",
+                "value" : ["tcp_options_128bit_custom", "myType"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x0f10"
+              }
+            }
+          },
+          "true_next" : "ingress.t_timestamp2_tcp",
+          "false_next" : "node_18"
+        },
+        {
+          "name" : "node_13",
+          "id" : 4,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 250,
+            "column" : 11,
+            "source_fragment" : "hdr.udp.isValid()"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "d2b",
+              "left" : null,
+              "right" : {
+                "type" : "field",
+                "value" : ["udp", "$valid$"]
+              }
+            }
+          },
+          "true_next" : "node_14",
+          "false_next" : "node_18"
+        },
+        {
+          "name" : "node_14",
+          "id" : 5,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 251,
+            "column" : 7,
+            "source_fragment" : "hdr.udp.len >= 0x18"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : ">=",
+              "left" : {
+                "type" : "field",
+                "value" : ["udp", "len"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x0018"
+              }
+            }
+          },
+          "true_next" : "ingress.t_add_timestamp_header_udp",
+          "false_next" : "node_18"
+        },
+        {
+          "name" : "node_16",
+          "id" : 6,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 253,
+            "column" : 8,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.myType == 16w0x0f10"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "field",
+                "value" : ["tcp_options_128bit_custom", "myType"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x0f10"
+              }
+            }
+          },
+          "true_next" : "ingress.timestamp2_udp",
+          "false_next" : "node_18"
+        },
+        {
+          "name" : "node_18",
+          "id" : 7,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 259,
+            "column" : 6,
+            "source_fragment" : "hdr.tcp.isValid() || hdr.udp.isValid()"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "or",
+              "left" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "d2b",
+                  "left" : null,
+                  "right" : {
+                    "type" : "field",
+                    "value" : ["tcp", "$valid$"]
+                  }
+                }
+              },
+              "right" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "d2b",
+                  "left" : null,
+                  "right" : {
+                    "type" : "field",
+                    "value" : ["udp", "$valid$"]
+                  }
+                }
+              }
+            }
+          },
+          "false_next" : null,
+          "true_next" : "tbl_act_0"
+        },
+        {
+          "name" : "node_20",
+          "id" : 8,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 262,
+            "column" : 7,
+            "source_fragment" : "(bit<48>)meta.timestamp_metadata.min_temp > meta.timestamp_metadata.delta"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : ">",
+              "left" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_min_temp9"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              },
+              "right" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
+              }
+            }
+          },
+          "true_next" : "node_21",
+          "false_next" : "node_23"
+        },
+        {
+          "name" : "node_21",
+          "id" : 9,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 263,
+            "column" : 8,
+            "source_fragment" : "meta.timestamp_metadata.delta > 0"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : ">",
+              "left" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x000000000000"
+              }
+            }
+          },
+          "true_next" : "tbl_act_1",
+          "false_next" : "node_25"
+        },
+        {
+          "name" : "node_23",
+          "id" : 10,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 267,
+            "column" : 12,
+            "source_fragment" : "(bit<48>)meta.timestamp_metadata.min_temp == 0"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_min_temp9"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x000000000000"
+              }
+            }
+          },
+          "true_next" : "tbl_act_2",
+          "false_next" : "node_25"
+        },
+        {
+          "name" : "node_25",
+          "id" : 11,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 270,
+            "column" : 7,
+            "source_fragment" : "(bit<48>)meta.timestamp_metadata.max_temp < meta.timestamp_metadata.delta"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "<",
+              "left" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "field",
+                    "value" : ["scalars", "metadata_t._timestamp_metadata_max_temp10"]
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffffffffffff"
+                  }
+                }
+              },
+              "right" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._timestamp_metadata_delta6"]
+              }
+            }
+          },
+          "true_next" : "tbl_act_3",
+          "false_next" : "node_27"
+        },
+        {
+          "name" : "node_27",
+          "id" : 12,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 274,
+            "column" : 7,
+            "source_fragment" : "meta.l4_metadata.added_timestamp2 == 1"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._l4_metadata_added_timestamp20"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x01"
+              }
+            }
+          },
+          "false_next" : null,
+          "true_next" : "tbl_act_4"
+        },
+        {
+          "name" : "node_29",
+          "id" : 13,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 276,
+            "column" : 8,
+            "source_fragment" : "meta.l4_metadata.multi_counter >= meta.l4_metadata.threshold_multicast"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : ">=",
+              "left" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._l4_metadata_multi_counter2"]
+              },
+              "right" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._l4_metadata_threshold_multicast1"]
+              }
+            }
+          },
+          "true_next" : "ingress.t_multicast",
+          "false_next" : "tbl_act_6"
+        }
+      ]
+    },
+    {
+      "name" : "egress",
+      "id" : 1,
+      "source_info" : {
+        "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+        "line" : 290,
+        "column" : 8,
+        "source_fragment" : "egress"
+      },
+      "init_table" : "egress.broadcast_mac",
+      "tables" : [
+        {
+          "name" : "egress.broadcast_mac",
+          "id" : 17,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 313,
+            "column" : 7,
+            "source_fragment" : "broadcast_mac"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "standard_metadata.egress_port",
+              "target" : ["standard_metadata", "egress_port"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 32,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [28, 26],
+          "actions" : ["egress.change_mac", "NoAction"],
+          "base_default_next" : "node_36",
+          "next_tables" : {
+            "egress.change_mac" : "node_36",
+            "NoAction" : "node_36"
+          },
+          "default_entry" : {
+            "action_id" : 26,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "tbl_add_timestamp1",
+          "id" : 18,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 338,
+            "column" : 5,
+            "source_fragment" : "add_timestamp1()"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [29],
+          "actions" : ["egress.add_timestamp1"],
+          "base_default_next" : "node_40",
+          "next_tables" : {
+            "egress.add_timestamp1" : "node_40"
+          },
+          "default_entry" : {
+            "action_id" : 29,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        },
+        {
+          "name" : "egress.t_count_stamped_egress",
+          "id" : 19,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 323,
+            "column" : 7,
+            "source_fragment" : "t_count_stamped_egress"
+          },
+          "key" : [
+            {
+              "match_type" : "exact",
+              "name" : "hdr.tcp_options_128bit_custom.myType",
+              "target" : ["tcp_options_128bit_custom", "myType"],
+              "mask" : null
+            }
+          ],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 8,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [31, 27],
+          "actions" : ["egress.count_stamped_egress", "NoAction"],
+          "base_default_next" : "tbl_count_all_egress",
+          "next_tables" : {
+            "egress.count_stamped_egress" : "tbl_count_all_egress",
+            "NoAction" : "tbl_count_all_egress"
+          },
+          "default_entry" : {
+            "action_id" : 27,
+            "action_const" : false,
+            "action_data" : [],
+            "action_entry_const" : false
+          }
+        },
+        {
+          "name" : "tbl_count_all_egress",
+          "id" : 20,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 345,
+            "column" : 2,
+            "source_fragment" : "count_all_egress()"
+          },
+          "key" : [],
+          "match_type" : "exact",
+          "type" : "simple",
+          "max_size" : 1024,
+          "with_counters" : false,
+          "support_timeout" : false,
+          "direct_meters" : null,
+          "action_ids" : [30],
+          "actions" : ["egress.count_all_egress"],
+          "base_default_next" : null,
+          "next_tables" : {
+            "egress.count_all_egress" : null
+          },
+          "default_entry" : {
+            "action_id" : 30,
+            "action_const" : true,
+            "action_data" : [],
+            "action_entry_const" : true
+          }
+        }
+      ],
+      "action_profiles" : [],
+      "conditionals" : [
+        {
+          "name" : "node_36",
+          "id" : 14,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 335,
+            "column" : 5,
+            "source_fragment" : "hdr.ipv4.isValid()"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "d2b",
+              "left" : null,
+              "right" : {
+                "type" : "field",
+                "value" : ["ipv4", "$valid$"]
+              }
+            }
+          },
+          "true_next" : "node_37",
+          "false_next" : "tbl_count_all_egress"
+        },
+        {
+          "name" : "node_37",
+          "id" : 15,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 336,
+            "column" : 6,
+            "source_fragment" : "meta.l4_metadata.added_empty_header == 1"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "field",
+                "value" : ["scalars", "metadata_t._l4_metadata_added_empty_header4"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x01"
+              }
+            }
+          },
+          "true_next" : "node_38",
+          "false_next" : "node_40"
+        },
+        {
+          "name" : "node_38",
+          "id" : 16,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 337,
+            "column" : 7,
+            "source_fragment" : "hdr.tcp.isValid() || hdr.udp.isValid()"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "or",
+              "left" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "d2b",
+                  "left" : null,
+                  "right" : {
+                    "type" : "field",
+                    "value" : ["tcp", "$valid$"]
+                  }
+                }
+              },
+              "right" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "d2b",
+                  "left" : null,
+                  "right" : {
+                    "type" : "field",
+                    "value" : ["udp", "$valid$"]
+                  }
+                }
+              }
+            }
+          },
+          "true_next" : "tbl_add_timestamp1",
+          "false_next" : "node_40"
+        },
+        {
+          "name" : "node_40",
+          "id" : 17,
+          "source_info" : {
+            "filename" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+            "line" : 341,
+            "column" : 7,
+            "source_fragment" : "hdr.tcp_options_128bit_custom.myType == 0x0f10"
+          },
+          "expression" : {
+            "type" : "expression",
+            "value" : {
+              "op" : "==",
+              "left" : {
+                "type" : "field",
+                "value" : ["tcp_options_128bit_custom", "myType"]
+              },
+              "right" : {
+                "type" : "hexstr",
+                "value" : "0x0f10"
+              }
+            }
+          },
+          "true_next" : "egress.t_count_stamped_egress",
+          "false_next" : "tbl_count_all_egress"
+        }
+      ]
+    }
+  ],
+  "checksums" : [
+    {
+      "name" : "cksum",
+      "id" : 0,
+      "source_info" : {
+        "filename" : "../p4_src/checksum_16.p4",
+        "line" : 24,
+        "column" : 8,
+        "source_fragment" : "update_checksum(true, { hdr.ipv4.version, hdr.ipv4.ihl, hdr.ipv4.diffServ, ..."
+      },
+      "target" : ["ipv4", "header_checksum"],
+      "type" : "generic",
+      "calculation" : "calc",
+      "verify" : false,
+      "update" : true,
+      "if_cond" : {
+        "type" : "bool",
+        "value" : true
+      }
+    },
+    {
+      "name" : "cksum_0",
+      "id" : 1,
+      "source_info" : {
+        "filename" : "../p4_src/checksum_16.p4",
+        "line" : 29,
+        "column" : 8,
+        "source_fragment" : "update_checksum_with_payload(hdr.tcp.isValid(), { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, ..."
+      },
+      "target" : ["tcp", "checksum"],
+      "type" : "generic",
+      "calculation" : "calc_0",
+      "verify" : false,
+      "update" : true,
+      "if_cond" : {
+        "type" : "expression",
+        "value" : {
+          "op" : "d2b",
+          "left" : null,
+          "right" : {
+            "type" : "field",
+            "value" : ["tcp", "$valid$"]
+          }
+        }
+      }
+    },
+    {
+      "name" : "cksum_1",
+      "id" : 2,
+      "source_info" : {
+        "filename" : "../p4_src/checksum_16.p4",
+        "line" : 34,
+        "column" : 2,
+        "source_fragment" : "update_checksum_with_payload(hdr.udp.isValid(), { hdr.ipv4.srcAddr, hdr.ipv4.dstAddr, ..."
+      },
+      "target" : ["udp", "checksum"],
+      "type" : "generic",
+      "calculation" : "calc_1",
+      "verify" : false,
+      "update" : true,
+      "if_cond" : {
+        "type" : "expression",
+        "value" : {
+          "op" : "d2b",
+          "left" : null,
+          "right" : {
+            "type" : "field",
+            "value" : ["udp", "$valid$"]
+          }
+        }
+      }
+    }
+  ],
+  "force_arith" : [],
+  "extern_instances" : [],
+  "field_aliases" : [
+    [
+      "queueing_metadata.enq_timestamp",
+      ["standard_metadata", "enq_timestamp"]
+    ],
+    [
+      "queueing_metadata.enq_qdepth",
+      ["standard_metadata", "enq_qdepth"]
+    ],
+    [
+      "queueing_metadata.deq_timedelta",
+      ["standard_metadata", "deq_timedelta"]
+    ],
+    [
+      "queueing_metadata.deq_qdepth",
+      ["standard_metadata", "deq_qdepth"]
+    ],
+    [
+      "intrinsic_metadata.ingress_global_timestamp",
+      ["standard_metadata", "ingress_global_timestamp"]
+    ],
+    [
+      "intrinsic_metadata.egress_global_timestamp",
+      ["standard_metadata", "egress_global_timestamp"]
+    ],
+    [
+      "intrinsic_metadata.lf_field_list",
+      ["standard_metadata", "lf_field_list"]
+    ],
+    [
+      "intrinsic_metadata.mcast_grp",
+      ["standard_metadata", "mcast_grp"]
+    ],
+    [
+      "intrinsic_metadata.resubmit_flag",
+      ["standard_metadata", "resubmit_flag"]
+    ],
+    [
+      "intrinsic_metadata.egress_rid",
+      ["standard_metadata", "egress_rid"]
+    ],
+    [
+      "intrinsic_metadata.recirculate_flag",
+      ["standard_metadata", "recirculate_flag"]
+    ]
+  ],
+  "program" : "../p4_src/bmv2_stamper_v1_0_0.p4",
+  "__meta__" : {
+    "version" : [2, 18],
+    "compiler" : "https://github.com/p4lang/p4c"
+  }
+}

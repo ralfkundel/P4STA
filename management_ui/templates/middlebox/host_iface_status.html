@@ -13,23 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License. -->
 
-{% for loadgen_server in cfg.loadgen_servers %}
+{% for loadgen_grp in cfg.loadgen_groups %}
+{% if loadgen_grp.use_group == "checked" %}
+{% for host in loadgen_grp.loadgens %}
 
-{% if loadgen_server.reachable == True %}
-<p> Server 1.{{ forloop.counter }} (<b>{{loadgen_server.ssh_ip}}</b>) is currently <b><span style="color:green">reachable</span></b> and <b>{{loadgen_server.loadgen_iface}} ({{loadgen_server.loadgen_ip}})</b> {% if "namespace_id" in loadgen_server %} at namespace <b>{{loadgen_server.namespace_id}}</b>{%endif%} is: <b>{{loadgen_server.link}}</b></p>
+{% if host.reachable == True %}
+<p> Host {{loadgen_grp.group}}.{{ host.id }} (<b>{{host.ssh_ip}}</b>) is currently <b><span style="color:green">reachable</span></b> and <b>{{host.loadgen_iface}} ({{host.loadgen_ip}})</b> {% if "namespace_id" in host %} at namespace <b>{{host.namespace_id}}</b>{%endif%} is: <b>{{host.link}}</b></p>
 {% else %}
-<p> Server 1.{{ forloop.counter }} (<b>{{loadgen_server.ssh_ip}}</b>) is currently <b><span style="color:red">not reachable</span></b></p>
+<p> Host {{loadgen_grp.group}}.{{ host.id  }} (<b>{{host.ssh_ip}}</b>) is currently <b><span style="color:red">not reachable</span></b></p>
 {% endif %}
 
 {% endfor %}
-
-
-{% for loadgen_client in cfg.loadgen_clients %}
-
-{% if loadgen_client.reachable == True %}
-<p> Server 2.{{ forloop.counter }} (<b>{{loadgen_client.ssh_ip}}</b>) is currently <b><span style="color:green">reachable</span></b> and <b>{{loadgen_client.loadgen_iface}} ({{loadgen_client.loadgen_ip}})</b> {% if "namespace_id" in loadgen_client %} at namespace <b>{{loadgen_client.namespace_id}}</b>{%endif%} is: <b>{{loadgen_client.link}}</b></p>
-{% else %}
-<p> Server 2.{{ forloop.counter }} (<b>{{loadgen_client.ssh_ip}}</b>) is currently <b><span style="color:red">not reachable</span></b></p>
 {% endif %}
-
 {% endfor %}
