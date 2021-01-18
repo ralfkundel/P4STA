@@ -1,0 +1,107 @@
+<!--
+# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->
+
+<!DOCTYPE html>
+{% load static %}
+{% load management_ui %}
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="shortcut icon" type="image/x-icon" href="{% static 'includes/favicon.ico' %}"/>
+	<link rel="stylesheet" href="{% static 'includes/bootstrap.min.css' %}">
+	<link rel="stylesheet" href="{% static 'includes/P4STA_style.css' %}">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+	<script src="{% static 'includes/jquery.min.js' %}"></script>
+	<script src="{% static 'includes/popper.min.js' %}"></script>
+	<script src="{% static 'includes/bootstrap.min.js' %}"></script>
+    <script type="text/javascript">
+        $(document).ready(function(){
+			$("#modal1").modal();
+            $('[data-toggle="tooltip"]').tooltip();
+        })
+
+        function forward_to_p4sta(){
+          document.getElementById("iframe1").remove();
+			    window.location.href="/stop_shellinabox_redirect_to_config/";
+        }
+
+        function exec_install_script(){
+            document.getElementById("exec_button").onclick = function(){}
+            document.getElementById("exec_button").disabled = true
+            var page_address = "{{ request.META.HTTP_HOST }}".split(":")[0] + ":4201"
+            document.getElementById("iframe1").src = "http://" + page_address;
+        }
+        
+	</script>
+</head>
+<body>
+
+{% include "middlebox/navbar.html"%}
+{% csrf_token %}
+
+<!-- Modal -->
+<div class="modal fade" id="modal1" tabindex="-1" role="dialog" aria-labelledby="Modal1Label" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Install servers with the install_server.sh script</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <h2>1. Install Servers from this HTML UI (recommended)</h2>
+        <div style="margin: 20pt;">
+        <p>Click on the following button in order to execute the install script. The console output will be forwarded to this window. You must type in the password of the previously configured users for each of the servers. You will see the current server in the CLI output.</p>
+        <p>After the script has successfully completed, all of the servers configured on the previous page are successfully installed.</p>
+        </div>
+        <center>
+            <div>
+            <button id="exec_button" class="btn btn-secondary" type="button" onclick="exec_install_script()" style="font-size: 22pt; margin-bottom: 20pt;">
+                <i class="fas fa-play"   ></i>
+                Execute install_server.sh script!
+            </button>
+            
+            <iframe id="iframe1" src="" style="width: 95%; height: 600px; "></iframe>
+            </div>
+        </center>
+      </div>
+
+      
+      <div class="modal-body">
+        <hr>
+        <h2>2. ALTERNATIVELY (not recommended): Manual execution.</h2>
+        <div style="margin: 20pt;">
+          <p>2.1: Open a terminal, connect via ssh to the p4sta management server and change into the p4sta root directory (the one you checked out from GitHub)</p>
+          <p>2.2: Enter the command:</p>
+          <div style="display: inline-block; background-color: lightgrey; margin-left:40px; padding: 10px; margin-bottom: 20px;">./install_server.sh</div>
+          <p>2.3: The setup script will ask you once for the password of the configured user on each server to be installed. You can see the current server in the previous bash history. </p>
+          <p>2.4: After the install_server.sh script has completed --> All previously named P4STA servers are installed and configured.</p>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+	<button type="button" class="btn btn-primary" data-dismiss="modal" onclick="forward_to_p4sta()">Finish</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+</body>

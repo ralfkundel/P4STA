@@ -20,22 +20,22 @@
 # OR                                          #
 # standalone using the config in readme.txt   #
 ###############################################
-
-import sys, time, threading
-import os
-import csv
 import argparse
+import csv
 import json
-import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-csv.field_size_limit(sys.maxsize)
+import numpy as np
+import os
+import sys
+import threading
 
+csv.field_size_limit(sys.maxsize)
 dir_path = os.path.dirname(os.path.realpath(__file__))
 project_path = dir_path[0:dir_path.find("/calculate")]
-
 lock = threading.RLock()
+
 
 # read the csv files and plots the graphs
 def main(file_id, multicast, results_path):
@@ -216,7 +216,8 @@ def find_unit(value_list_input):
         return value_list_input, unit
 
 
-def find_unit_bit_byte(value, b_type): # b_type = "bit" or "byte"
+# b_type = "bit" or "byte"
+def find_unit_bit_byte(value, b_type):
     unit = b_type
     new_value = value
     if (value/1000) >= 1:
@@ -231,9 +232,9 @@ def find_unit_bit_byte(value, b_type): # b_type = "bit" or "byte"
 
     return [new_value, unit]  # 1000bit => [1, "kilobit"]
 
+
 # returns the given input value(ns^2), scaled to a matching unit
 def find_unit_sqr(value_ns2):
-    print(value_ns2)
     try:
         if abs(value_ns2) >= 1500000*1000000:
             unit = "ms²"
@@ -264,19 +265,17 @@ def plot_bar(value_list_input, min, max, filename, x, y, slices, adjust_unit):
         else:
             value_list = value_list_input
             unit = ""
-        #TODO: bessere berechnung der slices / evtl. graedere werte, so dass nur 1 decimalstelle
+
         min = min - 0.1
         max = max + 0.1
-        print("max: "+str(max)) 
         total_range = max - min
         parts = []
         stepwidth = round((total_range / slices)+0.1, 1)
-        print("stepwidth: "+str(stepwidth))
+        print("PLOT BAR: stepwidth: "+str(stepwidth))
         base = round(min, 1)
         for i in range(0, slices+1):
             parts.append(round(base + (i*stepwidth), 1))
         result = []
-        print(parts)
         for i in range(0, slices):
             result.append(0)
         label = []
@@ -310,7 +309,6 @@ def plot_bar(value_list_input, min, max, filename, x, y, slices, adjust_unit):
 
 # reads csv file and returns list with elements from csv file
 def read_csv(results_path, file_name, file_id):
-    dir_path = os.path.dirname(os.path.realpath(__file__))
     temp = []
     try:
         with open(os.path.join(results_path, file_name + "_" + str(file_id) + ".csv"), "r") as csv_input:
@@ -324,7 +322,7 @@ def read_csv(results_path, file_name, file_id):
 
 
 # entry point if calculate gets execute directly as a script and NOT as an included module
-if __name__ == "__main__":  # for direct execution of the skript outside of the webserver
+if __name__ == "__main__":  # for direct execution of the script outside of the webserver
     parser = argparse.ArgumentParser(description='CSV reader for external host results.')
     parser.add_argument('--id', help='ID of the csv files. If not set the config file in /data will be used.',
                         type=str, action="store", required=True)

@@ -21,3 +21,7 @@ def getkeyvalue(dict, key):
         return dict[key]
     except:
         return ""
+
+@register.filter
+def getbyindex(indexable, i):
+    return indexable[i]

@@ -17,6 +17,8 @@
 
 import os
 import subprocess
+import P4STA_utils
+
 
 class AbstractTarget:
     def __init__(self, target_cfg):
@@ -38,27 +40,44 @@ class AbstractTarget:
         return temp
 
     # deploy config file (table entries) to p4 device
-    def deploy(self):
+    def deploy(self, cfg):
         pass
+
+    def get_all_dut_dst_p4_ports(self, cfg, get_as_dict=False):
+        all_dut_dst_p4_ports = []
+        for dut in cfg["dut_ports"]:
+            if dut["use_port"] == "checked":
+                if dut["p4_port"] not in all_dut_dst_p4_ports:
+                    if get_as_dict:
+                        all_dut_dst_p4_ports.append(dut)
+                    else:
+                        all_dut_dst_p4_ports.append(dut["p4_port"])
+                else:
+                    print("Port " + str(dut["p4_port"] + " seems to be configured to more than one DUT port, P4STA may not work properly."))
+
+        return all_dut_dst_p4_ports
 
     # if not overwritten = everything is zero
     def read_p4_device(self, cfg):
         cfg["total_deltas"] = cfg["delta_counter"] = cfg["min_delta"] = cfg["max_delta"] = 0
-        for n in ["dut1", "dut2", "ext_num"]:
-            cfg[n + "_num_ingress_packets"] = cfg[n + "_num_ingress_bytes"] = 0
-            cfg[n + "_num_egress_packets"] = cfg[n + "_num_egress_bytes"] = 0
-        i = 9
-        for host in (cfg["loadgen_servers"] + cfg["loadgen_clients"]):
-            host["num_ingress_packets"] = host["num_ingress_bytes"] = 0
-            host["num_egress_packets"] = host["num_egress_bytes"] = 0
-            i = i + 3
-        cfg["packet_loss_1"] = cfg["packet_loss_2"] = 0
+        for dut in cfg["dut_ports"]:
+            dut["num_ingress_packets"] = 0
+            dut["num_ingress_stamped_packets"] = 0
+            dut["num_egress_packets"] = 0
+            dut["num_egress_stamped_packets"] = 0
+        for loadgen_grp in cfg["loadgen_groups"]:
+            for host in loadgen_grp["loadgens"]:
+                host["num_ingress_packets"] = host["num_ingress_bytes"] = 0
+                host["num_egress_packets"] = host["num_egress_bytes"] = 0
+        cfg["dut_stats"] = {}
+        cfg["dut_stats"]["total_packetloss"] = 0
+        cfg["dut_stats"]["total_num_egress_packets"] = 0
+        cfg["dut_stats"]["total_packetloss_percent"] = 0
+        cfg["dut_stats"]["total_packetloss_stamped"] = 0
+        cfg["dut_stats"]["total_num_egress_stamped_packets"] = 0
+        cfg["dut_stats"]["total_packetloss_stamped_percent"] = 0
 
         return cfg
-
-    def visualization(self, cfg):
-        return "<p>Unfortunately there is <b>no</b> visualization html file provided by the selected p4 device.</p>" \
-               "<p>Are you sure you selected the right device?</p>"
 
     def p4_dev_status(self, cfg):
         return ["No portmanager available", "Are you sure you selected a target before?"], False, "no target selected!"
@@ -81,11 +100,40 @@ class AbstractTarget:
         return False, "Can not check if P4 program is compiled."
 
     def execute_ssh(self, cfg, arg):
-        input = ["ssh", cfg["p4_dev_user"] + "@" + cfg["p4_dev_ssh"], arg]
-        res = subprocess.Popen(input, stdout=subprocess.PIPE).stdout
-        return res.read().decode().split("\n")
+        # input = ["ssh", cfg["p4_dev_user"] + "@" + cfg["p4_dev_ssh"], arg]
+        # res = subprocess.Popen(input, stdout=subprocess.PIPE).stdout
+        # return res.read().decode().split("\n")
+        return P4STA_utils.execute_ssh(cfg["p4_dev_user"], cfg["p4_dev_ssh"], arg)
 
     # returns list of strings with needed dynamic sudos for this target
     # in difference to fixed needed sudos defined in target_config.json this checks for needed sudos which are not clear for every use case (e.g. different software version)
     def needed_dynamic_sudos(self, cfg):
         return []
+
+    def get_server_install_script(self, user_name, ip, target_specific_dict={}):
+        lst = []
+        lst.append('echo "====================================="')
+        lst.append('echo "not implemented for this Stamper device"')
+        lst.append('echo "====================================="')
+        return lst
+
+    # thread method used in core.py status_overview()
+    def stamper_status_overview(self, results, index, cfg):
+        # instances inheriting from abstract_target could implement additional checks in the following way:
+        # res["custom_checks"] = [[True=green/False=red, "ipv4_forwarding"(=label to check), "=1"(=text indicating result of check)]]
+        res = {}
+        res["p4_dev_ssh_ping"] = (os.system("timeout 1 ping " + cfg["p4_dev_ssh"] + " -c 1") == 0)
+        res["p4_dev_sudo_rights"], list_of_path_possibilities = P4STA_utils.check_sudo(cfg["p4_dev_user"], cfg["p4_dev_ssh"], dynamic_mode=True)
+        print("Target sudo path possibilities:")
+        print(list_of_path_possibilities)
+
+        if res["p4_dev_ssh_ping"]:
+            res["p4_dev_compile_status_color"], res["p4_compile_status"] = self.check_if_p4_compiled(cfg)
+        else:
+            res["p4_dev_compile_status_color"], res["p4_compile_status"] = (False, "P4-Stamper is not reachable at SSH IP!")
+        # needed sudos = defined in target_config.json + dynamic sudos (e.g. software version)
+        needed_sudos = self.target_cfg["status_check"]["needed_sudos_to_add"] + self.needed_dynamic_sudos(cfg)
+        res["p4_dev_needed_sudos_to_add"] = P4STA_utils.check_needed_sudos({"sudo_rights": res["p4_dev_sudo_rights"]}, needed_sudos, dynamic_mode_inp=list_of_path_possibilities)
+
+        # store in results list (no return possible for a thread)
+        results[index] = res

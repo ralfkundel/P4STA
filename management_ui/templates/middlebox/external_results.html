@@ -15,18 +15,21 @@
 
 {% load static %}
 <head>
-<script src="{% static 'includes/dygraph.js' %}"></script>
-<link rel="stylesheet" href="{% static 'includes/dygraph.css' %}"/>
 <script>
-  new Dygraph(document.getElementById("latency_interactive"),
-              {{latencies}},
-              {
-				showRangeSelector: true,
-				title: 'Latency of DUT',
-				xlabel: 'Packets',
-				ylabel: 'Latency [' + '{{unit}}' + ']',
-				labels: ['x', 'Latency [' + '{{unit}}' + ']']
-              });
+$("#latency_interactive_btn").click(function() {
+	$("#output_dygraph").html('<img src="{% static 'images/spinner.svg' %}" />');
+	$.get("/dygraph/", function(data) {
+		var btn_div = document.getElementById("latency_interactive_btn_div");
+		var btn = document.getElementById("latency_interactive_btn");
+		if(btn != null){
+			btn.parentNode.removeChild(btn);
+			btn_div.parentNode.removeChild(btn_div)
+		}
+		$("#output_dygraph").html(data);
+		// run javascript code located in ajax loaded content, important because otherwise browser would interprete all content as html "strings"
+		eval(document.getElementById("dygraph_script"))
+	}, "html");
+});
 </script>
 </head>
 
@@ -99,7 +102,10 @@
 	<i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="The time a packet needed to go through the device under test"></i>
 </h5></p>
 
-<div id="latency_interactive" style="width:100%; height:500px;"></div>
+<div class="row">
+	<div class="col-md-12"><div id="output_dygraph" class="card card-body"><div class="text-center" id="latency_interactive_btn_div"><button id="latency_interactive_btn" type="button" class="save btn btn-secondary" style="width: 200px; text-align: center;">Load interactive graph</button></div></div></div>
+</div>
+
 <div style="margin-top:10px;"></div>
 <div class="row">
 	<div class="col-md-6"><img src="{{ MEDIA_URL }}latency.svg?cachebuster={{cachebuster}}" style="width: 100%; height: 100%" /></div>

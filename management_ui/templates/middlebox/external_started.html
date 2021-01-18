@@ -42,7 +42,29 @@
 			if (packet_size_mtu == ""){ // packet_size = "" if initial value of 1500 is not changed (no click at range bar)
 				packet_size_mtu = "1500";
 			}
-			var ms_loadbar = (5000 + (parseInt(dur)*1000)).toString()
+			var loadgen_rate_limit = document.getElementById("loadgen_rate_limit").value;
+			var loadgen_flows = document.getElementById("loadgen_flows").value;
+			if(loadgen_flows === ""){
+				loadgen_flows = "3";
+			}
+
+			var loadgen_server_groups = []; //list of IDs of groups which should execute server endpoint (flow destination)
+			var server_selectors = document.getElementsByClassName("server_selectors");
+			for(var i=0; i<server_selectors.length; i++){
+				if (server_selectors[i].checked){
+					loadgen_server_groups.push(server_selectors[i].value);
+				}
+			}
+
+			{% autoescape off %}var loadgen_groups = {{cfg.loadgen_groups}}{% endautoescape %}
+			var hosts = 0
+			for(var i=0; i<loadgen_groups.length; i++){
+				if( loadgen_server_groups.indexOf(loadgen_groups[i]["group"].toString()) > -1 ){
+					hosts = hosts + loadgen_groups[i]["loadgens"].length;
+				}
+			}
+
+			var ms_loadbar = (5000 + hosts*1750*parseInt(loadgen_flows) + (parseInt(dur)*1000)).toString()
 			var loadbar = '<div class="progress"><div class="progress-bar progress-bar-striped" role="progressbar" style="width: 0%" aria-valuenow="10" aria-valuemin="0" aria-valuemax="100"></div></div>'
 			var scr = document.createElement('script');
 			scr.type = 'text/javascript';
@@ -55,10 +77,13 @@
 			      type: "POST",
 			      url: "/run_loadgens/",
 			      data: {
-				'csrfmiddlewaretoken': csrf_value,
-				'duration': dur,
-				'l4_selected': l4_selected,
-				'packet_size_mtu': packet_size_mtu
+					'csrfmiddlewaretoken': csrf_value,
+					'duration': dur,
+					'l4_selected': l4_selected,
+					'packet_size_mtu': packet_size_mtu,
+					'loadgen_rate_limit': loadgen_rate_limit,
+					'loadgen_flows': loadgen_flows,
+					'loadgen_server_groups': loadgen_server_groups
 			      },
 			      success: function (response) {
 				document.getElementById("output_loadgens").innerHTML = response;
@@ -123,7 +148,7 @@
 
 <div class="row">
 	<div class="col-md-3">Duration of test in seconds: </div>
-	<div class="col-md-9"><input type="text" class="form-control" id="inputDuration" value="10" placeholder="10"></div>
+	<div class="col-md-9"><input type="number" class="form-control" id="inputDuration" value="10" placeholder="10"></div>
 </div>
 <hr/>	
 <div style="margin-top:10px;"></div>
@@ -155,15 +180,67 @@
 <div class="row">
 	<div class="col-md-3" id="packet_size" data-toggle="tooltip" data-placement="top" title="Packet size (MTU = Payload of Ethernet Frame) to big -> fragmentation">Packet Size: </div>
 	<div class="col-md-9">
-		<p>Loadgen Group 1: {% for host in cfg.loadgen_servers %}{% if not forloop.first %} | {% endif %}<b>[{{host.loadgen_iface}} {{host.loadgen_ip}}]:</b> MTU {{host.mtu}}  {% endfor %}</p>
-		<p>Loadgen Group 2: {% for host in cfg.loadgen_clients %}{% if not forloop.first %} | {% endif %}<b>[{{host.loadgen_iface}} {{host.loadgen_ip}}]:</b> MTU {{host.mtu}}  {% endfor %}</p>
-		<p><b>Smallest MTU:</b> {{min_mtu}}</p>
+		{% for loadgen_grp in cfg.loadgen_groups %}
+			{% if loadgen_grp.use_group == "checked" %}<p>Loadgen Group {{loadgen_grp.group}}: {% for host in loadgen_grp.loadgens %}{% if not forloop.first %} | {% endif %}<b>[{{host.loadgen_iface}} {{host.loadgen_ip}}]:</b> MTU {{host.mtu}}  {% endfor %}</p>{% endif %}
+		{% endfor %}
+		<p><b>Smallest MTU at configured hosts:</b> {{min_mtu}}</p>
 		<label for="packet_size">MTU 200 - 1500 Byte</label>
 		<input type="range" class="custom-range" min="200" max="1500" id="packet_size" value="{{min_mtu}}" onchange="updateTextInput(this.value);"><input class="form-control" type="text" id="packet_size_field" placeholder="{{min_mtu}}">
 	<p>A MTU of 1500 could be to big in some cases (e.g. BMV2), try a smaller value if the execution fails.</p>
 	</div>
 </div>
 <hr/>
+
+<div style="margin-top:10px;"></div>
+<div class="row">
+	<div class="col-md-3" data-toggle="tooltip" data-placement="top" title="Limit the throughput at loadgen side. 1 Host/3 Streams with limit 15Mbit/s = 5Mbit/s per stream">Total Rate Limit [Mbit/s]: </div>
+	<div class="col-md-9"><input type="number" class="form-control" min="1" id="loadgen_rate_limit" value="" placeholder="&#8734; [Mbit/s]"></div>
+</div>
+<hr/>
+
+<div style="margin-top:10px;"></div>
+<div class="row">
+	<div class="col-md-3" data-toggle="tooltip" data-placement="top" title="Default 3 instances per host, 1 is mostly not sufficient for multiple Gbit/s throughput">Flows per Host (Instances): </div>
+	<div class="col-md-9"><input type="number" class="form-control" min="1" id="loadgen_flows" value="" placeholder="3"></div>
+</div>
+<hr/>
+
+
+<div style="margin-top:10px;"></div>
+<div class="row">
+	<div class="col-md-3" data-toggle="tooltip" data-placement="top" title="Default Group 1, Client groups send data to server groups">Choose Server Group(s): </div>
+	<div class="col-md-9">
+		<div id="accordion">
+			{% for loadgen_grp in cfg.loadgen_groups %}
+			{% if loadgen_grp.use_group == "checked" %}
+			<div class="card">
+			  <div class="card-header" id="heading{{loadgen_grp.group}}">
+				<h5 class="mb-0">
+					<input type="checkbox" class="form-check-input server_selectors" id="loadgen_grp_{{loadgen_grp.group}}_server" name="loadgen_grp_{{loadgen_grp.group}}_server" value="{{loadgen_grp.group}}">
+					<label class="form-check-label" for="loadgen_grp_{{loadgen_grp.group}}_server">Group {{loadgen_grp.group}}</label>
+				  <button class="btn btn-link" data-toggle="collapse" data-target="#collapse{{loadgen_grp.group}}" aria-expanded="true" aria-controls="collapse{{loadgen_grp.group}}">Show</button>
+				</h5>
+			  </div>
+		  
+			  <div id="collapse{{loadgen_grp.group}}" class="collapse" aria-labelledby="heading{{loadgen_grp.group}}" data-parent="#accordion">
+				<div class="card-body">
+					{% for host in loadgen_grp.loadgens %}
+					<p>Port <b>{{host.real_port}}</b> conntected to <b>{{host.loadgen_iface}}</b>: <b>{{host.loadgen_ip}}</b> | <b>{{host.loadgen_mac}}</b> </p>
+					{% endfor %}
+				</div>
+			  </div>
+			</div>
+			{% endif %}
+			{% endfor %}
+
+		  </div>
+		  
+	</div>
+</div>
+<hr/>	
+
+
+
 <div style="margin-top:10px;"></div>
 <div class="row">
 	<div class="col-md-2"><button id="exec_loadgen" type="button" class="save btn btn-secondary" onclick="exec_loadgens()">Start iPerf3</button></div>

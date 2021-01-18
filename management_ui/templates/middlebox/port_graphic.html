@@ -1,3 +1,4 @@
+{% autoescape off %}
 /*
 # Copyright 2019-present Ralf Kundel, Fridolin Siegmund
 #
@@ -13,6 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 */
+{% load management_ui %}
+
+// toggle play button
+play = true;
+window.onload = function() { 
+	document.getElementById("pause_port_animation").addEventListener("click", function(){
+		if (document.getElementById("port_animation_icon").className === "fas fa-pause-circle"){
+			document.getElementById("port_animation_icon").className = "fas fa-play-circle";
+		} else if (document.getElementById("port_animation_icon").className === "fas fa-play-circle"){
+			document.getElementById("port_animation_icon").className = "fas fa-pause-circle";
+		}
+		play = !play;
+	});
+} 
 
 function execute_drawing(output, loadgen_groups, duts, flows){
     var rect_dimensions = {width: 180, height: 300, x: 300, y: 180};
@@ -36,6 +51,9 @@ function execute_drawing(output, loadgen_groups, duts, flows){
             var text = new Two.Text(loadgen_groups[t][i].ip + " | " + loadgen_groups[t][i].iface, 0, text_y);
 			text.alignment = "left";
 			text.size = 18;
+			if(loadgen_groups[t][i].use_group !== "checked"){
+				text.opacity = 0.5;
+			}
             two.add(text)
             var text = new Two.Text(loadgen_groups[t][i].port, 195, text_y);
 			text.alignment = "right";
@@ -73,30 +91,13 @@ function execute_drawing(output, loadgen_groups, duts, flows){
         if (flow.stamp){
             arrow1.linewidth = 4;
         }
-        arrow2 = two.makeArrow(all_hosts[flow.from2].x, all_hosts[flow.from2].y, all_hosts[flow.to2].x+2, all_hosts[flow.to2].y-5);
-		arrow2.stroke = colors[i];
-		arrow2.opacity = 0.8;
-        if (flow.stamp){
-            arrow2.linewidth = 4;
-		}
 		arrows.push(arrow1);
-		arrows.push(arrow2);
         i++;
     });
 
     two.makeLine(rect_dimensions.x, 330, rect_dimensions.x, 340);
 	text = two.makeText("external host", rect_dimensions.x, 350);
 	text.size = 18;
-
-	play = true;
-	document.getElementById("pause_port_animation").addEventListener("click", function(){
-		if (document.getElementById("port_animation_icon").className === "fas fa-pause-circle"){
-			document.getElementById("port_animation_icon").className = "fas fa-play-circle";
-		} else if (document.getElementById("port_animation_icon").className === "fas fa-play-circle"){
-			document.getElementById("port_animation_icon").className = "fas fa-pause-circle";
-		}
-		play = !play;
-	}); 
 
 	//two.update();
 	// 60 frames per second
@@ -117,17 +118,7 @@ function execute_drawing(output, loadgen_groups, duts, flows){
 					arrow1.linewidth = 4;
 				}
 
-				var x_to2 = all_hosts[flow.from2].x + ((all_hosts[flow.to2].x+2 - all_hosts[flow.from2].x)/2);
-				var y_to2 = all_hosts[flow.from2].y + ((all_hosts[flow.to2].y-5 - all_hosts[flow.from2].y)/2);
-
-				arrow2 = two.makeArrow(all_hosts[flow.from2].x, all_hosts[flow.from2].y, x_to2, y_to2);
-				arrow2.stroke = colors[i];
-				arrow2.opacity = 0.8;
-				if (flow.stamp){
-					arrow2.linewidth = 4;
-				}
 				arrows.push(arrow1);
-				arrows.push(arrow2);
 				i++;
 			});
 		} else if (frameCount%120===0 && play) {
@@ -142,56 +133,87 @@ function execute_drawing(output, loadgen_groups, duts, flows){
 				if (flow.stamp){
 					arrow1.linewidth = 4;
 				}
-				arrow2 = two.makeArrow(all_hosts[flow.from2].x, all_hosts[flow.from2].y, all_hosts[flow.to2].x+2, all_hosts[flow.to2].y-5);
-				arrow2.stroke = colors[i];
-				arrow2.opacity = 0.8;
-				if (flow.stamp){
-					arrow2.linewidth = 4;
-				}
 				arrows.push(arrow1);
-				arrows.push(arrow2);
 				i++;
 			});
 		}
 	}).play();
 }
+
+function get_loadgen_ip_by_group_index(indx){
+	all_loadgen_groups = [];
+	{% for loadgen_grp in loadgen_groups %}
+	{% if loadgen_grp.use_group == "checked" %}
+	all_loadgen_groups.push({{loadgen_grp}});
+	{% endif %}
+	{% endfor %}
+	var all_ips = [];
+	for(var i=0; i<all_loadgen_groups.length; i++){
+		if(all_loadgen_groups[i]["group"] == indx){
+			for(var z=0; z<all_loadgen_groups[i]["loadgens"].length; z++){
+				all_ips.push(all_loadgen_groups[i]["loadgens"][z]["loadgen_ip"])
+			}
+		}
+	}
+	return all_ips;
+}
+
+
 // global vars (flow needed for onchange event in checkbox)
 var flows = [];
 var loadgen_groups;
 var duts;
 function draw(output, changed=false){
-	var t_loadgen_groups = [[],[]];
+	var t_loadgen_groups = [{% for loadgen_grp in loadgen_groups %}[],{%endfor%}]
 
-	// TODO: create loadgen_groups dynamically
+	{% for loadgen_grp in loadgen_groups %}
+	{% with parent_loop=forloop.counter0%}
+	{% for host in loadgen_grp.loadgens %}
+		use_port_inp = document.getElementById("dut_{{loadgen_grp.group}}_use_port")
+		var use_group_live = "{{loadgen_grp.use_group}}";
+		if(use_port_inp !== null){
+			if(use_port_inp.checked){
+				use_group_live = "checked";
+			} else {
+				use_group_live = "unchecked";
+			}
+		}
+		t_loadgen_groups[{{parent_loop}}].push({"ip": "{{host.loadgen_ip}}", "iface": "{{host.loadgen_iface}}", "port": "{{host.real_port}}", "use_group": use_group_live});
+	{% endfor %}
+	{% endwith %}
+	{% endfor %}
 
-	{% for server in loadgen_servers %}
-	t_loadgen_groups[0].push({"ip": "{{server.loadgen_ip}}", "iface": "{{server.loadgen_iface}}", "port": "{{server.real_port}}"});
-	{% endfor %}
-	{% for client in loadgen_clients %}
-	t_loadgen_groups[1].push({"ip": "{{client.loadgen_ip}}", "iface": "{{client.loadgen_iface}}", "port": "{{client.real_port}}"});
-	{% endfor %}
 	loadgen_groups = t_loadgen_groups;
 
 	var t_duts = []
-	t_duts.push({"name": "DUT A", "port": "{{dut1_real}}"});
-	t_duts.push({"name": "DUT B", "port": "{{dut2_real}}"});
+	{% for dut in dut_ports %}
+	t_duts.push({"name": "DUT {{dut.id}}", "port": "{{dut.real_port}}"});
+	{% endfor %}
+
 	duts = t_duts;
 
 	if (!changed){
 		var t_flows = []
-		{% for client in loadgen_clients %}
+		
+		{% for loadgen_grp in loadgen_groups %}
+		{% with parent_loop=forloop.counter0%}
+		{% for host in loadgen_grp.loadgens %}
+			{% with dut=dut_ports|getbyindex:parent_loop %}
+			{% if dut.use_port == "checked" %}
+				{% if dut.stamp_outgoing == "checked" %}
 
-		{% if dut_2_outgoing_stamp == "checked" %}
-		t_flows.push({"stamp": true, "from1": "{{client.loadgen_ip}}", "to1": "DUT B", "from2": "DUT A", "to2": "{{loadgen_servers.0.loadgen_ip}}"});
-		{% else %}
-		t_flows.push({"stamp": false, "from1": "{{client.loadgen_ip}}", "to1": "DUT B", "from2": "DUT A", "to2": "{{loadgen_servers.0.loadgen_ip}}"});
-		{% endif %}
+					t_flows.push({"stamp": true, "from1": "{{host.loadgen_ip}}", "to1": "DUT {{dut.id}}"});
 
-		{% if dut_1_outgoing_stamp == "checked" %}
-		t_flows.push({"stamp": true, "from1": "{{loadgen_servers.0.loadgen_ip}}", "to1": "DUT A", "from2": "DUT B", "to2": "{{client.loadgen_ip}}"});
-		{% else %}
-		t_flows.push({"stamp": false, "from1": "{{loadgen_servers.0.loadgen_ip}}", "to1": "DUT A", "from2": "DUT B", "to2": "{{client.loadgen_ip}}"});
-		{% endif %}
+				{% else %}
+
+					t_flows.push({"stamp": false, "from1": "{{host.loadgen_ip}}", "to1": "DUT {{dut.id}}"});
+
+				{% endif %}
+			{% endif %}
+			{% endwith %}
+	
+		{% endfor %}
+		{% endwith %}
 		{% endfor %}
 
 		flows = t_flows;
@@ -199,21 +221,18 @@ function draw(output, changed=false){
 		flows.forEach(flow => {
 			flow.stamp = false;
 		});
-		if (document.getElementById("dut_1_outgoing_stamp").checked){
+		{% for dut in dut_ports %}
+		if (document.getElementById("dut_{{dut.id}}_outgoing_stamp").checked){
 			flows.forEach(flow => {
-				if(flow.to1 === "DUT A"){
+				if(flow.to1 === "DUT {{dut.id}}"){
 					flow.stamp = true;
 				}
 			});
 		}
-		if (document.getElementById("dut_2_outgoing_stamp").checked){
-			flows.forEach(flow => {
-				if(flow.to1 === "DUT B"){
-					flow.stamp = true;
-				}
-			});
-		}
+		{% endfor %}
 	}
-
 	execute_drawing(output, t_loadgen_groups, t_duts, flows);
 }
+
+
+{% endautoescape %}

@@ -1,3 +1,7 @@
+<p align="center">
+<a href="https://github.com/ralfkundel/p4-codel/"><img width="20%" src="doc/img/P4STA-Logo.png" alt="P4STA-logo"/></a>
+</p>
+
 # P4STA: High Performance Packet Timestamping and Load Aggregation Framework
 
 P4STA is an open source framework that combines the flexibility of software data traffic load generation with the accuracy of hardware timestamping. P4STA enables a measurement accuracy of a few nanoseconds and zero packet loss detection using standard programmable hardware, i.e. mainly P4-targets (but also FPGAs).
@@ -9,26 +13,57 @@ The P4STA framework consists of:
 * Loadgenerator abstractions
 * Evaluation scripts for measurement series
 
+<p align="center">
+<a href="https://www.youtube.com/watch?v=KE4AZTF2ZJQ"><img width="60%" src="doc/img/demo1-thumbnail.png" alt="P4STA-demo"/></a>
+</p>
+
+## Supported Hardware
+P4STA supports different Stamper targets, currently P4-BMv2, Barefoot Tofino and Netronome SmartNICs.
+For each target there exists a subfolder in "stamper_targets". Further targets can be easily installed by copying the corresponding driver.
+
 Currently supported Stamper Targets are:
-* P4-bmv2 reference implementation
-* Barefoot Tofino (available as subrepository) - see  [Stamper Targets](#Stamper-Targets)
-* Netronome NFP-SmartNIs
+* [P4-bmv2](stamper_targets/bmv2/README.md) reference implementation
+* [Barefoot Tofino](stamper_targets/Wedge100B65/README.md)
+* [Netronome NFP-SmartNICs](stamper_targets/netronome/README.md)
 
-Further upcoming targets are:
-* NetFPGA-SUME - approximately early 2020
-* Intel DE10-Pro FPGAs - approximately mid 2020
+# Installation
+P4STA needs to be run on Linux. Ubuntu 16.04/18.04 LTS is well tested but other version should work as well.
+After cloning this repository on any server/machine (management server) in your testbed, ensure that:
+1. Every server (loadgen servers, P4-device, external host) requires ssh pub key from management-server to allow a password-free SSH-connection
+2. Execute the install script (./install.sh)
+```
+./install.sh
+```
+This setup script will install only the dependencies on the management server. All other servers will be installed later automatically.
+
+3. After the installation you will be asked if you want to use the local Web-GUI (option: 1/2) or CLI (option: 3). If you choose the GUI it will be accessible in your browser at: http://MANAGEMENT-SERVER-IP:9997
+
+The first time P4STA will automatically open the setup window. You can open this window also later to configure further servers with the construction tool in the top right of the html UI.
+
+In this setup window:
+
+  3.1. select the type of external host, stamper and load generator you want to setup. Disable categories you do not want to install.
+  3.2. insert the IP addresses and user names for these servers (note: this should be the IP address in the management network which is accessible via ssh).
+  3.3. check your configurations by the check button. If everything is green -> Click on the "Create Setup Script" button.
+  3.4. Click on "Execute install_server.sh script!" button in the newly opened window. The CLI will ask you multiple time for your password on the server which will be currently installed (once for each server to be installed).
+  3.5 after the script completes, you can close the window with "Finish" and start using P4STA.
+
+Note: In case of Barefoot/Intel Tofino Compile the P4-Code of the stamper target must be compiled manually on your P4-device. For details see the [Tofino readme](stamper_targets/Wedge100B65/README.md). For BMV2 (Mininet) and Netronome this is not necessary as this repository contains the compiler output.
 
 
-**Note: This is a alpha-state prelease**
-The following features are not part of the GitHub project as they are not yet fully integrated:
-* DPDK-based packet capturing (hidden access only)
-* Analytics functions (P4STA-Analytics) (e.g. service curve calculations, ...)
-* Load generator control abstractions (currently only iPerf3 is fully integrated)
+# Using P4STA
+
+You can start P4STA simply with the following script:
+```
+./run.sh
+```
+We highly recommonend to use the "status check" on the bottom of the configuration page before deployment in order to eliminate configuration faults.
 
 
 # Publications
 * "How to measure the speed of light with programmable data plane hardware?"@ 2nd P4Europe Workshop: [Demo Paper](https://ieeexplore.ieee.org/abstract/document/8901871)
-* "P4STA: High Performance Packet Timestamping with Programmable Packet Processors"@ IEEE/IFIP NOMS: [Paper](https://www.kom.tu-darmstadt.de/research-results/publications/publications-details/?no_cache=1&pub_id=KSB%2B20)
+* "P4STA: High Performance Packet Timestamping with Programmable Packet Processors"@ IEEE/IFIP NOMS: [Paper](https://ieeexplore.ieee.org/abstract/document/9110290)
+* "Microbursts in Software and Hardware-based Traffic Load Generation" @IEEE/IFIP NOMS: [Demo Paper](https://ieeexplore.ieee.org/abstract/document/9110305)
 
 
 # Architecture
@@ -62,65 +97,4 @@ Stamper implementations vary due to hardware specific constraints and P4_14, P4_
 
 ![Figure Software Components](doc/img/softwareComponents.png)
 
-# Installation
-P4STA needs to be run on Linux. Ubuntu 16.04/18.04 LTS is well tested but other version should work as well.
-After cloning this repository on any server/machine (management server) in your testbed, ensure that:
-1. Every server (loadgen servers, P4-device, external host) requires ssh pub key from management-server to allow a password-free SSH-connection
-2. Enter your SSH Usernames and IPs at the beginning of ./install.sh and ensure that it's executeable (chmod +x ./install.sh)
-3. Execute the install script (./install.sh)
-```
-./install.sh
-```
-4. In case of Barefoot Tofino Compile the P4-Code from the target on your P4-device. For BMV2 (Mininet) and Netronome this is not necessary as this repository contains the compiler output.
-
-
-## Dependencies Management Server
-If you **don't** use the install.sh script ensure that the following requirements are installed at the management server. Otherwise **IGNORE THIS**.
-* Python >= 3.5 with pip3 at all servers
-* Django >= 2.2
-* matplotlib >= 3.0.3
-* numpy >= 1.16.2
-* rpyc >= 4.1.1
-* tabulate >= 0.8.3
-* setproctitle >= 1.1.10 (only if you want to use BMV2)
-* iPerf3 >= 3.1.3 (only if you want to use BMV2)
-
-
-Older versions may also work, but have not been verified. If you want to install the dependencies by yourself and not automatically with install.sh the packages can be installed at the Managament Server as follows:
-``` 
-sudo apt install python3-matplotlib
-```
-```
-pip3 install tabulate Django numpy rpyc	
-```
-# Dependencies External Host
-* Python 3 with pip3
-* setproctitle >= 1.1.10
-<br />
-Older versions may also work, but are not continuously tested. If you want to install the dependencies by yourself and not automatically with install.sh the packages can be installed at the Managament Server as follows:
-```
-pip3 install setproctitle
-```
-
-# Dependencies Loadgenerator Servers
-The following dependencies are automatically installed with ./install.sh if Ubuntu 16.04 is used:
-* iPerf3 >= 3.1.3
-
-## Stamper Targets
-P4STA supports different Stamper targets, currently P4-BMv2, Barefoot Tofino and Netronome SmartNICs.
-For each target there exists a subfolder in "targets". Further targets can be easily installed by copying the corresponding driver.
-Currently, part of this repository is only the BMv2 and Netronome implementation. For access to the Barefoot Tofino code please contact Ralf Kundel directly.
-
-
-## BMV2/Mininet environment
-
-The following dependencies are _not_ automatically installed with ./install.sh:
-* Mininet >= 2.3.0d5. see: http://mininet.org/download/ Please use Option 2: Native Installation from Source
-* bmv2 P4-behavioral model. see: https://github.com/p4lang/behavioral-model
-
-
-# Using P4STA
-After the installation you will be asked if you want to use the local Web-GUI or CLI. If you choose the GUI it will be accessible in your browser at http://127.0.0.1:9997 if installed on your localhost or in general on: http://management-server-ip:9997
-
-We highly recommonend to use the "status check" after configuration / before deployment to eliminate configuration faults.
 

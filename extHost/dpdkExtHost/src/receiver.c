@@ -16,7 +16,7 @@
 #define MBUF_CACHE_SIZE 250
 #define BURST_SIZE 32
 
-//uncomment this for debugging
+//uncomment this for debugging and recompile on external host!
 //#define DEBUG
 
 struct packet_data {
@@ -187,57 +187,82 @@ static void lcore_main(void) {
 			printf("Ethertype: %04x \n", p_ether_type);
             #endif
 
-			if( (p_ether_type == 0x0800) && (p_len > 64) ) {
-			    raw_packet_counter += 1;
-			    total_throughput += p_len;
+		    raw_packet_counter += 1;
+		    total_throughput += p_len;
+			if( (p_ether_type == 0x0800) && (p_len >= 64) ) {
 			    uint8_t ihl             = start[14] & 0x0f; //ip header length in 32 bit words
-			    uint8_t tcp_start       = 14 + ihl*4; // 14 is ethernet header length in bytes
-			    uint8_t tcp_data_offs   = (start[tcp_start + 12] >> 4) & 0x0f; // #tcp header length in in 32 bit words
-			    uint8_t tcp_options_len = tcp_data_offs-5; //tcp header always has at least 5x32bit 
+                uint8_t ipv4_protocol   = start[23] & 0xff; //17 = UDP and 6 = TCP
+			    uint8_t l4_start        = 14 + ihl*4; // 14 is ethernet header length in bytes
 
                 #ifdef DEBUG
 				printf("ihl %02x \n", ihl);
-				printf("tcp_start %02x \n", tcp_start);
-				printf("tcp_data_offs %02x \n", tcp_data_offs);
-				printf("tcp_options_len %02x \n", tcp_options_len);
+				printf("ipv4_protocol %02x \n", ipv4_protocol);
+				printf("l4_start %02x \n", l4_start);
                 #endif
-			    if (tcp_options_len == 0) continue;
 
-			    //tcp_options     = message[tcp_start+ 40 : tcp_start+ 40 +tcp_options_len*8]
 			    uint8_t opt_pos = 0;
-			    for (uint8_t x = 0; x < tcp_options_len; x++){
-				    uint16_t opt_type;
-				    memcpy(&opt_type, &start[tcp_start + 20 + 4*x ], 2);
-				    opt_type = ntohs(opt_type);
-				        if(opt_type == 0x0f10) {
-					        opt_pos = tcp_start + 20 + 4*x;
-					        break;
-				        }
+
+                uint16_t opt_type;
+                uint16_t empty_option_field;
+
+                if (ipv4_protocol == 6) {
+			        uint8_t tcp_data_offs   = (start[l4_start + 12] >> 4) & 0x0f; // #tcp header length in in 32 bit words
+			        uint8_t tcp_options_len = tcp_data_offs-5; //tcp header always has at least 5x32bit 
                     #ifdef DEBUG
-				    printf("opt_type %02x \n", opt_type);
-				    printf("opt_pos %04x \n", opt_pos);
+				    printf("tcp_data_offs %02x \n", tcp_data_offs);
+				    printf("tcp_options_len %02x \n", tcp_options_len);
                     #endif
+			        if (tcp_options_len == 0) continue;
+
+			        //tcp_options     = message[l4_start+ 40 : l4_start+ 40 +tcp_options_len*8]
+			        for (uint8_t x = 0; x < tcp_options_len; x++){
+				        memcpy(&opt_type, &start[l4_start + 20 + 4*x ], 2);
+				        memcpy(&empty_option_field, &start[l4_start + 20 + 4*x + 8 ], 2);
+				        opt_type = ntohs(opt_type);
+				            if(opt_type == 0x0f10 && empty_option_field == 0x0000) {
+					            opt_pos = l4_start + 20 + 4*x;
+					            break;
+				            }
+                        #ifdef DEBUG
+				        printf("opt_type %02x \n", opt_type);
+				        printf("empty_option_field %02x \n", empty_option_field);
+				        printf("opt_pos %04x \n", opt_pos);
+                        #endif
+                    }
+                } else if (ipv4_protocol == 17) {
+                    memcpy(&opt_type, &start[l4_start + 8], 2);
+                    opt_type = ntohs(opt_type);
+                    #ifdef DEBUG
+				    printf("PARSED UDP PACKET:\n");
+			        printf("opt_type %02x \n", opt_type);
+			        printf("empty_option_field %02x \n", empty_option_field);
+                    #endif
+		            if(opt_type == 0x0f10 && empty_option_field == 0x0000) {
+		                opt_pos = l4_start + 8; //UDP header is 64 bit long (8 byte) => 64/8
+		            }
                 }
+
+
 			    if(opt_pos != 0) {
-				struct packet_data *p = (struct packet_data*) malloc(sizeof(struct packet_data));
-				memcpy( &(p->t_stamp1), &start[opt_pos+2], 6);
-				memcpy( &(p->t_stamp2), &start[opt_pos+10], 6);
-				p->t_stamp1 = be64toh(p->t_stamp1);
-				p->t_stamp2 = be64toh(p->t_stamp2);
-				p->t_stamp1 = (p->t_stamp1 >> 16) & 0x0000ffffffffffff;
-				p->t_stamp2 = (p->t_stamp2 >> 16) & 0x0000ffffffffffff;
+				    struct packet_data *p = (struct packet_data*) malloc(sizeof(struct packet_data));
+				    memcpy( &(p->t_stamp1), &start[opt_pos+2], 6);
+				    memcpy( &(p->t_stamp2), &start[opt_pos+10], 6);
+				    p->t_stamp1 = be64toh(p->t_stamp1);
+				    p->t_stamp2 = be64toh(p->t_stamp2);
+				    p->t_stamp1 = (p->t_stamp1 >> 16) & 0x0000ffffffffffff;
+				    p->t_stamp2 = (p->t_stamp2 >> 16) & 0x0000ffffffffffff;
 
-				if(first == NULL) first = last = p;
+				    if(first == NULL) first = last = p;
 
-				p->throughput_at_time = total_throughput;
-				p->next = NULL;
-				last->next = p;
-				last = p;
+				    p->throughput_at_time = total_throughput;
+				    p->next = NULL;
+				    last->next = p;
+				    last = p;
 
-                #ifdef DEBUG
-				printf("tstamp1: 0x%"PRIx64"\n", p->t_stamp1);
-				printf("tstamp2: 0x%"PRIx64"\n", p->t_stamp2);
-                #endif
+                    #ifdef DEBUG
+				    printf("tstamp1: 0x%"PRIx64"\n", p->t_stamp1);
+				    printf("tstamp2: 0x%"PRIx64"\n", p->t_stamp2);
+                    #endif
 			    }//else no P4STA option found
 		    
 			}
@@ -253,6 +278,8 @@ static void lcore_main(void) {
 	strcpy(filename, "raw_packet_counter_");
 	strcat(filename, fname);
 	strcat(filename, ".csv");
+	printf(filename);
+	printf("\n");
 
 	FILE *raw_pkt_cntr = fopen(filename, "w");
 	fprintf(raw_pkt_cntr, "%"PRIu64, raw_packet_counter);

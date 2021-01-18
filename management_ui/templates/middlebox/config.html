@@ -29,18 +29,13 @@
 			fw_selector = document.getElementById("forwarding_mode");
 			layer = fw_selector.options[fw_selector.selectedIndex].value;
 			if(layer == 1){
-				num_clients = document.getElementById("num_clients").value;
-				if(num_clients > 1){
-					for(id = num_clients; id > 1; id--){
-						delClient(id);
+				{% for loadgen_grp in loadgen_groups %}
+				if(document.getElementById("tbl_grp_{{loadgen_grp.group}}").rows.length > 2){
+					for (i = 2; i < document.getElementById("tbl_grp_{{loadgen_grp.group}}").rows.length; i++) {
+						document.getElementById("tbl_grp_{{loadgen_grp.group}}").deleteRow(i);
 					}
 				}
-				num_servers = document.getElementById("num_server").value;
-				if(num_servers > 1){
-					for(id = num_servers; id > 1; id--){
-						delServer(id);
-					}
-				}
+				{% endfor %}
 			}
 		}
 
@@ -55,55 +50,140 @@
 		
 	var del_id;
 	$(document).ready(function(){
-		$("#add_loadgen_server").click(function() {
-			document.getElementById("add_server").value="1";
+		$("#add_new_loadgen_grp").click(function() {
+			document.getElementById("num_loadgen_groups").value ++;
+			// create hidden "num_grp_#" input for new group to trigger adding of group in backend
+			new_inp = document.createElement("INPUT");
+			new_inp.setAttribute("type", "hidden");
+			var len_loadgen_grps = {{loadgen_groups|length}};
+			len_loadgen_grps = len_loadgen_grps + 1;
+			new_inp.name="num_grp_" + len_loadgen_grps.toString();
+			new_inp.value = "0";
+			document.getElementById("add_loadgen_group_helper").appendChild(new_inp);
+			// now create add_to_grp_# for new added group to instantly add first entry in group in backend
+			new_inp2 = document.createElement("INPUT");
+			new_inp2.setAttribute("type", "hidden");
+			new_inp2.name="add_to_grp_" + len_loadgen_grps.toString();
+			new_inp2.value = "1";
+			document.getElementById("add_loadgen_group_helper").appendChild(new_inp2);
+
+			exec_submit = check_all_fields();
+			if(exec_submit){
+				document.getElementById("config_form").submit();
+			} else {
+				// because inputs are created already a second execution of "#add_new_loadgen_grp" would result in errors
+				document.getElementById("add_new_loadgen_grp").disabled = true;
+			}
+		});
+
+		$("#del_loadgen_grp").click(function() {
+			if(document.getElementById("num_loadgen_groups").value > 1){
+				var num_loadgen_groups = document.getElementById("num_loadgen_groups").value;
+				document.getElementById("num_loadgen_groups").value --;
+				//document.getElementById("config_form").submit();
+				// more convinient solution if user wants to undo delete
+				document.getElementById("div_tbl_grp_" + num_loadgen_groups.toString()).remove();
+				document.getElementById("dut_tr_" + num_loadgen_groups.toString()).remove();
+
+			}
+
+		});
+
+		{% for loadgen_grp in loadgen_groups %}
+		$("#add_loadgen_to_grp_{{loadgen_grp.group}}").click(function() {
+			document.getElementById("add_to_grp_{{loadgen_grp.group}}").value="1";
 			exec_submit = check_all_fields();
 			if(exec_submit){
 				document.getElementById("config_form").submit();
 			}
 		});
-		$("#add_loadgen_client").click(function() {
-			document.getElementById("add_client").value="1";
-			exec_submit = check_all_fields();
-			if(exec_submit){
-				document.getElementById("config_form").submit();
-			}
-		});
-		if("{{dut_2_use_port}}" == "checked"){
-			document.getElementById('dut2_real').disabled = false;
-			if (document.getElementById('dut2_speed') !== null){
-				document.getElementById('dut2_speed').disabled = false;
-			}
-			document.getElementById('dut_2_outgoing_stamp').disabled = false;
-			{% for entry in target_cfg.inputs.input_table %}
-				{% with dut2="dut2_" %}{% with key=dut2|add:entry.target_key %}{% with current=cfg|getkeyvalue:key %}
-					document.getElementById('{{key}}').disabled = false;
-				{% endwith %}{% endwith %}{% endwith %}
-			{% endfor %}
-		} else {
-			document.getElementById('dut2_real').disabled = true;
-			if (document.getElementById('dut2_speed') !== null){
-				document.getElementById('dut2_speed').disabled = true;
-			}
-			document.getElementById('dut_2_outgoing_stamp').disabled = true;
-			{% for entry in target_cfg.inputs.input_table %}
-				{% with dut2="dut2_" %}{% with key=dut2|add:entry.target_key %}{% with current=cfg|getkeyvalue:key %}
-					document.getElementById('{{key}}').disabled = true;
-				{% endwith %}{% endwith %}{% endwith %}
-			{% endfor %}
-		}
+		{% endfor %}
+
+		{% for dut in dut_ports %}
+		{% if dut.id != 1 %}
+		use_port_box_changed({{dut.id}});
+		{% endif %}
+		{% endfor %}
 	});
-	function delServer(id){
-		document.getElementById('tbl_server').deleteRow(id);
-		document.getElementById("num_server").value --;
+
+	function delServerfromLoadgenGroup(loadgen_grp, id){
+		table_row_id = "tr_loadgen_" + loadgen_grp + "_" + id;
+		for (let row of document.getElementById('tbl_grp_' + loadgen_grp).rows) {
+			if(row.id === table_row_id){
+				document.getElementById('tbl_grp_' + loadgen_grp).deleteRow(row.rowIndex);
+				document.getElementById("num_grp_" + loadgen_grp).value --;
+				break;
+			}
+		}
+		// now check if only one row is left => disable delete button (user should delete whole loadgen group if not used)
+		if(document.getElementById('tbl_grp_' + loadgen_grp).rows.length <= 2){ // +1 row because of head row
+			for (let row of document.getElementById('tbl_grp_' + loadgen_grp).rows) {
+				row.childNodes.forEach(function(table_elem){
+					if(table_elem.lastChild != null){
+						if(table_elem.lastChild.id === "delete_loadgen_server_btn"){
+							table_elem.lastChild.disabled = true;
+							table_elem.lastChild.lastChild.style.color = "gray";
+						}
+					}
+				});
+			}
+		}
 		// no auto submit when DELETING, leaves the possibility to reaload page if accidentally clicked delete
-		//document.getElementById("config_form").submit();
+		var num_hosts_in_grp = document.getElementById("num_grp_" + loadgen_grp).value;
+		var e = document.getElementById("forwarding_mode");
+		var layer = e.options[e.selectedIndex].value;
+
+		if(num_hosts_in_grp < 1){
+			{% for dut in dut_ports %}{% if dut.id != 1 %}
+			if(document.getElementById("dut_{{dut.id}}_use_port").checked && "{{dut.id}}" == loadgen_grp ){
+				document.getElementById("dut_{{dut.id}}_use_port").click();
+				var sp1 = document.createElement("SPAN");
+				sp1.className = "fa fa-question-circle";
+				sp1.style.marginLeft = "5px";
+				sp1.setAttribute("data-toggle", "tooltip");
+				sp1.setAttribute("data-placement", "top");
+				sp1.setAttribute("title", "The associated Loadgen Group [" + loadgen_grp + "] doesn't contain any Loadgens.");
+				insertAfter(sp1, document.getElementById("dut_{{dut.id}}_use_port"))
+				$('[data-toggle="tooltip"]').tooltip();
+			}
+			{% endif %}{% endfor %}
+		}
+
+		if(num_hosts_in_grp < 2 && layer == 1){
+			$("#modal1").modal();
+		} else {
+			//submitDelClient(true);
+		}	
 	}
+
+	function insertAfter(newNode, refNode) {
+    	refNode.parentNode.insertBefore(newNode, refNode.nextSibling);
+	}
+
 	function delClient(id){
 		del_id = id;
 		num_clients = document.getElementById("num_clients").value;
 		e = document.getElementById("forwarding_mode");
 		layer = e.options[e.selectedIndex].value;
+		
+		// TODO: anpassen auf mehrere loadgen gruppen
+		if(num_clients < 2){ // 1 client is actually 0, not updated
+			{% for dut in dut_ports %}{% if dut.id != 1 %}
+			if(document.getElementById("dut_{{dut.id}}_use_port").checked){
+				document.getElementById("dut_{{dut.id}}_use_port").click();
+				var sp1 = document.createElement("SPAN");
+				sp1.className = "fa fa-question-circle";
+				sp1.style.marginLeft = "5px";
+				sp1.setAttribute("data-toggle", "tooltip");
+				sp1.setAttribute("data-placement", "top");
+				sp1.setAttribute("title", "Only ony group is used, other DUT ports will not work.");
+				insertAfter(sp1, document.getElementById("dut_{{dut.id}}_use_port"))
+				$('[data-toggle="tooltip"]').tooltip();
+			}
+
+			{% endif %}{% endfor %}
+		}
+
 		if(num_clients < 2 && layer == 1){
 			$("#modal1").modal();
 		} else {
@@ -117,24 +197,69 @@
 			document.getElementById("num_clients").value --;
 			del_id = null;
 			// no auto submit when DELETING, leaves the possibility to reaload page if accidentally clicked delete
-			//document.getElementById("config_form").submit();
+			// document.getElementById("config_form").submit();
 		} else {
 			del_id = null;
 		}	
 	}
 
-	function box_changed(){
-		document.getElementById('dut2_real').disabled = !document.getElementById('dut2_real').disabled;
-		if (document.getElementById('dut2_speed') !== null){
-			document.getElementById('dut2_speed').disabled = !document.getElementById('dut2_speed').disabled;
+	function use_port_box_changed(dut_id){
+		var disabled = !document.getElementById("dut_" + dut_id + "_use_port").checked;
+		// document.getElementById('dut' + dut_id + '_real').disabled = false;
+		document.getElementById('dut' + dut_id + '_real').readOnly = disabled;
+		document.getElementById('dut_' + dut_id + '_outgoing_stamp').readOnly = disabled;
+		if(disabled){
+			document.getElementById('dut_' + dut_id + '_outgoing_stamp').checked = false;
 		}
-		document.getElementById('dut_2_outgoing_stamp').disabled = !document.getElementById('dut_2_outgoing_stamp').disabled;
-
 		{% for entry in target_cfg.inputs.input_table %}
-			{% with dut2="dut2_" %}{% with key=dut2|add:entry.target_key %}{% with current=cfg|getkeyvalue:key %}
-				document.getElementById('{{key}}').disabled = !document.getElementById('{{key}}').disabled;
-			{% endwith %}{% endwith %}{% endwith %}
+		document.getElementById('dut' + dut_id + '_{{entry.target_key}}').disabled = disabled;
+		if(disabled){
+			var input = document.createElement('input');
+			input.setAttribute('type', 'hidden');
+			input.setAttribute('name', 'dut' + dut_id + '_{{entry.target_key}}');
+			input.setAttribute('value', document.getElementById('dut' + dut_id + '_{{entry.target_key}}').value);
+			document.getElementById('stamper_post_helper').appendChild(input);
+		}
 		{% endfor %}
+
+		// disable loadgen group table associated with DUT port
+		var table_children = document.getElementById("tbl_grp_" + dut_id).children[1].children
+		for (var i = 0; i < table_children.length; i++) {
+			if(table_children[i].nodeName == "TR"){
+				for(var row_indx = 0; row_indx < table_children[i].children.length; row_indx++){
+					var tr_children = table_children[i].children[row_indx].children;
+					for(var field_indx = 0; field_indx < tr_children.length; field_indx++){
+						try {
+							// check if bootstrap div is around input [used for p4 ports]
+							if(tr_children[field_indx].nodeName == "DIV" && tr_children[field_indx].className == "input-group mb-3"){
+								tr_children[field_indx].children[0].readOnly = disabled;
+							// namespace div
+							} else if (tr_children[field_indx].nodeName == "DIV" && tr_children[field_indx].id.search("_namespace") > 1){
+								tr_children[field_indx].children[0].children[0].readOnly = disabled;
+							} else if (tr_children[field_indx].nodeName == "SELECT" && tr_children[field_indx].className === ("form-control")){
+								// unfortunately selects can't be readOnly => disable (but this prevents POST data for this field)
+								// Solution: append hidden inputs for each disabled input
+								tr_children[field_indx].disabled = disabled;
+								if(disabled){
+									var input = document.createElement('input');
+									input.setAttribute('type', 'hidden');
+									input.setAttribute('name', tr_children[field_indx].id);
+									input.setAttribute('value', tr_children[field_indx].value);
+									document.getElementById('loadgens_hidden_inputs').appendChild(input);
+								}
+							}
+							else {
+								tr_children[field_indx].readOnly = disabled;
+							}
+						} catch (e) {
+							console.log("Exception at trying to disable loadgen inputs: "  + e.toString())
+						}
+					}
+				}
+			}
+		}
+
+		outgoing_stamp_changed();
 	}
 
 	function retrieveIF(type, id){
@@ -214,10 +339,11 @@
 			document.getElementById(type+"_"+id+"_ip").className = "form-control ip_addr";
 			document.getElementById(type+"_"+id+"_ip_set").className = "";
 			document.getElementById(type+"_"+id+"_ip_set").innerHTML = "";
-
-			document.getElementById(type+"_"+id+"_namespace").className = "form-control";
-			document.getElementById(type+"_"+id+"_namespace_up").className = "";
-			document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "";
+			if(document.getElementById(type+"_"+id+"_namespace") != null){
+				document.getElementById(type+"_"+id+"_namespace").className = "form-control";
+				document.getElementById(type+"_"+id+"_namespace_up").className = "";
+				document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "";
+			}
 		}, 5000);
 	}
 	
@@ -251,32 +377,33 @@
 					document.getElementById(type+"_"+id+"_ip").className = "form-control is-invalid";
 					document.getElementById(type+"_"+id+"_ip_set").className = "invalid-feedback";
 					document.getElementById(type+"_"+id+"_ip_set").innerHTML = "IP set unsuccessfully";
-
-					document.getElementById(type+"_"+id+"_namespace").className = "form-control is-invalid";
-					document.getElementById(type+"_"+id+"_namespace_up").className = "invalid-feedback order-last";
-					document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "netns set unsuccessfully";
+					if(document.getElementById(type+"_"+id+"_namespace") != null){
+						document.getElementById(type+"_"+id+"_namespace").className = "form-control is-invalid";
+						document.getElementById(type+"_"+id+"_namespace_up").className = "invalid-feedback order-last";
+						document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "netns set unsuccessfully";
+					}
 				} else {
 					document.getElementById(type+"_"+id+"_ip").className = "form-control is-valid";
 					document.getElementById(type+"_"+id+"_ip_set").className = "valid-feedback";
 					document.getElementById(type+"_"+id+"_ip_set").innerHTML = "IP set successfully";
-
-					document.getElementById(type+"_"+id+"_namespace").className = "form-control is-valid";
-					document.getElementById(type+"_"+id+"_namespace_up").className = "valid-feedback order-last";
-					document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "netns set successfully";
+					if(document.getElementById(type+"_"+id+"_namespace") != null){
+						document.getElementById(type+"_"+id+"_namespace").className = "form-control is-valid";
+						document.getElementById(type+"_"+id+"_namespace_up").className = "valid-feedback order-last";
+						document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "netns set successfully";
+					}
 				}
 				timeout_clear(type, id);
-				//setTimeout(function (){ document.getElementById(type+"_"+id+"_ip").className = "form-control"; }, 5000);
 				retrieveIF(type, id);
 		      },
 		      error: function (response) {
 				document.getElementById(type+"_"+id+"_ip").className = "form-control is-invalid";
 				document.getElementById(type+"_"+id+"_ip_set").className = "invalid-feedback";
 				document.getElementById(type+"_"+id+"_ip_set").innerHTML = "IP set unsuccessfully";
-
-				document.getElementById(type+"_"+id+"_namespace").className = "form-control is-invalid";
-				document.getElementById(type+"_"+id+"_namespace_up").className = "invalid-feedback order-last";
-				document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "netns set unsuccessfully";
-
+				if(document.getElementById(type+"_"+id+"_namespace") != null){
+					document.getElementById(type+"_"+id+"_namespace").className = "form-control is-invalid";
+					document.getElementById(type+"_"+id+"_namespace_up").className = "invalid-feedback order-last";
+					document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "netns set unsuccessfully";
+				}
 				timeout_clear(type, id);
 		      },
    		});
@@ -403,10 +530,17 @@
 		// check ssh_user input fields
 		empty_checker("ssh_usr", "Please enter username");
 		// check interface input fields
-		empty_checker("iface_inp", "Please enter interface")
+		empty_checker("iface_inp", "Please enter interface");
 		// check front port input fields
-		empty_checker("real_port_inp", "Please enter port")
-
+		empty_checker("real_port_inp", "Please enter port");
+		// check front port input fields if Use Port checkbox is checked
+		{% for dut in dut_ports %}
+		{% if dut.id != 1 %}
+		if (document.getElementById("dut_{{dut.id}}_use_port") != null && document.getElementById("dut_{{dut.id}}_use_port").checked){
+			empty_checker("real_port_inp_check_before_dut{{dut.id}}", "Please enter port")
+		}
+		{% endif %}
+		{% endfor %}
 
 		return exec_submit;
 	}
@@ -414,17 +548,21 @@
 	var added_force_save_btn = false;
 
 	function submit_main_table(force=false){
-		exec_submit = check_all_fields();
-		if(exec_submit || force){ // spawn warning if no duplication is selected
-			if(!(document.getElementById("dut_1_outgoing_stamp").checked||document.getElementById("dut_2_outgoing_stamp").checked)){
+		var exec_submit = check_all_fields();
+		if(exec_submit){ // spawn warning if no duplication is selected
+		var all_checked = false;
+		{% for dut in dut_ports %}
+		all_checked = all_checked || document.getElementById("dut_{{dut.id}}_outgoing_stamp").checked;
+		{% endfor %}
+			if(!(all_checked) && !force){
 				$("#duplication_warning").modal();
 			} else {
 				document.getElementById("save_main_table").click();
 			}
 		} else {
-			console.log("aborted submit due to invalid fields.")
+			console.log("aborted submit due to invalid fields.");
 			if (!added_force_save_btn){
-				new_btn = document.createElement("BUTTON");
+				var new_btn = document.createElement("BUTTON");
 				new_btn.innerHTML = "Force Save";
 				new_btn.className = "btn btn-danger";
 				new_btn.style = "margin-left: 5px;";
@@ -469,7 +607,6 @@
 	$(document).ready(function(){
 		mac_input_fields = document.getElementsByClassName("mac_addr");
 		for (var i = 0; i < mac_input_fields.length; i++) {
-			
 			mac_input_fields[i].addEventListener("keyup", MACformat, false);
 		}
 		ip_input_fields = document.getElementsByClassName("ip_addr");
@@ -503,7 +640,7 @@
         </button>
       </div>
       <div class="modal-body">
-        Please note that Layer 1 forwarding for one group only supports one server. Some Loadgenerators like iPerf3 don't support one server only.
+        Please note that Layer 1 forwarding for one group only supports one server.<br>Some Loadgenerators like iPerf3 don't support one server only natively, however if you use more than one Interface and separate namespaces it should work.
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal" onclick="submitDelClient(false);">Cancel</button>
@@ -591,9 +728,13 @@
 			{% if available_configs|length > 0 %}
 			<form method="POST">{% csrf_token %}
 				<div style="padding: 3px; margin-right: 5px; border-style: solid; border-width: 1px; border-radius: 2px;border-color:#dee2e6">
-				<select class="form-control" id="selected_cfg_file" name="selected_cfg_file" class="form-control p4sta_loadbutton" style="width: 190px;">4
+				<select class="form-control" id="selected_cfg_file" name="selected_cfg_file" class="form-control p4sta_loadbutton" style="width: 190px;">
 					{%for other_cfg in available_configs%}
+						{% if other_cfg|slice:3 == "###" %}
+						<option value="{{other_cfg}}" disabled>---- <b>{{other_cfg|slice:"3:"}}</b> ----</option>
+						{% else %}
 						<option value="{{other_cfg}}">{{other_cfg}}</option>
+						{% endif %}
 					{%endfor%}
 				</select>
 				<button id="btn_new_cfg" type="submit" formaction="/openConfig/" class="save btn btn-secondary p4sta_loadbutton"><i class="far fa-folder-open"></i> Open</button>
@@ -614,7 +755,7 @@
 			<tbody>
 				<tr>
 					<td width="400em">Target:
-						<small id="passwordHelpBlock" class="form-text text-muted" data-toggle="tooltip" data-placement="top" title="e.g. 'Wedge100B65'">
+						<small class="form-text text-muted" data-toggle="tooltip" data-placement="top" title="e.g. 'Wedge100B65'">
 								Select the stamper device type.
 						</small>
 					</td>
@@ -629,7 +770,7 @@
 				</tr>
 				<tr>
 					<td width="400em">Stamp Packets:
-							<small id="passwordHelpBlock" class="form-text text-muted" data-toggle="tooltip" data-placement="top" title="e.g. 'TCP'">
+							<small class="form-text text-muted" data-toggle="tooltip" data-placement="top" title="e.g. 'TCP'">
 									Select the packet type (if supported) to stamp
 							</small>
 					</td>
@@ -640,13 +781,12 @@
 					</td>
 				</tr>
 
-
 				<tr>
 					<td>Packet Forwarding Mode:</td>
 					<td>
 						<div>
 							<select class="form-control" id="forwarding_mode" name="forwarding_mode" value="{{forwarding_mode}}" onchange="changedForwardingMode()">
-								<option value="1">Layer 1 (1 server and 1 client only)</option>
+								<option value="1">Layer 1 (1 host per group only)</option>
 								<option value="2" {% if forwarding_mode == "2" %} selected {% endif %}>Layer 2</option>
 								<option value="3" {% if forwarding_mode == "3" %} selected {% endif %}>Layer 3</option>
 							</select>
@@ -657,15 +797,11 @@
 				<tr>
 					<td>
 						Duplication downscale factor:
-						<small id="passwordHelpBlock" class="form-text text-muted">
-								A threshold of 50 causes every 50th packet to be duplicated.
-						</small>
+						<small class="form-text text-muted">A threshold of 50 causes every 50th packet to be duplicated.</small>
 					</td>
 					<td><div class="needs-validation">
 						<input id="multicast" class="form-control" type="number" min="1" name="multicast" value="{{ multicast }}" style="width: 150px;" required/>
-						<div class="invalid-feedback">
-						Please choose a minimum value of 1.
-						</div>
+						<div class="invalid-feedback">Please choose a minimum value of 1.</div>
 						</div>
 					</td>
 				</tr>
@@ -674,10 +810,8 @@
 				</tr>
 				{% for entry in target_cfg.inputs.input_individual %}
 						<tr>
-							<td  width="400em">{{entry.title}}
-								<small id="passwordHelpBlock" class="form-text text-muted">
-									{{entry.description}}
-								</small>
+							<td width="400em">{{entry.title}}
+								<small class="form-text text-muted">{{entry.description}}</small>
 							</td>
 						<td width="500em">
 						{% with current=cfg|getkeyvalue:entry.target_key %}
@@ -690,8 +824,6 @@
 								{% endif %}
 							{% endfor %}
 							</select>
-						
-						
 						{% elif entry.type == "input" %}
 							<input id="{{entry.target_key}}" type="text" class="form-control" name="{{entry.target_key}}" value="{{current}}" />
 						{% endif %}
@@ -703,210 +835,183 @@
 					<th colspan="2">Load generator configuration:</th>
 				</tr>
 				<tr>
-					<td>
-						Packet Generator:
-						<small id="passwordHelpBlock" class="form-text text-muted">
-								Please choose from the available packet generators.
-						</small>
+					<td>Packet Generator:
+						<small class="form-text text-muted">Please choose from the available packet generators.</small>
 					</td>
 					<td>
 						<div>
-							<select class="form-control" id="selected_loadgen" name="selected_loadgen" value="{{forwarding_mode}}">
+							<select class="form-control" id="selected_loadgen" name="selected_loadgen" value="{{loadgen}}">
 							<option value="{{selected_loadgen}}">{{selected_loadgen}}</option>
-							{% for loadgen in available_loadgens %}
+							{% for loadgen in loadgens_without_selected %}
 								<option value="{{loadgen}}">{{loadgen}}</option>
 							{% endfor %}
 							</select>
 						</div>
 					</td>
 				</tr>
-			</tbody>
-		</table>
-	</div>
-	<h2>Configuration of Load Generators:</h2>
-	<div class="table-responsive">
-		<table id="tbl_server" class="table table-bordered table-striped table-highlight">
-			<thead><tr>
-				<th>Loadgen Group 1</th>
-				<th>SSH IP (e.g. 172.10.5.9)</th>
-				<th>SSH Username</th>
-				<th data-toggle="tooltip" data-placement="top" title="For iPerf3 packets">Loadgen Iface (e.g. eth0)</th>
-				<th data-toggle="tooltip" data-placement="top" title="Retrieve MAC and IP from host. SSH user, SSH ip and loadgen interface are needed!">Fetch config</th>
-				<th>Loadgen MAC(e.g. ca:fe:..)</th>
-				<th>Loadgen IP(e.g. 10.0.0.1)</th>
-				<th>Namespace</th>
-				<th data-toggle="tooltip" data-placement="top" title="Set IP to given (namespace) interface. Use /netmask if necessary. SSH user, SSH ip and loadgen interface are needed and visudo must allow sudo for ifconfig!!">Set IP/Namespace</th>
-				<th data-toggle="tooltip" data-placement="top" title="Switch front-panel port">{% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
-				{% if port_mapping %}<th data-toggle="tooltip" data-placement="top" title="Only for internal settings">Internal Port</th>{% endif %}
-				<!--<th>Link Speed old(e.g. 10G)</th>-->
-				{% for entry in target_cfg.inputs.input_table %}
-					<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
-				{% endfor %}
-				<th> <button type="button" id="add_loadgen_server" class="btn btn-default btn-sm"><i class="fa fa-plus" style="font-size: 28pt; color:green"></i></button></th>
-			</tr></thead>
-			<tbody>
-				<input type="hidden" id="num_server" name="num_server" value="{{loadgen_servers|length}}">
-				<input type="hidden" id="add_server" name="add_server" value="0">
-				{% for loadgen_server in loadgen_servers %}
+
 				<tr>
-						<td data-toggle="tooltip" data-placement="top" title="Receives packets from client">Server 1.{{ loadgen_server.id }}</td>
-						<td><input id="s_{{loadgen_server.id}}_ssh" type="text" class="form-control ip_addr" name="s_{{loadgen_server.id}}_ssh_ip" value="{{loadgen_server.ssh_ip}}" /></td>
-						<td><input id="s_{{loadgen_server.id}}_user" type="text" class="form-control ssh_usr" name="s_{{loadgen_server.id}}_ssh_user" value="{{loadgen_server.ssh_user}}" /></td>
-						<td><input id="s_{{loadgen_server.id}}_iface" type="text" class="form-control iface_inp" name="s_{{loadgen_server.id}}_loadgen_iface" value="{{loadgen_server.loadgen_iface}}" /><div id="s_{{loadgen_server.id}}_iface_up"></div></td>
-						<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveIF('s', {{forloop.counter}});"><i class="fa fa-search"></button></td>
-						<td style="min-width: 160px"><input id="s_{{loadgen_server.id}}_mac" type="text" class="form-control mac_addr" name="s_{{loadgen_server.id}}_loadgen_mac" value="{{loadgen_server.loadgen_mac}}" /></td>
-						<td><input id="s_{{loadgen_server.id}}_ip" type="text" class="form-control ip_addr" name="s_{{loadgen_server.id}}_loadgen_ip" value="{{loadgen_server.loadgen_ip}}" /><div id="s_{{loadgen_server.id}}_ip_set"></div></td>
-						<td><div id="s_{{loadgen_server.id}}_namespace_div" style="text-align: center">
-							{% if loadgen_server.namespace_id is not None %}
-							<div class="input-group mb-3">
-								<input id="s_{{loadgen_server.id}}_namespace" type="text" class="form-control" name="s_{{loadgen_server.id}}_namespace" value="{{ loadgen_server.namespace_id }}" />
-								<div id="s_{{loadgen_server.id}}_namespace_up"></div>
-								<div class="input-group-append"><button type="button" class="btn btn-outline-secondary" onclick="delete_namespace_input('s_{{loadgen_server.id}}_namespace')"><i class="far fa-trash-alt"></i></button></div>
-								
-							</div>
-							{%else%}
-							<button type="button" style="margin:auto; display:block; font-size: 18pt" class="btn btn-default btn-sm" onclick="add_namespace_input('s_{{loadgen_server.id}}_namespace')"><i class="fa fa-plus"></i></button>{%endif%}
-						</div></td>
-						<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="setIP('s', {{forloop.counter}});"><i class="fa fa-wrench"></button></td>
-						<td><input id="s_{{loadgen_server.id}}_real_port" type="text" class="form-control real_port_inp" name="s_{{loadgen_server.id}}_real_port" value="{{ loadgen_server.real_port }}" /></td>
-						{% if port_mapping %}<td><input type="text" class="form-control" placeholder="{{ loadgen_server.p4_port }}" readonly /></td>{% endif %}
-						{% for entry in target_cfg.inputs.input_table %}
-						<td>
-						{% with current=loadgen_server|getkeyvalue:entry.target_key %}
-						{% if entry.type == "drop-down" %}
-							<select class="form-control" id="s_{{loadgen_server.id}}_{{entry.target_key}}" name="s_{{loadgen_server.id}}_{{entry.target_key}}" style="width: auto;">
-							<option value="{{current}}">{{current}}</option>
-							{% for val in entry.values %}
-								{% if current != val %}
-								<option value="{{val}}">{{val}}</option>
-								{% endif %}
+					<td>External Host Implementation:
+						<small class="form-text text-muted">Please choose from the available external host implementations.</small>
+					</td>
+					<td>
+						<div>
+							<select class="form-control" id="selected_extHost" name="selected_extHost" value="{{ext_host_impl}}">
+							<option value="{{selected_extHost}}">{{selected_extHost}}</option>
+							{% for exthost in exthosts_without_selected %}
+								<option value="{{exthost}}">{{exthost}}</option>
 							{% endfor %}
 							</select>
-						
-						
-						{% elif entry.type == "input" %}
-							<input id="s_{{loadgen_server.id}}_{{entry.target_key}}" type="text" class="form-control" name="s_{{loadgen_server.id}}_{{entry.target_key}}" value="{{current}}" />
-						{% endif %}
-						{% endwith %}
-						</td>
-						{% endfor %}
-						{% if loadgen_servers|length > 1 %}
-						<td><button type="button" id="delete_loadgen_server" class="btn btn-default btn-sm" onclick="delServer({{ forloop.counter }});"><i class="fa fa-trash" style="font-size: 28pt; color:red"></i></button></td>
-						
-						{% else %}
-						<td><button type="button" id="delete_loadgen_server" class="btn btn-default btn-sm"><i class="fa fa-trash" style="font-size: 28pt; color:gray"></i></button></td>
-						{% endif %}
-					</tr>
-				{% endfor %}
-			</tbody>
-		</table>
-	</div>
-	<div class="table-responsive">
-		<table id="tbl_client" class="table table-bordered table-striped table-highlight">
-			<thead>
-				<tr>
-					<th>Loadgen Group 2</th>
-					<th>SSH IP (e.g. 172.10.5.9)</th>
-					<th>SSH Username</th>
-					<th data-toggle="tooltip" data-placement="top" title="For iPerf3 packets">Loadgen Iface (e.g. eth0)</th>
-					<th data-toggle="tooltip" data-placement="top" title="Retrieve MAC and IP from host. SSH user, ip and loadgen interface are needed!">Fetch config</th>
-					<th>Loadgen MAC(e.g. ca:fe:..)</th>
-					<th>Loadgen IP(e.g. 10.0.0.1)</th>
-					<th>Namespace</th>
-					<th data-toggle="tooltip" data-placement="top" title="Set IP to given (namespace) interface. Use /netmask if necessary. SSH user, SSH ip and loadgen interface are needed and visudo must allow sudo for ifconfig!">Set IP/Namespace</th>
-					<th data-toggle="tooltip" data-placement="top" title="Switch front-panel port">{% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
-					{% if port_mapping %}<th data-toggle="tooltip" data-placement="top" title="Only for internal settings">Internal Port</th>{% endif %}
-					<!--<th>Link Speed (e.g. 10G)</th>-->
-					{% for entry in target_cfg.inputs.input_table %}
-						<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
-					{% endfor %}
-					<th> <button type="button" id="add_loadgen_client" class="btn btn-default btn-sm"><i class="fa fa-plus" style="font-size: 28pt; color:green"></i></button></th>
+						</div>
+					</td>
 				</tr>
-			</thead>
-			<tbody>
-					<input type="hidden" id="num_clients" name="num_clients" value="{{loadgen_clients|length}}">
-					<input type="hidden" id="add_client" name="add_client" value="0">
-					{% for loadgen_client in loadgen_clients %}
-					<tr>
-							<td data-toggle="tooltip" data-placement="top" title="Receives packets from client">Server 2.{{ forloop.counter }}</td>
-							<td><input id="c_{{loadgen_client.id}}_ssh" type="text" class="form-control ip_addr" name="c_{{loadgen_client.id}}_ssh_ip" value="{{loadgen_client.ssh_ip}}" /></td>
-							<td><input id="c_{{loadgen_client.id}}_user" type="text" class="form-control ssh_usr" name="c_{{loadgen_client.id}}_ssh_user" value="{{loadgen_client.ssh_user}}" /></td>
-							<td><input id="c_{{loadgen_client.id}}_iface" type="text" class="form-control iface_inp" name="c_{{loadgen_client.id}}_loadgen_iface" value="{{loadgen_client.loadgen_iface}}" /><div id="c_{{loadgen_client.id}}_iface_up"></div></td>
-							<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveIF('c', {{forloop.counter}});"><i class="fa fa-search"></button></td>
-							<td style="min-width: 160px"><input id="c_{{loadgen_client.id}}_mac" type="text" class="form-control mac_addr" name="c_{{loadgen_client.id}}_loadgen_mac" value="{{loadgen_client.loadgen_mac}}" /></td>
-							<td><input id="c_{{loadgen_client.id}}_ip" type="text" class="form-control ip_addr" name="c_{{loadgen_client.id}}_loadgen_ip" value="{{loadgen_client.loadgen_ip}}" /><div id="c_{{loadgen_client.id}}_ip_set"></div></td>
-							<td><div id="c_{{loadgen_client.id}}_namespace_div" style="text-align: center">
-								{% if loadgen_client.namespace_id is not None %}
-								<div class="input-group mb-3">
-									<input id="c_{{loadgen_client.id}}_namespace" type="text" class="form-control" name="c_{{loadgen_client.id}}_namespace" value="{{ loadgen_client.namespace_id }}" />
-									<div id="c_{{loadgen_client.id}}_namespace_up"></div>
-									<div class="input-group-append"><button type="button" class="btn btn-outline-secondary" onclick="delete_namespace_input('c_{{loadgen_client.id}}_namespace')"><i class="far fa-trash-alt"></i></button></div>
-								</div>
-								{%else%}
-								<button type="button" style="margin:auto; display:block; font-size: 18pt" class="btn btn-default btn-sm" onclick="add_namespace_input('c_{{loadgen_client.id}}_namespace')"><i class="fa fa-plus"></i></button>{%endif%}
-							</div></td>
-							<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="setIP('c', {{forloop.counter}});"><i class="fa fa-wrench"></button></td>
-							<td><input id="s_{{loadgen_client.id}}_real_port" type="text" class="form-control real_port_inp" name="c_{{loadgen_client.id}}_real_port" value="{{ loadgen_client.real_port }}" /></td>
-							{% if port_mapping %}<td><input type="text" class="form-control" placeholder="{{ loadgen_client.p4_port }}" readonly /></td>{% endif %}
-						{% for entry in target_cfg.inputs.input_table %}
-						<td>
-						{% with current=loadgen_client|getkeyvalue:entry.target_key %}
-						{% if entry.type == "drop-down" %}
-							<select class="form-control" id="c_{{loadgen_client.id}}_{{entry.target_key}}" name="c_{{loadgen_client.id}}_{{entry.target_key}}" style="width: auto;">
-							<option value="{{current}}">{{current}}</option>
-							{% for val in entry.values %}
-								{% if current != val %}
-								<option value="{{val}}">{{val}}</option>
-								{% endif %}
-							{% endfor %}
-							</select>
-						
-						
-						{% elif entry.type == "input" %}
-							<input id="c_{{loadgen_client.id}}_{{entry.target_key}}" type="text" class="form-control" name="c_{{loadgen_client.id}}_{{entry.target_key}}" value="{{current}}" />
-						{% endif %}
-						{% endwith %}
-						</td>
-						{% endfor %}
-						<td>
-							<button type="button" id="delete_loadgen_client" class="btn btn-default btn-sm" onclick="delClient({{ forloop.counter }});">
-								<i class="fa fa-trash" style="font-size: 28pt; color:red"></i>
-							</button>
-						</td>
-					</tr>
-					{% endfor %}
+
 			</tbody>
 		</table>
 	</div>
+
+<h2>Configuration of Load Generators:
+	<button type="button" id="add_new_loadgen_grp" class="btn btn-default btn-sm">
+		<i class="fa fa-plus" style="font-size: 28pt; color:green" data-toggle="tooltip" data-placement="top" title="Add new Load Generator group and DUT-Port"></i>
+	</button>
+	<button type="button" id="del_loadgen_grp" class="btn btn-default btn-sm">
+		<i class="fa fa-minus" style="font-size: 28pt; color:red" data-toggle="tooltip" data-placement="top" title="Remove last Load Generator group and DUT-Port"></i>
+	</button>
+</h2>
+<input type="hidden" id="num_loadgen_groups" name="num_loadgen_groups" value="{{loadgen_groups|length}}">
+<div id="add_loadgen_group_helper"></div>
+<div id="loadgens_hidden_inputs"></div>
+{% for loadgen_grp in loadgen_groups %}
+<div class="table-responsive" id="div_tbl_grp_{{loadgen_grp.group}}">
+	<table id="tbl_grp_{{loadgen_grp.group}}" class="table table-bordered table-striped table-highlight">
+		<thead><tr>
+			<th>Group {{loadgen_grp.group}}</th>
+			<th>SSH IP</th>
+			<th>SSH Username</th>
+			<th data-toggle="tooltip" data-placement="top" title="For iPerf3 packets">Loadgen Iface (e.g. eth0)</th>
+			<th data-toggle="tooltip" data-placement="top" title="Retrieve MAC and IP from host. SSH user, SSH ip and loadgen interface are needed!">Fetch config</th>
+			<th>Loadgen MAC(e.g. ca:fe:..)</th>
+			<th>Loadgen IP(e.g. 10.0.0.1)</th>
+			<th>Namespace</th>
+			<th data-toggle="tooltip" data-placement="top" title="Set IP to given (namespace) interface. Use /netmask if necessary. SSH user, SSH ip and loadgen interface are needed and visudo must allow sudo for ifconfig!!">Set IP/Namespace</th>
+			<th data-toggle="tooltip" data-placement="top" title="Switch front-panel port">{% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
+			{% for entry in target_cfg.inputs.input_table %}
+			{% if not entry.restrict or entry.restrict == "loadgen" %}
+				<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
+			{% endif %}
+			{% endfor %}
+			<th><button type="button" id="add_loadgen_to_grp_{{loadgen_grp.group}}" class="btn btn-default btn-sm"><i class="fa fa-plus" style="font-size: 28pt; color:green"></i></button></th>
+		</tr></thead>
+		<tbody>
+			<input type="hidden" id="num_grp_{{loadgen_grp.group}}" name="num_grp_{{loadgen_grp.group}}" value="{{loadgen_grp.loadgens|length}}">
+			<input type="hidden" id="add_to_grp_{{loadgen_grp.group}}" name="add_to_grp_{{loadgen_grp.group}}" value="0">
+			{% for loadgen_server in loadgen_grp.loadgens %}
+			<tr id="tr_loadgen_{{loadgen_grp.group}}_{{loadgen_server.id}}">
+					<td data-toggle="tooltip" data-placement="top" title="Receives packets from client">Host {{loadgen_grp.group}}.{{ loadgen_server.id }}</td>
+					<td><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_ssh" type="text" class="form-control ip_addr" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_ssh_ip" value="{{loadgen_server.ssh_ip}}" /></td>
+					<td><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_user" type="text" class="form-control ssh_usr" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_ssh_user" value="{{loadgen_server.ssh_user}}" /></td>
+					<td><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_iface" type="text" class="form-control iface_inp" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_loadgen_iface" value="{{loadgen_server.loadgen_iface}}" /><div id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_iface_up"></div></td>
+					<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveIF('s{{loadgen_grp.group}}', {{forloop.counter}});"><i class="fa fa-search"></button></td>
+					<td style="min-width: 160px"><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_mac" type="text" class="form-control mac_addr" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_loadgen_mac" value="{{loadgen_server.loadgen_mac}}" /></td>
+					<td><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_ip" type="text" class="form-control ip_addr" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_loadgen_ip" value="{{loadgen_server.loadgen_ip}}" /><div id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_ip_set"></div></td>
+					<td><div id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_namespace_div" style="text-align: center">
+						{% if loadgen_server.namespace_id is not None %}
+						<div class="input-group mb-3">
+							<input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_namespace" type="text" class="form-control" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_namespace" value="{{ loadgen_server.namespace_id }}" />
+							<div id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_namespace_up"></div>
+							<div class="input-group-append"><button type="button" class="btn btn-outline-secondary" onclick="delete_namespace_input('s{{loadgen_grp.group}}_{{loadgen_server.id}}_namespace')"><i class="far fa-trash-alt"></i></button></div>
+							
+						</div>
+						{%else%}
+						<button type="button" style="margin:auto; display:block; font-size: 18pt" class="btn btn-default btn-sm" onclick="add_namespace_input('s{{loadgen_grp.group}}_{{loadgen_server.id}}_namespace')"><i class="fa fa-plus"></i></button>{%endif%}
+					</div></td>
+					<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="setIP('s{{loadgen_grp.group}}', {{forloop.counter}});"><i class="fa fa-wrench"></button></td>
+					<td>
+						<div class="input-group mb-3">
+							<input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_real_port" type="text" aria-describedby="addon" class="form-control real_port_inp" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_real_port" value="{{ loadgen_server.real_port }}" />
+							<div class="input-group-append">
+								  <span class="input-group-text" id="addon" style="width: 120px;">internal: {{ loadgen_server.p4_port }}</span>
+							</div>
+						</div>
+					</td>
+					{% for entry in target_cfg.inputs.input_table %}
+					{% if not entry.restrict or entry.restrict == "loadgen" %}
+					<td>
+					{% with current=loadgen_server|getkeyvalue:entry.target_key %}
+					{% if entry.type == "drop-down" %}
+						<select class="form-control" id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_{{entry.target_key}}" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_{{entry.target_key}}" style="width: auto;">
+						<option value="{{current}}">{{current}}</option>
+						{% for val in entry.values %}
+							{% if current != val %}
+							<option value="{{val}}">{{val}}</option>
+							{% endif %}
+						{% endfor %}
+						</select>
+					
+					
+					{% elif entry.type == "input" %}
+						<input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_{{entry.target_key}}" type="text" class="form-control" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_{{entry.target_key}}" value="{{current}}" />
+					{% endif %}
+					{% endwith %}
+					</td>
+					{% endif %}
+					{% endfor %}
+					{% if loadgen_grp.loadgens|length > 1 %}
+					<td><button type="button" id="delete_loadgen_server_btn" class="btn btn-default btn-sm" onclick="delServerfromLoadgenGroup('{{loadgen_grp.group}}', {{loadgen_server.id}});"><i class="fa fa-trash" style="font-size: 28pt; color:red"></i></button></td>
+					{% else %}
+					<td><button type="button" id="delete_loadgen_server_btn" class="btn btn-default btn-sm" disabled><i class="fa fa-trash" style="font-size: 28pt; color:gray"></i></button></td>
+					{% endif %}
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+</div>
+{% endfor %}
+<!-- contains disabled input fields to preserve them in POST -->
+<div id="stamper_post_helper"></div>
 	<h2>Stamper</h2>
 	<div class="table-responsive">
 		<table class="table table-bordered table-striped table-highlight">
 			<thead>
 				<tr>
+					<th>DUT ID</th>
 					<th data-toggle="tooltip" data-placement="top" title="The DUT needs to support the selected mode!">Use port?</th>
-					<th>DUT</th>
 					<th data-toggle="tooltip" data-placement="top" title="Switch front-panel port">{% if port_mapping %}Front Port (e.g. 1/0){%else%}Port{%endif%}</th>
-					{% if port_mapping %}<th data-toggle="tooltip" data-placement="top" title="Only for internal settings">Internal Port</th>{%endif%}
-					{% for entry in target_cfg.inputs.input_table %}
-						<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
-					{% endfor %}
 					<th data-toggle="tooltip" data-placement="top" title="Defines which flow gets stamped and duplicated to the external host. 'outgoing' referes to the Stamper device. ">Stamp outgoing packets</th>
+					{% for entry in target_cfg.inputs.input_table %}
+					{% if not entry.restrict or entry.restrict == "dut" %}
+						<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
+					{% endif %}
+					{% endfor %}
+					
 				</tr>
 			</thead>
 			<tbody>
-				<tr>
-					<td><input type="checkbox" checked disabled/></td>
-					<td>Device Under Test Port A:</td>
-					<td><input id="dut1_real" type="text" class="form-control real_port_inp" name="dut1_real" value="{{ dut1_real }}" /></td>
-					{% if port_mapping %}<td><input type="text" class="form-control" placeholder="{{ dut1 }}" readonly /></td>{% endif %}
+				{% for dut in dut_ports %}
+				<tr id="dut_tr_{{dut.id}}">
+					<td>Device Under Test ID {{dut.id}}:</td>
+					{% if dut.id == 1 %}
+					<td style="text-align: center;"><input type="checkbox" checked disabled/></td>
+					{% else %}
+					<td style="text-align: center;"><input id="dut_{{dut.id}}_use_port" type="checkbox" name="dut_{{dut.id}}_use_port" onclick="use_port_box_changed('{{dut.id}}');" value="checked" {{dut.use_port}}></td>
+					{% endif %}
+					<td>
+						<div class="input-group mb-3">
+							<input id="dut{{dut.id}}_real" type="text" aria-describedby="addon" class="form-control real_port_inp{% if dut.id != 1 %}_check_before_dut{{dut.id}}{% endif %}" name="dut{{dut.id}}_real" value="{{ dut.real_port }}" />
+							<div class="input-group-append">
+						  		<span class="input-group-text" id="addon" style="width: 120px;">internal: {{ dut.p4_port }}</span>
+							</div>
+						</div>
+					</td>
+					<td style="text-align: center;"><input id="dut_{{dut.id}}_outgoing_stamp" type="checkbox" name="dut_{{dut.id}}_outgoing_stamp" value="checked" onchange="outgoing_stamp_changed()" {{dut.stamp_outgoing}} /></td>
 					{% for entry in target_cfg.inputs.input_table %}
+					{% if not entry.restrict or entry.restrict == "dut" %}
 						<td>
-						{% with dut1="dut1_" %}
-						{% with key=dut1|add:entry.target_key %}
-						{% with current=cfg|getkeyvalue:key %}
+
+						{% with current=dut|getkeyvalue:entry.target_key %}
 						
 						{% if entry.type == "drop-down" %}
-							<select class="form-control" id="{{key}}" name="{{key}}">
+							<select class="form-control" id="dut{{dut.id}}_{{entry.target_key}}" name="dut{{dut.id}}_{{entry.target_key}}">
 							<option value="{{current}}">{{current}}</option>
 							{% for val in entry.values %}
 								{% if current != val %}
@@ -917,63 +1022,35 @@
 						
 						
 						{% elif entry.type == "input" %}
-							<input id="{{key}}" type="text" class="form-control" name="{{key}}" value="{{current}}" />
+							<input id="dut{{dut.id}}_{{entry.target_key}}" type="text" class="form-control" name="dut{{dut.id}}_{{entry.target_key}}" value="{{current}}" />
 						{% endif %}
+
 						{% endwith %}
-						{% endwith %}
-						{% endwith %}
+
 						</td>
-						{% endfor %}
-					<td><input id="dut_1_outgoing_stamp" type="checkbox" name="dut_1_outgoing_stamp" value="checked" onchange="outgoing_stamp_changed('DUT A')" {{dut_1_outgoing_stamp}} /></td>
-				</tr>
-				<tr>
-					<td><input id="dut_2_use_port" type="checkbox" name="dut_2_use_port" onclick="box_changed();" value="checked" {{dut_2_use_port}}></td>
-					<td>Device Under Test Port B:</td>
-					<td><input id="dut2_real" type="text" class="form-control" name="dut2_real" value="{{ dut2_real }}"/></td>
-					{% if port_mapping %}<td><input type="text" class="form-control" placeholder="{{ dut2 }}" readonly /></td>{% endif %}
-					{% for entry in target_cfg.inputs.input_table %}
-						<td>
-						{% with dut2="dut2_" %}
-						{% with key=dut2|add:entry.target_key %}
-						{% with current=cfg|getkeyvalue:key %}
-						
-						{% if entry.type == "drop-down" %}
-							<select class="form-control" id="{{key}}" name="{{key}}">
-							<option value="{{current}}">{{current}}</option>
-							{% for val in entry.values %}
-								{% if current != val %}
-								<option value="{{val}}">{{val}}</option>
-								{% endif %}
-							{% endfor %}
-							</select>
-						
-						
-						{% elif entry.type == "input" %}
-							<input id="{{key}}" type="text" class="form-control" name="{{key}}" value="{{current}}" />
 						{% endif %}
-						{% endwith %}
-						{% endwith %}
-						{% endwith %}
-						</td>
 						{% endfor %}
-					<td><input id="dut_2_outgoing_stamp" type="checkbox" name="dut_2_outgoing_stamp" value="checked" onchange="outgoing_stamp_changed('DUT B')" {{dut_2_outgoing_stamp}} /></td>
+					
 				</tr>
+				{% endfor %}
 			</tbody>
 		</table>
 	</div>
+
+
 	<div class="table-responsive">
 		<table class="table table-bordered table-striped table-highlight">
 			<thead>
 				<tr>
-					<th> Other</th>
-					<th>SSH IP (e.g. 172.10.5.9)</th>
+					<th>Other</th>
+					<th>SSH IP</th>
 					<th>SSH Username</th>
 					<th data-toggle="tooltip" data-placement="top" title="For iPerf3 packets">Interface (e.g. eth0)</th>
 					<th data-toggle="tooltip" data-placement="top" title="Choose front-panel port, e.g. 1/0 or bf_pci0">{% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
-					{% if port_mapping %}<th data-toggle="tooltip" data-placement="top" title="Only for internal settings">Internal Port</th>{% endif %}
-					<!--<th>Link Speed (e.g. 10G)</th>-->
 					{% for entry in target_cfg.inputs.input_table %}
+						{% if not entry.restrict or entry.restrict == "ext_host" %}
 						<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
+						{% endif %}
 					{% endfor %}
 				</tr>
 			</thead>
@@ -983,9 +1060,16 @@
 					<td><input id="ext_host_ssh" type="text" class="form-control ip_addr" name="ext_host_ssh" value="{{ext_host_ssh}}" /></td>
 					<td><input id="ext_host_user" type="text" class="form-control ssh_usr" name="ext_host_user" value="{{ ext_host_user }}" /></td>
 					<td><input id="ext_host_if" type="text" class="form-control iface_inp" name="ext_host_if" value="{{ext_host_if}}" /></td>
-					<td><input id="ext_host_real" type="text" class="form-control real_port_inp" name="ext_host_real" value="{{ ext_host_real }}" /></td>
-					{% if port_mapping %}<td><input type="text" class="form-control" placeholder="{{ ext_host }}" readonly /></td>{% endif %}
+					<td>
+						<div class="input-group mb-3">
+							<input id="ext_host_real" type="text" class="form-control real_port_inp" aria-describedby="addon" name="ext_host_real" value="{{ ext_host_real }}" />
+							<div class="input-group-append">
+								  <span class="input-group-text" id="addon" style="width: 120px;">internal: {{ ext_host }}</span>
+							</div>
+						</div>
+					</td>
 					{% for entry in target_cfg.inputs.input_table %}
+						{% if not entry.restrict or entry.restrict == "ext_host" %}
 						<td>
 						{% with ext_host="ext_host_" %}
 						{% with key=ext_host|add:entry.target_key %}
@@ -1009,6 +1093,7 @@
 						{% endwith %}
 						{% endwith %}
 						</td>
+						{% endif %}
 						{% endfor %}
 				</tr>
 				<tr>
@@ -1017,9 +1102,10 @@
 					<td><input id="p4_dev_user" type="text" class="form-control ssh_usr" name="p4_dev_user" value="{{p4_dev_user}}"/></td>
 					<td></td>
 					<td></td>
-					{% if port_mapping %}<td></td>{% endif %}
 					{% for entry in target_cfg.inputs.input_table %}
+					{% if not entry.restrict or entry.restrict == "ext_host" %}
 					<td></td>
+					{% endif %}
 					{% endfor %}
 				</tr>
 			</tbody>
@@ -1074,9 +1160,9 @@
 
 <!--- draws the current network configuration -->
 <script>
-	{% include "middlebox/port_graphic.html"%}
+	{% include "middlebox/port_graphic.html" %}
 
-	function outgoing_stamp_changed(dut){
+	function outgoing_stamp_changed(){
 		draw(document.getElementById("topology"), changed=true);
 	}
 	draw(document.getElementById("topology"));

@@ -1,3 +1,4 @@
+builds/*
 GitHub/*
 data/*
 /data/config.json
@@ -16,3 +17,7 @@ test.*
 pastaenv/*
 targets/BF2556X-1T.zip
 targets/BF2556X-1T/
+build/
+install_server.sh
+*.pcap
+initfile

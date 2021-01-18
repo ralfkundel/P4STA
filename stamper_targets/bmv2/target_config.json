@@ -1,0 +1,15 @@
+{
+	"target": "bmv2",
+	"cfg_template": "bmv2_config_template.json",
+	"target_driver": "bmv2_stamper_v1_0_0.py",
+	"stamping_capabilities": {"tcp": true, "udp": true, "timestamp-multi": 1000, "timestamp-max": 281474976710655},
+	"inputs": 
+	{
+		"input_individual": [
+			{"title": "Name of P4 program", "type": "input", "target_key": "program", "description": "Name of the P4 program you want to use."},
+			{"title": "BMV2 dir", "type": "input", "target_key": "bmv2_dir", "description": "Path of BMV directory, e.g. /home/../behavioral-model"}
+		],
+		"input_table": []
+	},
+	"status_check": {"needed_sudos_to_add": ["/usr/bin/kill", "/usr/bin/killall", "/bin/mn", "/p4sta/stamper/bmv2/scripts/return_ingress.py", "/p4sta/stamper/bmv2/scripts/netgen.py"]}
+}
