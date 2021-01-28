@@ -27,7 +27,8 @@ Currently supported Stamper Targets are:
 * [Netronome NFP-SmartNICs](stamper_targets/netronome/README.md)
 
 # Installation
-P4STA needs to be run on Linux. Ubuntu 16.04/18.04 LTS is well tested but other version should work as well.
+P4STA needs to be run on Linux. For the management server Ubuntu 18.04 LTS is well tested but other versions should work as well (python3.6 (since Ubuntu 18.10) or newer is required).
+For all other servers any Ubuntu version should work.
 After cloning this repository on any server/machine (management server) in your testbed, ensure that:
 1. Every server (loadgen servers, P4-device, external host) requires ssh pub key from management-server to allow a password-free SSH-connection
 2. Execute the install script (./install.sh)
