@@ -84,6 +84,14 @@
 				// more convinient solution if user wants to undo delete
 				document.getElementById("div_tbl_grp_" + num_loadgen_groups.toString()).remove();
 				document.getElementById("dut_tr_" + num_loadgen_groups.toString()).remove();
+				
+				exec_submit = check_all_fields();
+				if(exec_submit){
+					document.getElementById("config_form").submit();
+				} else {
+					// because inputs are already deleted a second execution of "#del_loadgen_grp" would result in errors
+					document.getElementById("del_loadgen_grp").disabled = true;
+				}
 
 			}
 

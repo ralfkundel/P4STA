@@ -21,6 +21,7 @@ from . import views
 urlpatterns = [
     path('', views.configure_page, name='index'),
     path('setup_devices/', views.setup_devices),
+    path('skip_setup_redirect_to_config/', views.skip_setup_redirect_to_config),
     path('run_setup_script/', views.run_setup_script),
     path('stop_shellinabox_redirect_to_config/', views.stop_shellinabox_redirect_to_config),
     path('setup_ssh_checker/', views.setup_ssh_checker),

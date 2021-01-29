@@ -45,11 +45,11 @@ sys.path.append(dir_path)
 try:
     import bfruntime_pb2
 except ImportError:
-    print_error("bfruntime_pb2 MODULE NOT FOUND, SURE YOU EXECUTED INSTALL_SERVER.SH?")
+    print_error("bfruntime_pb2 MODULE NOT FOUND. Sure you followed the install instructions? Please stop and restart p4sta after the initial installation of the Tofino driver.")
 try:
     import bfruntime_pb2_grpc
 except ImportError:
-    print_error("bfruntime_pb2_grpc MODULE NOT FOUND, SURE YOU EXECUTED INSTALL_SERVER.SH?")
+    print_error("bfruntime_pb2_grpc MODULE NOT FOUND. Sure you followed the install instructions? Please stop and restart p4sta after the initial installation of the Tofino driver.")
 
 
 class TofinoInterface:

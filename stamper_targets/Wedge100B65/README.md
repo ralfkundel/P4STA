@@ -22,3 +22,4 @@ and build them with the build script of the SDE:
 
 ## install P4STA driver for tofino
 Follow the installation process starting from step 3.1 in the main readme of this repository.
+** Imortant: ** after the first installation p4sta must be stopped and restarted in the CLI in order to load the compiled grpc files.

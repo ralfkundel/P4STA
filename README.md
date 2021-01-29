@@ -38,19 +38,21 @@ After cloning this repository on any server/machine (management server) in your 
 This setup script will install only the dependencies on the management server. All other servers will be installed later automatically.
 
 3. After the installation you will be asked if you want to use the local Web-GUI (option: 1/2) or CLI (option: 3). If you choose the GUI it will be accessible in your browser at: http://MANAGEMENT-SERVER-IP:9997
-Please choose 2 (or 1).
 
 The first time P4STA will automatically open the setup window. You can open this window also later to configure further servers with the construction tool in the top right of the html UI.
 
 In this setup window:
 
-4. select the type of external host, stamper and load generator you want to setup. Disable categories you do not want to install.
-5. insert the IP addresses and user names for these servers (note: this should be the IP address in the management network which is accessible via ssh).
-6. check your configurations by the check button. If everything is green -> Click on the "Create Setup Script" button.
-7. Click on "Execute install_server.sh script!" button in the newly opened window. The CLI will ask you multiple time for your password on the server which will be currently installed (once for each server to be installed).
-8. after the script completes, you can close the window with "Finish" and start using P4STA.
+  3.1. select the type of external host, stamper and load generator you want to setup. Disable categories you do not want to install.
+  3.2. insert the IP addresses and user names for these servers (note: this should be the IP address in the management network which is accessible via ssh).
+  3.3. check your configurations by the check button. If everything is green -> Click on the "Create Setup Script" button.
+  3.4. Click on "Execute install_server.sh script!" button in the newly opened window. The CLI will ask you multiple time for your password on the server which will be currently installed (once for each server to be installed).
+  3.5 after the script completes, you can close the window with "Finish" and start using P4STA. 
+  
+** Important:  For Intel Tofino ** 
 
-Note: In case of Barefoot/Intel Tofino Compile the P4-Code of the stamper target must be compiled manually on your P4-device. For details see the [Tofino readme](stamper_targets/Wedge100B65/README.md). For BMV2 (Mininet) and Netronome this is not necessary as this repository contains the compiler output.
+1. it is required to stop P4STA in the CLI and restart it after installation. Otherwise the grpc drivers are not loaded correctly.
+2. Compile the P4-Code of the stamper target on your P4-device. For details see the [Tofino readme](stamper_targets/Wedge100B65/README.md). For BMV2 (Mininet) and Netronome this is not necessary as this repository contains the compiler output.
 
 
 # Using P4STA

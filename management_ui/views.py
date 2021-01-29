@@ -112,7 +112,7 @@ def updateCfg(request):
             for i in range(1, int(request.POST["num_loadgen_groups"])+1):
                 cfg["loadgen_groups"].append({"group": i, "loadgens": []})
 
-        for loadgen_grp in cfg["loadgen_groups"]: # falls anzahl sich ändert?!
+        for loadgen_grp in cfg["loadgen_groups"]: # 
             num_servers = int(request.POST["num_grp_" + str(loadgen_grp["group"])])
             servers = []
             i = 1
@@ -159,8 +159,21 @@ def updateCfg(request):
                 s["ssh_ip"] = ""
                 s["ssh_user"] = ""
                 s["loadgen_iface"] = ""
+                # add default values to target specific inputs
+                for t_inp in target_cfg["inputs"]["input_table"]:
+                    if "default_value" in t_inp:
+                        s[t_inp["target_key"]] = t_inp["default_value"]
+                    else:
+                        s[t_inp["target_key"]] = ""
                 servers.append(s)
 
+
+            #set target specific default values
+            for s in servers:
+                for t_inp in target_cfg["inputs"]["input_table"]:
+                    if "default_value" in t_inp and t_inp["target_key"] in s and s[t_inp["target_key"]] == "":
+                        s[t_inp["target_key"]] = t_inp["default_value"]
+            
             loadgen_grp["loadgens"] = servers
 
         cfg["dut_ports"] = []
@@ -173,19 +186,27 @@ def updateCfg(request):
                     cfg[t_inp["target_key"]] = str(request.POST[t_inp["target_key"]])
                 else:
                     cfg[t_inp["target_key"]] = ""
+                    
 
             for t_inp in target_cfg["inputs"]["input_table"]:
                 for dut in cfg["dut_ports"]:
                     if "dut" + str(dut["id"]) + "_" + t_inp["target_key"] in request.POST:
                         dut[t_inp["target_key"]] = str(request.POST["dut" + str(dut["id"]) + "_" + t_inp["target_key"]])
                     elif "restrict" not in t_inp or t_inp["restrict"] == "dut":
-                        cfg["dut" + str(dut["id"]) + "_" + t_inp["target_key"]] = ""
+                        dut[t_inp["target_key"]] = ""
+                        
+                    if "default_value" in t_inp and dut[t_inp["target_key"]] == "":
+                        dut[t_inp["target_key"]] = t_inp["default_value"]
 
                 if "ext_host_" + t_inp["target_key"] in request.POST:
                     cfg["ext_host_" + t_inp["target_key"]] = str(request.POST["ext_host_" + t_inp["target_key"]])
                 elif "restrict" not in t_inp or t_inp["restrict"] == "ext_host":
                     cfg["ext_host_" + t_inp["target_key"]] = ""
-
+                    
+                if "default_value" in t_inp and ("ext_host_" + t_inp["target_key"]) in cfg and  cfg["ext_host_" + t_inp["target_key"]]== "":
+                     cfg["ext_host_" + t_inp["target_key"]] = t_inp["default_value"]
+                    
+                    
         except Exception as e:
             print("EXCEPTION: " + str(e))
             print(traceback.format_exc())
@@ -196,7 +217,7 @@ def updateCfg(request):
         except Exception as e:
             print("FAILED: Finding Ext-Host Real Port: " + str(e))
 
-        # check if second dut port should be used or not
+        # check if second,third, ... dut port should be used or not
         for dut in cfg["dut_ports"]:
             if int(dut["id"]) == 1:
                 dut["use_port"] = "checked"
@@ -205,7 +226,7 @@ def updateCfg(request):
                     if "dut_" + str(dut["id"]) + "_use_port" in request.POST:
                         dut["use_port"] = request.POST["dut_" + str(dut["id"]) + "_use_port"]
                     else:
-                        dut["use_port"] = "unchecked"
+                        dut["use_port"] = "checked"
                 except:
                     dut["use_port"] = "checked"
 
@@ -301,39 +322,42 @@ def setup_devices(request):
         # only create install script if button is clicked
         if "create_setup_script_button" in request.POST:
             core_conn.root.write_install_script(setup_devices_cfg)
+
+            # now write config.json with new data
+            if request.POST.get("enable_stamper") == "on":
+                path = core_conn.root.get_template_cfg_path(request.POST["selected_stamper"])
+                cfg = core_conn.root.open_cfg_file(path)
+                cfg["p4_dev_ssh"] = request.POST["stamper_ip"]
+                cfg["p4_dev_user"] = request.POST["stamper_user"]
+                if request.POST.get("enable_ext_host") == "on" and "ext_host_user" in request.POST:
+                    cfg["ext_host_user"] = request.POST["ext_host_user"]
+                    cfg["ext_host_ssh"] = request.POST["ext_host_ip"]
+                    cfg["selected_extHost"] = request.POST["selected_extHost"]
+                cfg["selected_loadgen"] = request.POST["selected_loadgen"]
+
+                # add all loadgens to loadgen group 1 and 2
+                cfg["loadgen_groups"] = [{"group": 1, "loadgens": [], "use_group": "checked"},
+                                         {"group": 2, "loadgens": [], "use_group": "checked"}]
+                grp1 = setup_devices_cfg["loadgens"][len(setup_devices_cfg["loadgens"]) // 2:]
+                grp2 = setup_devices_cfg["loadgens"][:len(setup_devices_cfg["loadgens"]) // 2]
+                id_c = 1
+                for loadgen in grp1:
+                    cfg["loadgen_groups"][0]["loadgens"].append({"id": id_c, "loadgen_iface": "", "loadgen_ip": "", "loadgen_mac": "", "real_port": "", "p4_port": "", "ssh_ip": loadgen["loadgen_ssh_ip"], "ssh_user": loadgen["loadgen_user"]})
+                    id_c = id_c + 1
+                id_c = 1
+                for loadgen in grp2:
+                    cfg["loadgen_groups"][1]["loadgens"].append({"id": id_c, "loadgen_iface": "", "loadgen_ip": "", "loadgen_mac": "", "real_port": "", "p4_port": "", "ssh_ip": loadgen["loadgen_ssh_ip"], "ssh_user": loadgen["loadgen_user"]})
+                    id_c = id_c + 1
+
+                if core_conn.root.check_first_run():
+                    P4STA_utils.write_config(cfg)
+            core_conn.root.first_run_finished()
             return HttpResponseRedirect("/run_setup_script/")
-
-        # now write config.json with new data
-        if request.POST.get("enable_stamper") == "on":
-            path = core_conn.root.get_template_cfg_path(request.POST["selected_stamper"])
-            cfg = core_conn.root.open_cfg_file(path)
-            cfg["p4_dev_ssh"] = request.POST["stamper_ip"]
-            cfg["p4_dev_user"] = request.POST["stamper_user"]
-            if request.POST.get("enable_ext_host") == "on" and "ext_host_user" in request.POST:
-                cfg["ext_host_user"] = request.POST["ext_host_user"]
-                cfg["ext_host_ssh"] = request.POST["ext_host_ip"]
-                cfg["selected_extHost"] = request.POST["selected_extHost"]
-            cfg["selected_loadgen"] = request.POST["selected_loadgen"]
-
-            # add all loadgens to loadgen group 1 and 2
-            cfg["loadgen_groups"] = [{"group": 1, "loadgens": [], "use_group": "checked"},
-                                     {"group": 2, "loadgens": [], "use_group": "checked"}]
-            grp1 = setup_devices_cfg["loadgens"][len(setup_devices_cfg["loadgens"]) // 2:]
-            grp2 = setup_devices_cfg["loadgens"][:len(setup_devices_cfg["loadgens"]) // 2]
-            id_c = 1
-            for loadgen in grp1:
-                cfg["loadgen_groups"][0]["loadgens"].append({"id": id_c, "loadgen_iface": "", "loadgen_ip": "", "loadgen_mac": "", "real_port": "", "p4_port": "", "ssh_ip": loadgen["loadgen_ssh_ip"], "ssh_user": loadgen["loadgen_user"]})
-                id_c = id_c + 1
-            id_c = 1
-            for loadgen in grp2:
-                cfg["loadgen_groups"][1]["loadgens"].append({"id": id_c, "loadgen_iface": "", "loadgen_ip": "", "loadgen_mac": "", "real_port": "", "p4_port": "", "ssh_ip": loadgen["loadgen_ssh_ip"], "ssh_user": loadgen["loadgen_user"]})
-                id_c = id_c + 1
-
-            if core_conn.root.check_first_run():
-                P4STA_utils.write_config(cfg)
+            
+        #cancel case    
         core_conn.root.first_run_finished()
-
         return HttpResponseRedirect("/")
+        
     else: # request the page
         print("### Setup Devices #####")
         params = {}
@@ -356,17 +380,22 @@ def setup_devices(request):
         return render(request, "middlebox/setup_page.html", {**params})
 
 
+def skip_setup_redirect_to_config(request):
+    print("First run finished (skip setup): skip_setup_redirect_to_config")
+    core_conn.root.first_run_finished()
+    return HttpResponseRedirect("/")
+
 def run_setup_script(request):
     def bash_command(cmd):
         subprocess.Popen(['/bin/bash', '-c', cmd])
 
-    bash_command("pkill shellinaboxd; shellinaboxd -p 4201 --disable-ssl -u $(id -u) --service /:${USER}:${USER}:${PWD}:./core/scripts/spawn_install_server_bash.sh")
+    bash_command("sudo pkill shellinaboxd; shellinaboxd -p 4201 --disable-ssl -u $(id -u) --service /:${USER}:${USER}:${PWD}:./core/scripts/spawn_install_server_bash.sh")
     return render(request, "middlebox/run_setup_script_page.html", {})
 
 def stop_shellinabox_redirect_to_config(request):
     def bash_command(cmd):
         subprocess.Popen(['/bin/bash', '-c', cmd])
-    bash_command("pkill shellinaboxd;")
+    bash_command("sudo pkill shellinaboxd;")
     print("stop_shellinabox_redirect_to_config")
     return HttpResponseRedirect("/")
 

@@ -46,7 +46,7 @@ ask_and_create_key () {
 add_sudo_rights() {
   current_user=$USER 
   if (sudo -l | grep -q '(ALL : ALL) NOPASSWD: '$1); then 
-    echo 'visudo entry already exists';  
+    echo 'visudo entry already exists for: '${1};  
   else
     sleep 0.1
     echo $current_user' ALL=(ALL:ALL) NOPASSWD:'$1 | sudo EDITOR='tee -a' visudo; 
@@ -71,12 +71,13 @@ then
 		sleep 1
 		read -p "Do you wish to install the dependencies on this machine? Y/N: " yn
 		case $yn in
-		    [Yy]* ) sudo apt update; sudo apt -y install python3-pip virtualenv net-tools shellinabox;  create_env; pip3 install -r requirements.txt ;  deactivate; echo "finished pip3 on webserver"; break;; 
+		    [Yy]* ) add_sudo_rights $(which pkill); sudo apt update; sudo apt -y install python3-pip virtualenv net-tools shellinabox;  create_env; pip3 install -r requirements.txt ;  deactivate; echo "finished pip3 on webserver"; break;; 
 		    [Nn]* ) break;;
 		    * ) echo "Please answer yes or no.";;
 		esac
 	done
 else
+      add_sudo_rights $(which pkill);
       sudo apt update; sudo apt -y install python3-pip virtualenv net-tools;  create_env; pip3 install -r requirements.txt ;  deactivate; echo "finished pip3 on webserver";
 fi
 

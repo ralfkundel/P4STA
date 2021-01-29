@@ -16,11 +16,11 @@
 			{"title": "SDE", "type": "input", "target_key": "sde", "description": "Path of SDE directory, e.g. /opt/bf.."}
 		],
 		"input_table": [
-			{"title": "Link Speed", "type": "drop-down", "values": ["10G", "25G", "40G", "50G", "100G"], "target_key": "speed", "description": "Link speed of interface"},
-			{"title": "FEC", "type": "drop-down", "values": ["NONE", "FC", "RS"], "target_key": "fec", "description": "Value must be NONE|FC|RS"},
-			{"title": "AN", "type": "drop-down", "values": ["default", "on", "off"], "target_key": "an", "description": "Autonegotiation value must be default|on|off"},
+			{"title": "Link Speed", "type": "drop-down", "values": ["10G", "25G", "40G", "50G", "100G"],  "default_value": "100G", "target_key": "speed", "description": "Link speed of interface"},
+			{"title": "FEC", "type": "drop-down", "values": ["NONE", "FC", "RS"], "default_value": "NONE", "target_key": "fec", "description": "Value must be NONE|FC|RS"},
+			{"title": "AN", "type": "drop-down", "values": ["default", "on", "off"], "default_value": "default", "target_key": "an", "description": "Autonegotiation value must be default|on|off"},
 			{"title": "Limit [Mbit/s]", "type": "input", "target_key": "shape", "description": "Set a throughput limit (outgoing from stamper) in Mbit/s (Traffic Shaping), disable = 0"},
-			{"restrict": "dut", "title": "DP Duplication", "type": "input", "target_key": "dataplane_duplication", "description": "For each packet N additional duplicates egressing this DUT port"}
+			{"restrict": "dut", "title": "DP Duplication",  "default_value": "0", "type": "input", "target_key": "dataplane_duplication", "description": "For each packet N additional duplicates egressing this DUT port"}
 		]	
 	},
 	"status_check": {"needed_sudos_to_add": ["/usr/bin/pkill"]},

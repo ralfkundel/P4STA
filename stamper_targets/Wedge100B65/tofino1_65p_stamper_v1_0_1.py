@@ -518,7 +518,9 @@ class TargetImpl(AbstractTarget):
     def start_p4_dev_software(self, cfg):
         script_dir = dir_path + "/scripts/run_switchd.sh"
         output_sub = subprocess.run([dir_path + "/scripts/start_switchd.sh", cfg["p4_dev_ssh"], cfg["p4_dev_user"], self.get_sde(cfg), cfg["program"], script_dir], stdout=subprocess.PIPE)
-        print("started stamper device software")
+        print("started stamper device software. sleep 15 seconds until grpc is up")
+        time.sleep(15)
+        print("grpc ports of tofino should be up now")
         print(output_sub)
 
     def get_p4_dev_startup_log(self, cfg):
@@ -629,9 +631,12 @@ class TargetImpl(AbstractTarget):
 
         lst.append('  echo "FINISHED setting up Barefoot Tofino target"')
         lst.append('  echo "====================================="')
-        lst.append('  echo "\033[1;33m WARNING: P4 source code must be compiled manually on Tofino after compiling SDE\033[0m"')
+        lst.append('  echo "\033[0;31m IMPORTANT NOTE: P4 source code must be compiled manually on Tofino after compiling Intel/Barefoot SDE\033[0m"')
         lst.append('  echo "====================================="')
-
+        lst.append('  echo ""')
+        lst.append('  echo "====================================="')
+        lst.append('  echo "\033[0;31m IMPORTANT NOTE: Please stop the install.sh script in the CLI and restart P4STA with ./run.sh in order to load the freshly compiled grpc files correctly. \033[0m"')
+        lst.append('  echo "====================================="')
         lst.append('fi')
 
         return lst
