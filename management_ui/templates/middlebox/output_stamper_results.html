@@ -38,7 +38,7 @@
 	<div class="col-md-2"><p><b>Created:</b> {{time}}</p></div>
 	<div class="col-md-2"></div>
 	<div class="col-md-2">
-		<a class="btn btn-primary" href="/downloadSwitch/" role="button">Download</a>
+		<a class="btn btn-primary" href="/downloadStamperResults/" role="button">Download</a>
 	</div>
 </div>
 <hr/>
@@ -94,13 +94,13 @@
 				<thead>
 					<tr>
 						<th>Ingoing Port</th>
-						<th>Throughput</th>
-						<th>Throughput (Packets)</th>
-						<th>Average Packetsize (Bytes)</th>
+						<th>Byte Count</th>
+						<th>Packet Count</th>
+						<th>Average Packetsize</th>
 						<th></th>
-						<th>Throughput</th>
-						<th>Throughput (Packets)</th>
-						<th>Average Packetsize (Bytes)</th>
+						<th>Byte Count</th>
+						<th>Packet Count</th>
+						<th>Average Packetsize</th>
 						<th>Outgoing Port</th>
 					</tr>
 				</thead>
@@ -114,13 +114,13 @@
 						<td>{{ host.real_port }}</td>
 						<td>{{ host.throughput_gbyte_ingress }}</td>
 						<td>{{ host.num_ingress_packets }}</td>
-						<td>{{ host.avg_packet_size_ingress }}</td>
+						<td>{{ host.avg_packet_size_ingress }} B</td>
 						{% with cur_dut=dut_ports|getbyindex:loadgen_grp_indx %}
 						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right"></i></center></td>
 						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.throughput_gbyte_egress }}</td>
 						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.num_egress_packets }}</td>
-						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.avg_packet_size_egress }}</td>
-						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.real_port }}</td>
+						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.avg_packet_size_egress }} B</td>
+						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.real_port }} </td>
 						{% endwith %}
 					</tr>
 					{% else %}
@@ -128,7 +128,7 @@
 						<td>{{ host.real_port }}</td>
 						<td>{{ host.throughput_gbyte_ingress }}</td>
 						<td>{{ host.num_ingress_packets }}</td>
-						<td>{{ host.avg_packet_size_ingress }}</td>
+						<td>{{ host.avg_packet_size_ingress }} B</td>
 					</tr>
 					{% endif %}
 					{% endfor %}
@@ -147,11 +147,11 @@
 						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.real_port }}</td>
 						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.throughput_gbyte_ingress }}</td>
 						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.num_ingress_packets }}</td>
-						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.avg_packet_size_ingress }}</td>
+						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.avg_packet_size_ingress }} B</td>
 						<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right"></i></center></td>
 						<td>{{ host.throughput_gbyte_egress }}</td>
 						<td>{{ host.num_egress_packets }}</td>
-						<td>{{ host.avg_packet_size_egress }}</td>
+						<td>{{ host.avg_packet_size_egress }} B </td>
 						<td>{{ host.real_port }}</td>
 						{% endwith %}
 					</tr>
@@ -159,7 +159,7 @@
 					<tr>
 						<td>{{ host.throughput_gbyte_egress }}</td>
 						<td>{{ host.num_egress_packets }}</td>
-						<td>{{ host.avg_packet_size_egress }}</td>
+						<td>{{ host.avg_packet_size_egress }} B</td>
 						<td>{{ host.real_port }}</td>
 					</tr>
 					{% endif %}
@@ -189,13 +189,13 @@
 					<thead>
 						<tr>
 							<th>Ingoing Port</th>
-							<th>Throughput</th>
-							<th>Throughput (Packets)</th>
-							<th>Average Packetsize (Bytes)</th>
+							<th>Byte Count</th>
+							<th>Packet Count</th>
+							<th>Average Packetsize</th>
 							<th></th>
-							<th>Throughput</th>
-							<th>Throughput (Packets)</th>
-							<th>Average Packetsize (Bytes)</th>
+							<th>Byte Count</th>
+							<th>Packet Count</th>
+							<th>Average Packetsize</th>
 							<th>Outgoing Port</th>
 						</tr>
 					</thead>
@@ -209,12 +209,12 @@
 							<td>{{ host.real_port }}</td>
 							<td>{{ host.throughput_gbyte_ingress_stamped }}</td>
 							<td>{{ host.num_ingress_stamped_packets }}</td>
-							<td>{{ host.avg_packet_size_ingress_stamped }}</td>
+							<td>{{ host.avg_packet_size_ingress_stamped }} B</td>
 							{% with cur_dut=dut_ports|getbyindex:loadgen_grp_indx %}
 							<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right"></i></center></td>
 							<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.throughput_gbyte_egress_stamped }}</td>
 							<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.num_egress_stamped_packets }}</td>
-							<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.avg_packet_size_egress_stamped }}</td>
+							<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.avg_packet_size_egress_stamped }} B</td>
 							<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.real_port }}</td>
 							{% endwith %}
 						</tr>
@@ -223,7 +223,7 @@
 							<td>{{ host.real_port }}</td>
 							<td>{{ host.throughput_gbyte_ingress_stamped }}</td>
 							<td>{{ host.num_ingress_stamped_packets }}</td>
-							<td>{{ host.avg_packet_size_ingress_stamped }}</td>
+							<td>{{ host.avg_packet_size_ingress_stamped }} B</td>
 						</tr>
 						{% endif %}
 						{% endfor %}
@@ -242,11 +242,11 @@
 							<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.real_port }}</td>
 							<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.throughput_gbyte_ingress_stamped }}</td>
 							<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.num_ingress_stamped_packets }}</td>
-							<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.avg_packet_size_ingress_stamped }}</td>
+							<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle">{{ cur_dut.avg_packet_size_ingress_stamped }} B</td>
 							<td rowspan="{{ loadgen_grp.loadgens|length }}" style="vertical-align:middle"><center><i class="fas fa-arrow-right"></i></center></td>
 							<td>{{ host.throughput_gbyte_egress_stamped }}</td>
 							<td>{{ host.num_egress_stamped_packets }}</td>
-							<td>{{ host.avg_packet_size_egress_stamped }}</td>
+							<td>{{ host.avg_packet_size_egress_stamped }} B</td>
 							<td>{{ host.real_port }}</td>
 							{% endwith %}
 						</tr>
@@ -254,7 +254,7 @@
 						<tr>
 							<td>{{ host.throughput_gbyte_egress_stamped }}</td>
 							<td>{{ host.num_egress_stamped_packets }}</td>
-							<td>{{ host.avg_packet_size_egress_stamped }}</td>
+							<td>{{ host.avg_packet_size_egress_stamped }} B</td>
 							<td>{{ host.real_port }}</td>
 						</tr>
 						{% endif %}
@@ -268,29 +268,30 @@
 			</div>
 		</span>
 	
-	<hr/>
 
 	<span id="ext_host_table_changeable">
-	<p><u>Measured for  <b>all</b> packets flowing to external host:</u></p>
-	<table class="table table-bordered table-striped table-highlight">
-		<thead>
-			<tr>
-				<th>Egress Port</th>
-				<th>Throughput</th>
-				<th>Throughput (Packets)</th>
-				<th>Average Packetsize (Bytes)</th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr>
-				<td>{{ ext_host_real }}</td>
-				<td>{{ ext_host_throughput_egress }}</td>
-				<td>{{ ext_host_num_egress_packets }}</td>
-				<td>{{ ext_host_avg_packet_size_egress }}</td>
-			</tr>
-		</tbody>
-	</table>
-	</span>
+			<p><u>Measured for  <b>all</b> packets flowing to external host:</u></p>
+			<div class="table-responsive">
+			<table class="table table-bordered table-striped table-highlight">
+			<thead>
+				<tr>
+					<th>Egress Port</th>
+					<th>Byte Count</th>
+					<th>Packet Count</th>
+					<th>Average Packetsize (Bytes)</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>{{ ext_host_real }}</td>
+					<td>{{ ext_host_throughput_egress }}</td>
+					<td>{{ ext_host_num_egress_packets }}</td>
+					<td>{{ ext_host_avg_packet_size_egress }}</td>
+				</tr>
+			</tbody>
+			</table>
+		</div>
+		</span>
 
 	<span id="ext_host_table_changeable_stamped" hidden>
 		<p><u>Measured for  <b>stamped</b> packets flowing to external host:</u></p>
@@ -298,8 +299,8 @@
 			<thead>
 				<tr>
 					<th>Egress Port</th>
-					<th>Throughput</th>
-					<th>Throughput (Packets)</th>
+					<th>Byte Count</th>
+					<th>Packet Count</th>
 					<th>Average Packetsize (Bytes)</th>
 				</tr>
 			</thead>

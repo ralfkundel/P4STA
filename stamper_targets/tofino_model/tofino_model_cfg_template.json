@@ -79,8 +79,8 @@
   "selected_loadgen": "iperf3",
   "selected_extHost": "PythonExtHost",
   "selected_target": "tofino_model",
-  "p4_dev_ssh": "",
-  "p4_dev_user": "root",
+  "stamper_ssh": "",
+  "stamper_user": "root",
   "stamp_tcp": "checked",
   "stamp_udp": "checked"
 }

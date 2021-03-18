@@ -17,7 +17,7 @@
 <head>
 <script>
 $("#latency_interactive_btn").click(function() {
-	$("#output_dygraph").html('<img src="{% static 'images/spinner.svg' %}" />');
+	$("#output_dygraph").html('<p>Generating interactive graph ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
 	$.get("/dygraph/", function(data) {
 		var btn_div = document.getElementById("latency_interactive_btn_div");
 		var btn = document.getElementById("latency_interactive_btn");
@@ -139,14 +139,30 @@ $("#latency_interactive_btn").click(function() {
 	<div class="col-md-6"><img src="{{ MEDIA_URL }}pdv_sec.svg?cachebuster={{cachebuster}}" style="width: 100%; height: 100%"/ ></div>
 </div>
 <hr/>
-<p><h5>
-<b><u>Throughput</u></b>
-<i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="Throughput at external host differs from the actual throughput at the DUT because of multicast threshold!"></i>
-</h5></p>
-<div class="row">
-	<div class="col-md-6"><img src="{{ MEDIA_URL }}speed.svg?cachebuster={{cachebuster}}" style="width: 100%; height: 100%"/ ></div>
-	<div class="col-md-6"><img src="{{ MEDIA_URL }}packet_rate.svg?cachebuster={{cachebuster}}" style="width: 100%; height: 100%"/ ></div>
-</div>
+
+<p>
+
+	<h5><b><u>Throughput</u></b>
+		<i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="Throughput at external host differs from the actual throughput at the DUT because of multicast threshold!"></i>
+	</h5>
+
+	<div class="custom-control custom-switch">
+		<input type="checkbox" class="custom-control-input" id="upscaleSwitch" onchange="changeThroughput(this);">
+		<label class="custom-control-label" for="upscaleSwitch">Show upscaled</label>
+	  </div>
+</p>	
+<span id="throughput_not_upscaled">
+	<div class="row">
+		<div class="col-md-6"><img src="{{ MEDIA_URL }}speed.svg?cachebuster={{cachebuster}}" style="width: 100%; height: 100%"/ ></div>
+		<div class="col-md-6"><img src="{{ MEDIA_URL }}packet_rate.svg?cachebuster={{cachebuster}}" style="width: 100%; height: 100%"/ ></div>
+	</div>
+</span>
+<span id="throughput_upscaled" hidden>
+	<div class="row">
+		<div class="col-md-6"><img src="{{ MEDIA_URL }}speed_upscaled.svg?cachebuster={{cachebuster}}" style="width: 100%; height: 100%"/ ></div>
+		<div class="col-md-6"><img src="{{ MEDIA_URL }}packet_rate_upscaled.svg?cachebuster={{cachebuster}}" style="width: 100%; height: 100%"/ ></div>
+	</div>
+</span>
 
 {% endif %}
 {% endif %}
@@ -154,4 +170,20 @@ $("#latency_interactive_btn").click(function() {
 <p>No csv files found!</p>
 <p>Sure you started end stopped an external host session? As well it's important that you select at least one flow to dupliacte.</p>
 {% endif %}
+
+
+<script>
+	function changeThroughput(status) {
+		if(status.checked){
+			document.getElementById('throughput_not_upscaled').hidden = true;
+			document.getElementById('throughput_upscaled').hidden = false;
+	
+		} else {
+			document.getElementById('throughput_not_upscaled').hidden = false;
+			document.getElementById('throughput_upscaled').hidden = true;
+		}
+	}
+	</script>
+
+
 </body>

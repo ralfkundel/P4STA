@@ -32,8 +32,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 project_path = dir_path[0:dir_path.find("/core")]
 sys.path.append(project_path)
 
-# import calculate module
-from calculate import calculate
+# import analytics module
+from analytics import analytics
 
 first_run = False
 
@@ -220,10 +220,18 @@ class P4staCore(rpyc.Service):
                 lst.append(f)
         try:
             date_time_objects = []
+            all_targets = self.get_all_targets()
             for filename in lst:
-                # e.g. tofino_model_01.08.2020-16:19:06.json
-                datestr = filename.split("_")[-1].split(".json")[0]
-                date_time_objects.append([filename, datetime.datetime.strptime(datestr, '%d.%m.%Y-%H:%M:%S')])
+                # only match json files with valid names like tofino_model_... or bmv2_...
+                match = False
+                for target in all_targets:
+                    if filename.startswith(target):
+                        match = True
+                        break
+                if match:
+                    # e.g. tofino_model_01.08.2020-16:19:06.json
+                    datestr = filename.split("_")[-1].split(".json")[0]
+                    date_time_objects.append([filename, datetime.datetime.strptime(datestr, '%d.%m.%Y-%H:%M:%S')])
             # now sort list of date_list by date (index 1)
             date_time_objects.sort(key=lambda x: x[1], reverse=True)
 
@@ -233,7 +241,7 @@ class P4staCore(rpyc.Service):
 
             return final
         except:
-            print("EXCEPTION GET AVAILABLE CFG FILES")
+            print("EXCEPTION get_available_cfg_files")
             print(traceback.format_exc())
             return lst
 
@@ -307,15 +315,15 @@ class P4staCore(rpyc.Service):
             print(to_plot)
             for key, value in to_plot.items():
                 print("key: " + key + "  value: " + str(value))
-                calculate.plot_graph(value["value_list_input"], value["index_list"], value["titel"], value["x_label"],
+                analytics.plot_graph(value["value_list_input"], value["index_list"], value["titel"], value["x_label"],
                                      value["y_label"], value["filename"], value["adjust_unit"], value["adjust_y_ax"])
 
             with open(os.path.join(P4STA_utils.get_results_path(file_id), "output_loadgen_" + str(file_id) + ".txt"), "w+") as f:
                 f.write("Used Loadgenerator: " + loadgen.get_name())
-                f.write("Total meaured speed: " + str(calculate.find_unit_bit_byte(total_bits, "bit")[0]) + " " +
-                        calculate.find_unit_bit_byte(total_bits, "bit")[1] + "/s" + "\n")
-                f.write("Total measured throughput: " + str(calculate.find_unit_bit_byte(total_byte, "byte")[0]) + " " +
-                        calculate.find_unit_bit_byte(total_byte, "byte")[1] + "\n")
+                f.write("Total meaured speed: " + str(analytics.find_unit_bit_byte(total_bits, "bit")[0]) + " " +
+                        analytics.find_unit_bit_byte(total_bits, "bit")[1] + "/s" + "\n")
+                f.write("Total measured throughput: " + str(analytics.find_unit_bit_byte(total_byte, "byte")[0]) + " " +
+                        analytics.find_unit_bit_byte(total_byte, "byte")[1] + "\n")
                 f.write("Total retransmitted packets: " + str(total_retransmits) + " Packets" + "\n")
 
                 for key, value in custom_attr["elems"].items():
@@ -361,11 +369,11 @@ class P4staCore(rpyc.Service):
 
         return output
 
-    def read_p4_device(self):
+    def read_stamperice(self):
         target = self.get_stamper_target_obj(P4STA_utils.read_current_cfg()["selected_target"])
-        cfg = target.read_p4_device(P4STA_utils.read_current_cfg())
+        cfg = target.read_stamperice(P4STA_utils.read_current_cfg())
 
-        with open(os.path.join(self.get_current_results_path(), "p4_dev_" + str(P4staCore.measurement_id) + ".json"), "w") as write_json:
+        with open(os.path.join(self.get_current_results_path(), "stamper_" + str(P4staCore.measurement_id) + ".json"), "w") as write_json:
             json.dump(cfg, write_json, indent=2, sort_keys=True)
 
         if cfg["delta_counter"] == 0:
@@ -373,20 +381,20 @@ class P4staCore(rpyc.Service):
         else:
             average = cfg["total_deltas"] / cfg["delta_counter"]
 
-        with open(os.path.join(self.get_current_results_path(), "output_p4_device_" + str(P4staCore.measurement_id) + ".txt"), "w+") as f:
+        with open(os.path.join(self.get_current_results_path(), "output_stamperice_" + str(P4staCore.measurement_id) + ".txt"), "w+") as f:
             try:
                 f.write("################################################################################\n")
-                f.write("######## Results from P4 device for ID " + str(P4staCore.measurement_id) + " from " + str(
+                f.write("######## Results from Stamper for ID " + str(P4staCore.measurement_id) + " from " + str(
                     time.strftime('%H:%M:%S %d.%m.%Y', time.localtime(int(P4staCore.measurement_id)))) + " ########\n")
                 f.write("#### The chosen ID results from the time where the external hosts started. #####\n")
                 f.write("################################################################################\n\n")
                 f.write("Measured for all timestamped packets:" + "\n")
-                f.write("Average Latency: " + str(round(calculate.find_unit([average])[0][0], 2)) + " " + str(
-                    calculate.find_unit([average])[1]) + "\n")
-                f.write("Min Latency: " + str(calculate.find_unit([cfg["min_delta"]])[0][0]) + " " + str(
-                    calculate.find_unit([cfg["min_delta"]])[1]) + "\n")
-                f.write("Max Latency: " + str(calculate.find_unit([cfg["max_delta"]])[0][0]) + " " + str(
-                    calculate.find_unit([cfg["max_delta"]])[1]) + "\n\n")
+                f.write("Average Latency: " + str(round(analytics.find_unit([average])[0][0], 2)) + " " + str(
+                    analytics.find_unit([average])[1]) + "\n")
+                f.write("Min Latency: " + str(analytics.find_unit([cfg["min_delta"]])[0][0]) + " " + str(
+                    analytics.find_unit([cfg["min_delta"]])[1]) + "\n")
+                f.write("Max Latency: " + str(analytics.find_unit([cfg["max_delta"]])[0][0]) + " " + str(
+                    analytics.find_unit([cfg["max_delta"]])[1]) + "\n\n")
                 f.write("Measured for all timestamped packets:" + "\n")
                 # Store packetloss between dut port and destination ports (where flows arrives after egressing dut)
                 num_ingress_packets = 0
@@ -471,7 +479,7 @@ class P4staCore(rpyc.Service):
 
                 f.write(tabulate(table, tablefmt="fancy_grid"))  # creates table with the help of tabulate module
 
-    def p4_dev_results(self, file_id):
+    def stamper_results(self, file_id):
         def adjust_byte_unit(val):
             if round(val / 1000000000, 2) > 1:
                 return str(round(val / 1000000000, 2)) + " GB"
@@ -486,20 +494,31 @@ class P4staCore(rpyc.Service):
         except:
             pass
         try:
-            with open(P4STA_utils.get_results_path(file_id) + "/p4_dev_" + str(file_id) + ".json", "r") as file:
+            results_path = P4STA_utils.get_results_path(file_id)
+            my_file = Path(results_path + "/stamper_" + str(file_id) + ".json")
+            if not my_file.is_file():
+                # to maintain backward compatibility try for p4_dev_ instead of stamper_
+                my_file2 = Path(results_path + "/p4_dev_" + str(file_id) + ".json")
+                if not my_file2.is_file():
+                    raise Exception("stamper_" + str(file_id) + ".json or p4_dev_" + str(file_id) + ".json not found in " + results_path)
+                else:
+                    file_str = "/p4_dev_"
+            else:
+                file_str = "/stamper_"
+            with open(P4STA_utils.get_results_path(file_id) + file_str + str(file_id) + ".json", "r") as file:
                 sw = json.load(file)
         except Exception as e:
             P4STA_utils.log_error("CORE Exception: " + traceback.format_exc())
-            return {}
+            return {"error": traceback.format_exc()}
         if sw["delta_counter"] != 0:
             average = sw["total_deltas"]/sw["delta_counter"]
         else:
             average = 0
         range_delta = sw["max_delta"] - sw["min_delta"]
-        sw["average"] = calculate.find_unit([average])
-        sw["min_delta"] = calculate.find_unit(sw["min_delta"])
-        sw["max_delta"] = calculate.find_unit(sw["max_delta"])
-        sw["range"] = calculate.find_unit(range_delta)
+        sw["average"] = analytics.find_unit([average])
+        sw["min_delta"] = analytics.find_unit(sw["min_delta"])
+        sw["max_delta"] = analytics.find_unit(sw["max_delta"])
+        sw["range"] = analytics.find_unit(range_delta)
         sw["pkt"] = sw["delta_counter"]
         sw["time"] = time_created
         sw["filename"] = file_id
@@ -639,7 +658,7 @@ class P4staCore(rpyc.Service):
         else:
             return ""
 
-    def p4_dev_status(self):
+    def stamper_status(self):
         def check_host(host):
             pingresp = (os.system("timeout 1 ping " + host["ssh_ip"] + " -c 1") == 0)  # if ping works it should be true
             host["reachable"] = pingresp
@@ -658,7 +677,7 @@ class P4staCore(rpyc.Service):
 
         cfg = P4STA_utils.read_current_cfg()
         target = self.get_stamper_target_obj(cfg["selected_target"])
-        lines_pm, running, dev_status = target.p4_dev_status(cfg)
+        lines_pm, running, dev_status = target.stamper_status(cfg)
 
         threads = list()
         for loadgen_group in cfg["loadgen_groups"]:
@@ -672,17 +691,17 @@ class P4staCore(rpyc.Service):
 
         return cfg, lines_pm, running, dev_status
 
-    def start_p4_dev_software(self):
+    def start_stamper_software(self):
         target = self.get_stamper_target_obj(P4STA_utils.read_current_cfg()["selected_target"])
-        return target.start_p4_dev_software(P4STA_utils.read_current_cfg())
+        return target.start_stamper_software(P4STA_utils.read_current_cfg())
 
-    def get_p4_dev_startup_log(self):
+    def get_stamper_startup_log(self):
         target = self.get_stamper_target_obj(P4STA_utils.read_current_cfg()["selected_target"])
-        return target.get_p4_dev_startup_log(P4STA_utils.read_current_cfg())
+        return target.get_stamper_startup_log(P4STA_utils.read_current_cfg())
 
-    def stop_p4_dev_software(self):
+    def stop_stamper_software(self):
         target = self.get_stamper_target_obj(P4STA_utils.read_current_cfg()["selected_target"])
-        target.stop_p4_dev_software(P4STA_utils.read_current_cfg())
+        target.stop_stamper_software(P4STA_utils.read_current_cfg())
 
     def reboot(self):
         cfg = P4STA_utils.read_current_cfg()
@@ -708,7 +727,7 @@ class P4staCore(rpyc.Service):
         file_id = str(P4staCore.measurement_id)
         cfg = P4STA_utils.read_current_cfg()
         target = self.get_stamper_target_obj(cfg["selected_target"])
-        lines_pm, running, dev_status = target.p4_dev_status(P4STA_utils.read_current_cfg())
+        lines_pm, running, dev_status = target.stamper_status(P4STA_utils.read_current_cfg())
         # backup current config (e.g. ports, speed) to results directory
         if not os.path.exists(self.get_current_results_path()):
             os.makedirs(self.get_current_results_path())
@@ -718,7 +737,7 @@ class P4staCore(rpyc.Service):
         tsmax = self.get_target_cfg()['stamping_capabilities']['timestamp-max']
         errors = ()
         if running:
-            errors = self.get_current_extHost_obj().start_external(file_id, multi = multi, tsmax=tsmax)
+            errors = self.get_current_extHost_obj().start_external(file_id, multi=multi, tsmax=tsmax)
         if errors != ():
             P4STA_utils.log_error(errors)
         return running, errors
@@ -732,41 +751,41 @@ class P4staCore(rpyc.Service):
         except:
             stoppable = False
 
-        self.read_p4_device()
+        self.read_stamperice()
 
         return stoppable
 
-    # displays results from external host python receiver from return of calculate module
+    # displays results from external host python receiver from return of analytics module
     def external_results(self, measurement_id):
         cfg = self.read_result_cfg(str(measurement_id))
 
-        extH_results = calculate.main(str(measurement_id), cfg["multicast"], P4STA_utils.get_results_path(measurement_id))
+        extH_results = analytics.main(str(measurement_id), cfg["multicast"], P4STA_utils.get_results_path(measurement_id))
 
         f = open(P4STA_utils.get_results_path(measurement_id) + "/output_external_host_" + str(measurement_id) + ".txt", "w+")
         f.write("Results from externel Host for every " + str(cfg["multicast"] + ". packet") + "\n")
         f.write("Raw packets: " + str(extH_results["num_raw_packets"]) + " Processed packets: " + str(
             extH_results["num_processed_packets"]) + " Total throughput: " + str(
             extH_results["total_throughput"]) + " Megabytes \n")
-        f.write("Min latency: " + str(calculate.find_unit(extH_results["min_latency"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["min_latency"])[1]))
-        f.write(" Max latency: " + str(calculate.find_unit(extH_results["max_latency"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["max_latency"])[1]))
-        f.write(" Average latency: " + str(calculate.find_unit(extH_results["avg_latency"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["avg_latency"])[1]) + "\n")
-        f.write("Min IPDV: " + str(calculate.find_unit(extH_results["min_ipdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["min_ipdv"])[1]) + "\n")
-        f.write("Max IPDV: " + str(calculate.find_unit(extH_results["max_ipdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["max_ipdv"])[1]) + "\n")
-        f.write("Average IPDV: " + str(calculate.find_unit(extH_results["avg_ipdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["avg_ipdv"])[1])
-                + " and abs(): " + str(calculate.find_unit(extH_results["avg_abs_ipdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["avg_abs_ipdv"])[1]) + "\n")
-        f.write("Min PDV: " + str(calculate.find_unit(extH_results["min_pdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["min_pdv"])[1]) + "\n")
-        f.write("Max PDV: " + str(calculate.find_unit(extH_results["max_pdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["max_pdv"])[1]) + "\n")
-        f.write("Average PDV: " + str(calculate.find_unit(extH_results["avg_pdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["avg_pdv"])[1]) + "\n")
+        f.write("Min latency: " + str(analytics.find_unit(extH_results["min_latency"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["min_latency"])[1]))
+        f.write(" Max latency: " + str(analytics.find_unit(extH_results["max_latency"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["max_latency"])[1]))
+        f.write(" Average latency: " + str(analytics.find_unit(extH_results["avg_latency"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["avg_latency"])[1]) + "\n")
+        f.write("Min IPDV: " + str(analytics.find_unit(extH_results["min_ipdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["min_ipdv"])[1]) + "\n")
+        f.write("Max IPDV: " + str(analytics.find_unit(extH_results["max_ipdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["max_ipdv"])[1]) + "\n")
+        f.write("Average IPDV: " + str(analytics.find_unit(extH_results["avg_ipdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["avg_ipdv"])[1])
+                + " and abs(): " + str(analytics.find_unit(extH_results["avg_abs_ipdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["avg_abs_ipdv"])[1]) + "\n")
+        f.write("Min PDV: " + str(analytics.find_unit(extH_results["min_pdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["min_pdv"])[1]) + "\n")
+        f.write("Max PDV: " + str(analytics.find_unit(extH_results["max_pdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["max_pdv"])[1]) + "\n")
+        f.write("Average PDV: " + str(analytics.find_unit(extH_results["avg_pdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["avg_pdv"])[1]) + "\n")
         f.write("Min packet/s: " + str(extH_results["min_packets_per_second"]) + " Max packet/s: " + str(
             extH_results["max_packets_per_second"]) + " Average packet/s: " + str(
             extH_results["avg_packets_per_second"]) + "\n")

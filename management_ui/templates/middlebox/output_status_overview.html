@@ -37,7 +37,7 @@
 		csrf_value = token[0].getAttribute("value");
 		$.ajax({
             type: "POST",
-            url: "/deleteNamespace/",
+            url: "/job_delete_namespace/",
             data: {
             	'csrfmiddlewaretoken': csrf_value,
             	'namespace': ns,
@@ -75,29 +75,29 @@
 
 <p><b><u>Stamper Device</u></b></p>
 <p>
-	{% if p4_dev_ssh_ping %}
+	{% if stamper_ssh_ping %}
 		<span class="dot_green" data-toggle="tooltip" data-placement="top" title="SSH IP is reacheably by ping."></span>
 	{% else %}
 		<span class="dot_red" data-toggle="tooltip" data-placement="top" title="SSH IP is not reacheably by ping."></span>
 	{% endif %} 
-	<b>SSH:</b> {{p4_dev_ssh}}
+	<b>SSH:</b> {{stamper_ssh}}
 </p>
 <p>
-{% if p4_dev_compile_status_color %}<span class="dot_green"></span>{% else %}<span class="dot_red"></span>{% endif %}
+{% if stamper_compile_status_color %}<span class="dot_green"></span>{% else %}<span class="dot_red"></span>{% endif %}
 {{p4_compile_status}}
 </p>
-{% if p4_dev_ssh_ping %}
+{% if stamper_ssh_ping %}
 
 {% for check in custom_checks %}
 <p><span class={% if check.0 == False %}"dot_red"{% else %}"dot_green"{% endif %}></span> <b>{{check.1}}: </b> {{check.2}}</p>
 {% endfor %}
 
 <details>
-  <summary><span class={% if p4_dev_needed_sudos_to_add|length > 0 %}"dot_red"{% else %}"dot_green"{% endif %}></span> SUDO RIGHTS {{p4_dev_user}}:</summary>
-  	{% for line in p4_dev_sudo_rights %}
+  <summary><span class={% if stamper_needed_sudos_to_add|length > 0 %}"dot_red"{% else %}"dot_green"{% endif %}></span> SUDO RIGHTS {{stamper_user}}:</summary>
+  	{% for line in stamper_sudo_rights %}
 		&emsp;{{line}}<br>
 	{% endfor %}
-	{% for line in p4_dev_needed_sudos_to_add %}
+	{% for line in stamper_needed_sudos_to_add %}
 		<br><p><i class="fas fa-exclamation"></i>
 		You shoud add to visudo: $USER (ALL : ALL) NOPASSWD:{{line}} *directory may be different*</p>
 	{% endfor %}

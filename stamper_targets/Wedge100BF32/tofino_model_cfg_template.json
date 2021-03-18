@@ -79,8 +79,8 @@
   "selected_loadgen": "iperf3",
   "selected_extHost": "PythonExtHost",
   "selected_target": "Wedge100BF32",
-  "p4_dev_ssh": "",
-  "p4_dev_user": "YOUR_USER_NAME",
+  "stamper_ssh": "",
+  "stamper_user": "YOUR_USER_NAME",
   "stamp_tcp": "checked",
   "stamp_udp": "checked"
 }

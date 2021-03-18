@@ -11,7 +11,8 @@ class PDFixedConnect:
     # connects directly to tm_api_rpc
     def __init__(self, thrift_ip, port=9090):
         try:
-            transport = TTransport.TBufferedTransport(TSocket.TSocket(thrift_ip, port))
+            transport = TTransport.TBufferedTransport(
+                TSocket.TSocket(thrift_ip, port))
             transport.open()
             bproto = TBinaryProtocol.TBinaryProtocol(transport)
             proto = TMultiplexedProtocol.TMultiplexedProtocol(bproto, "tm")
@@ -19,7 +20,7 @@ class PDFixedConnect:
             self.meth_dict = dict(inspect.getmembers(thr, inspect.ismethod))
             self.error = False
             self.error_message = ""
-        except:
+        except Exception:
             message = traceback.format_exc()
             print(message)
             self.error = True
@@ -30,6 +31,7 @@ class PDFixedConnect:
 
     def enable_port_shaping(self, port):
         self.meth_dict["tm_enable_port_shaping"](0, port)
+        # self.meth_dict["set_ingress_port_drop_limit"](0, port, ??)
 
     def disable_port_shaping(self, port):
         self.meth_dict["tm_disable_port_shaping"](0, port)

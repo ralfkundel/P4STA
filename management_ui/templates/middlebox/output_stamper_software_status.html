@@ -20,16 +20,16 @@
 			getIfaceStatus();
 
 			$("#deploy").click(function() {
-				$("#output_deploy").html('<img src="{% static 'images/spinner.svg' %}" />');
-				$.get("/deploy_device/", function(data) {
+				$("#output_deploy").html('<img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$.get("/subpage_deploy_deploy_device/", function(data) {
 					$("#output_deploy").html(data);
 					getPorts();
 				}, "html");
 			});
 
-			$("#start_p4_dev_software").click(function() {
-				$("#output_start").html('<img src="{% static 'images/spinner.svg' %}" />');
-				$.get("/start_p4_dev_software/", function(data) {
+			$("#start_stamper_software").click(function() {
+				$("#output_start").html('<p>Starting stamper software ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$.get("/subpage_deploy_start_stamper_software/", function(data) {
 					$("#output_start").html(data);
 					if (data.search("modal_timeout") == -1){
 						location.reload();
@@ -38,34 +38,34 @@
 			});
 
 			$("#reboot").click(function() {
-				$.get("/reboot/", function(data) {
+				$.get("/subpage_deploy_reboot/", function(data) {
 					$("#output_reboot").html(data);
 				}, "html");
 			});
  
 			$("#refresh_links").click(function() {
-				$.get("/refresh_links/", function(data) {
+				$.get("/subpage_deploy_refresh_links/", function(data) {
 					getIfaceStatus();
 				}, "html");
 			});
 
 			$("#log").click(function() {
-				$.get("/get_p4_dev_startup_log/", function(data) {
+				$.get("/subpage_deploy_get_stamper_startup_log/", function(data) {
 					$("#output_log").html(data);
 				}, "html");
 			});
 		});
 
 		function getPorts() {
-		$("#output_ports").html('<img src="{% static 'images/spinner.svg' %}" />');
-			$.get("/show_ports/", function(data) {
+		$("#output_ports").html('<p>Retrieving port status ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+			$.get("/subpage_deploy_show_ports/", function(data) {
 				$("#output_ports").html(data);
 			}, "html");
 		}
 
 		function getIfaceStatus() {
-		$("#output_iface_status").html('<img src="{% static 'images/spinner.svg' %}" />');
-			$.get("/host_iface_status/", function(data) {
+		$("#output_iface_status").html('<p>Retrieving interface status ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+			$.get("/subpage_deploy_host_iface_status/", function(data) {
 				$("#output_iface_status").html(data);
 			}, "html");
 		}
@@ -73,9 +73,9 @@
 
 <p>P4sta configured program: <b>{{cfg.program}}</b></p>
 {% if dev_is_running == True %}
-<p><b>P4 device is running: </b>{% autoescape off %}<span style="color:green">{{dev_status}}</span>{% endautoescape %}<button id="log" type="button" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Show P4 device startup log."><i class="fas fa-info-circle" style="font-size: 18pt; color:gray"></i></button></p>
+<p><b>Stamper is running: </b>{% autoescape off %}<span style="color:green">{{dev_status}}</span>{% endautoescape %}<button id="log" type="button" class="btn btn-default btn-sm" data-toggle="tooltip" data-placement="top" title="Show Stamper startup log."><i class="fas fa-info-circle" style="font-size: 18pt; color:gray"></i></button></p>
 <p>
-<button id="deploy" type="button" class="save btn btn-secondary">Deploy to P4 device</button>
+<button id="deploy" type="button" class="save btn btn-secondary">Deploy to Stamper</button>
 
 <div id="output_log"></div>
 <p>
@@ -86,8 +86,8 @@
 {% endif %} 
 
 {% if dev_is_running == False %}
-<b>P4 device is running: </b><span style="color:red">{{dev_status}}</span>
-<p><button id="start_p4_dev_software" type="button" class="save btn btn-secondary">Start P4 device software</button></p>
+<b>Stamper is running: </b><span style="color:red">{{dev_status}}</span>
+<p><button id="start_stamper_software" type="button" class="save btn btn-secondary"><i class="far fa-play-circle"></i> Start Stamper</button></p>
 <div id="output_start"></div>
 {% endif %}
 <hr/>

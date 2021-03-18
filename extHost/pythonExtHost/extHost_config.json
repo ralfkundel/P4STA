@@ -1,5 +1,19 @@
 {
-	"name": "PythonExtHost",
-	"driver": "pythonHostDriver.py",
-	"status_check": {"needed_sudos_to_add": ["/p4sta/externalHost/python/pythonRawSocketExtHost.py"]}
+   "name":"PythonExtHost",
+   "driver":"pythonHostDriver.py",
+   "status_check":{
+      "needed_sudos_to_add":[
+         "/p4sta/externalHost/python/pythonRawSocketExtHost.py",
+         "pkill",
+         "killall"
+      ]
+   },
+   "python_dependencies":[
+      {
+         "python_version":"3",
+         "modules":[
+            "setproctitle"
+         ]
+      }
+   ]
 }

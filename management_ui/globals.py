@@ -11,9 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import rpyc
 
-from django.apps import AppConfig
+from core import P4STA_utils
 
 
-class MiddleboxConfig(AppConfig):
-    name = 'management_ui'
+def main():
+    global selected_run_id
+    global core_conn
+    global project_path
+    core_conn = rpyc.connect('localhost', 6789)
+    project_path = core_conn.root.get_project_path()
+    P4STA_utils.set_project_path(project_path)
+    selected_run_id = core_conn.root.getLatestMeasurementId()

@@ -48,7 +48,7 @@
 			csrf_value = el[0].getAttribute("value");
 			$.ajax({
 			      type: "POST",
-			      url: "/setup_ssh_checker/",
+			      url: "/job_setup_ssh_checker/",
 			      data: {
 				'csrfmiddlewaretoken': csrf_value,
 				'user': user,

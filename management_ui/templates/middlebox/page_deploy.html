@@ -24,21 +24,21 @@
 		$(document).ready(function(){
 			refreshStatus();
 			
-			$("#p4_dev_status").click(function() {
+			$("#stamper_status").click(function() {
 				refreshStatus();
 			});
 
-			$("#stop_p4_dev_software").click(function() {
-				$("#output_p4_dev_status").html('<img src="{% static 'images/spinner.svg' %}" />');
-				$.get("/stop_p4_dev_software/", function(data) {
+			$("#stop_stamper_software").click(function() {
+				$("#output_stamper_status").html('<p>Stopping stamper software ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$.get("/subpage_deploy_stop_stamper_software/", function(data) {
 					location.reload();
 				}, "html");
 			});
 		});
 		function refreshStatus(){
-			$("#output_p4_dev_status").html('<img src="{% static 'images/spinner.svg' %}" />');
-					$.get("/p4_dev_status/", function(data) {
-						$("#output_p4_dev_status").html(data);
+			$("#output_stamper_status").html('<p>Retrieving stamper status...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+					$.get("/subpage_deploy_stamper_status/", function(data) {
+						$("#output_stamper_status").html(data);
 					}, "html");
 		}
 	</script>
@@ -63,10 +63,10 @@
 <div class="container-fluid">
 <div class="row">
 	<div class="col-md-2">
-		<button id="p4_dev_status" type="button" style="margin: 2px;" class="save btn btn-secondary">Refresh status</button>
-		<button id="stop_p4_dev_software" type="button" style="margin: 2px;" class="save btn btn-secondary">Stop P4 dev software</button>
+		<button id="stamper_status" type="button" style="margin: 2px; width: 200px;" class="save btn btn-secondary"><i style="align-content: left;" class="fas fa-sync"></i> Refresh status</button>
+		<button id="stop_stamper_software" type="button" style="margin: 2px; width: 200px;" class="save btn btn-secondary"><i class="far fa-stop-circle"></i> Stop Stamper</button>
 	</div>
-	<div class="col-md-9"><div id="output_p4_dev_status" class="card card-body"></div></div>
+	<div class="col-md-9"><div id="output_stamper_status" class="card card-body"></div></div>
 </div>
 
 

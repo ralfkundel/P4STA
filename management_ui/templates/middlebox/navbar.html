@@ -18,10 +18,10 @@
 <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
 	 <div class="collapse navbar-collapse" id="collapsibleNavbar">
 		<ul class="navbar-nav">
-		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views.configure_page" or request.resolver_match.view_name == "index" %} active {% endif %}"><a class="nav-link" href="/configuration/">Configuration</a></li>
-		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views.page_deploy" %} active {% endif %}"><a class="nav-link" href="/deploy/">Deploy</a></li>
-		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views.page_run" %} active {% endif %}"><a class="nav-link" href="/run/">Run</a></li>
-		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views.page_analyze" %} active {% endif %}"><a class="nav-link" href="/analyze/">Analyze</a></li>
+		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views_dir.configure.configure_page" or request.resolver_match.view_name == "index" %} active {% endif %}"><a class="nav-link" href="/configuration/">Configuration</a></li>
+		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views_dir.deploy.page_deploy" %} active {% endif %}"><a class="nav-link" href="/deploy/">Deploy</a></li>
+		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views_dir.run.page_run" %} active {% endif %}"><a class="nav-link" href="/run/">Run</a></li>
+		<li class="nav-item {% if request.resolver_match.view_name == "management_ui.views_dir.analyze.page_analyze" %} active {% endif %}"><a class="nav-link" href="/analyze/">Analyze</a></li>
 		</ul>
 		<ul class="navbar-nav ml-auto">
 			<li class="navbar-brand" ><a class="navbar-brand" >P4STA</a></li>

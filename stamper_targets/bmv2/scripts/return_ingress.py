@@ -18,7 +18,8 @@ import signal
 import time
 from socket import socket, AF_PACKET, SOCK_RAW, htons
 
-parser = argparse.ArgumentParser(description='raw socket which returns the incoming packet as it is')
+parser = argparse.ArgumentParser(
+    description='raw socket which returns the incoming packet as it is')
 parser.add_argument('--interface', help='Interface to listen to',
                     type=str, action="store", required=True)
 
@@ -41,10 +42,12 @@ signal.signal(signal.SIGTERM, stop_signals_handler)
 
 while go:
     try:
-        message = s.recv(4096)  # message contains whole packet (max 4096byte) as hex string
-        # to not duplicate packets which are from this host (in case of ping for example)
+        # message contains whole packet (max 4096byte) as hex string
+        message = s.recv(4096)
+        # to not duplicate packets which are from this host
+        # (in case of ping for example)
         if message.encode("hex")[12:24] != "aaaaaaaaff02":
             s.send(message)
-
-    except: # s.recv throws exception if it gets terminated while receiving
+    # s.recv throws exception if it gets terminated while receiving
+    except Exception:
         pass

@@ -15,12 +15,14 @@
 from django import template
 register = template.Library()
 
+
 @register.filter
 def getkeyvalue(dict, key):
     try:
         return dict[key]
-    except:
+    except Exception:
         return ""
+
 
 @register.filter
 def getbyindex(indexable, i):

@@ -29,9 +29,26 @@ def read_current_cfg(name="config.json"):
     path = os.path.join(project_path, "data", name)
     if not Path(path).is_file():
        return None
+
+    updated_to_new_style = False
+
     with open(path, "r") as f:
         cfg = json.load(f)
-        return cfg
+        # change old style config into new one
+        # allows compatibility to old configs
+        if "p4_dev_ssh" in cfg and "stamper_ssh" not in cfg:
+            cfg["stamper_ssh"] = cfg["p4_dev_ssh"]
+            del cfg["p4_dev_ssh"]
+            updated_to_new_style = True
+        if "p4_dev_user" in cfg and "stamper_user" not in cfg:
+            cfg["stamper_user"] = cfg["p4_dev_user"]
+            del cfg["p4_dev_user"]
+            updated_to_new_style = True
+    # only update to new style if config.json - otherwise date of creation would be overwritten
+    if updated_to_new_style and name == "config.json":
+        write_config(cfg)
+
+    return cfg
 
 
 def get_results_path(id):

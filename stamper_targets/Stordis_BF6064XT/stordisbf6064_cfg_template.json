@@ -79,6 +79,6 @@
   "selected_loadgen": "iperf3",
   "selected_target": "Stordis_BF6064XT",
   "selected_extHost": "PythonExtHost",
-  "p4_dev_ssh": "",
-  "p4_dev_user": ""
+  "stamper_ssh": "",
+  "stamper_user": ""
 }

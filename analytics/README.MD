@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-The calculation modul reads the csv files from the external host and creates the charts of the following metrics:
+The analytics modul reads the csv files from the external host and creates the charts of the following metrics:
 - Latency for packets
 - Latency over time period
 - Latency as bar chart
@@ -26,15 +26,15 @@ The calculation modul reads the csv files from the external host and creates the
 You need the following directory structure:  
 	your_directory  
 	|  
-	|--calculate(directory of this module)  
-	|       |-- calculate.py  
+	|--analytics(directory of this module)  
+	|       |-- analytics.py  
 	|  
 	|--results(directory with csv files)  
   
-The graphs will be saved to calculate.  
+The graphs will be saved to analytics.  
   
 If you have both python2 and python3, use "python3" instead of "python" and "pip3" instead of "pip"
 
 You need to install matplotlib. "python -m pip install -U matplotlib"
 
-To execute the script just call "python calculate.py" but if you want a different id than the one in data/name_external.config use the --id flag to pass the id of the csv files (e.g. 15495 ...)
+To execute the script just call "python analytics.py" but if you want a different id than the one in data/name_external.config use the --id flag to pass the id of the csv files (e.g. 15495 ...)

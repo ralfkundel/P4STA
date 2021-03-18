@@ -21,36 +21,38 @@
 	{% include "middlebox/includes.html"%}
 	
 	<script type="text/javascript">
-		$(document).ready(function(){
-			$('[data-toggle="tooltip"]').tooltip(); 
-		});
-		// idea: leave only first server/client when fw mode layer 1
-		function changedForwardingMode(){
-			fw_selector = document.getElementById("forwarding_mode");
-			layer = fw_selector.options[fw_selector.selectedIndex].value;
-			if(layer == 1){
-				{% for loadgen_grp in loadgen_groups %}
-				if(document.getElementById("tbl_grp_{{loadgen_grp.group}}").rows.length > 2){
-					for (i = 2; i < document.getElementById("tbl_grp_{{loadgen_grp.group}}").rows.length; i++) {
-						document.getElementById("tbl_grp_{{loadgen_grp.group}}").deleteRow(i);
-					}
-				}
-				{% endfor %}
-			}
-		}
+	document.addEventListener("DOMContentLoaded", function() {
+		$('[data-toggle="tooltip"]').tooltip(); 
+	});
 
-		jQuery(document).keydown(function(event) {
-			// If Control or Command key is pressed and the S key is pressed
-			// run save function. 83 is the key code for S.
-			if((event.ctrlKey || event.metaKey) && event.which == 83) {
-			    event.preventDefault();
-				submit_main_table();
+	// idea: leave only first server/client when fw mode layer 1
+	function changedForwardingMode(){
+		fw_selector = document.getElementById("forwarding_mode");
+		layer = fw_selector.options[fw_selector.selectedIndex].value;
+		if(layer == 1){
+			{% for loadgen_grp in loadgen_groups %}
+			if(document.getElementById("tbl_grp_{{loadgen_grp.group}}").rows.length > 2){
+				for (i = 2; i < document.getElementById("tbl_grp_{{loadgen_grp.group}}").rows.length; i++) {
+					document.getElementById("tbl_grp_{{loadgen_grp.group}}").deleteRow(i);
+				}
 			}
-		});
-		
+			{% endfor %}
+		}
+	}
+
+	document.addEventListener("keydown", event => {
+		// If Control or Command key is pressed and the S key is pressed
+		// run save function. 83 is the key code for S.
+		if((event.ctrlKey || event.metaKey) && event.which == 83) {
+			event.preventDefault();
+			submit_main_table();
+		}
+	});
+	
 	var del_id;
-	$(document).ready(function(){
-		$("#add_new_loadgen_grp").click(function() {
+	//$(document).ready(function(){
+	document.addEventListener("DOMContentLoaded", function() {
+		document.getElementById("add_new_loadgen_grp").addEventListener('click', function() {
 			document.getElementById("num_loadgen_groups").value ++;
 			// create hidden "num_grp_#" input for new group to trigger adding of group in backend
 			new_inp = document.createElement("INPUT");
@@ -76,7 +78,7 @@
 			}
 		});
 
-		$("#del_loadgen_grp").click(function() {
+		document.getElementById("del_loadgen_grp").addEventListener('click', function() {
 			if(document.getElementById("num_loadgen_groups").value > 1){
 				var num_loadgen_groups = document.getElementById("num_loadgen_groups").value;
 				document.getElementById("num_loadgen_groups").value --;
@@ -98,7 +100,8 @@
 		});
 
 		{% for loadgen_grp in loadgen_groups %}
-		$("#add_loadgen_to_grp_{{loadgen_grp.group}}").click(function() {
+		//$("#add_loadgen_to_grp_{{loadgen_grp.group}}").click(function() {
+		document.getElementById("add_loadgen_to_grp_{{loadgen_grp.group}}").addEventListener('click', function() {
 			document.getElementById("add_to_grp_{{loadgen_grp.group}}").value="1";
 			exec_submit = check_all_fields();
 			if(exec_submit){
@@ -290,7 +293,7 @@
 
 		$.ajax({
 		      type: "POST",
-		      url: "/fetch_iface/",
+		      url: "/job_fetch_iface/",
 		      data: {
 				'csrfmiddlewaretoken': csrf_value,
 				'ssh_ip': ssh_ip,
@@ -371,7 +374,7 @@
 		csrf_value = el[0].getAttribute("value");
 		$.ajax({
 		      type: "POST",
-		      url: "/set_iface/",
+		      url: "/job_set_iface/",
 		      data: {
 				'csrfmiddlewaretoken': csrf_value,
 				'ssh_ip': ssh_ip,
@@ -430,7 +433,7 @@
 	}
 
 	function load_status_overview() {
-		$("#status_overview").html('<img src="{% static 'images/spinner.svg' %}" />');
+		$("#status_overview").html('<p>Retrieving status ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
 		$.get("/status_overview/", function(data) {
 			$("#status_overview").html(data);
 		}, "html");
@@ -763,8 +766,8 @@
 			<tbody>
 				<tr>
 					<td width="400em">Target:
-						<small class="form-text text-muted" data-toggle="tooltip" data-placement="top" title="e.g. 'Wedge100B65'">
-								Select the stamper device type.
+						<small class="form-text text-muted">
+							Select the stamper device type.
 						</small>
 					</td>
 					<td width="500em">
@@ -778,7 +781,7 @@
 				</tr>
 				<tr>
 					<td width="400em">Stamp Packets:
-							<small class="form-text text-muted" data-toggle="tooltip" data-placement="top" title="e.g. 'TCP'">
+							<small class="form-text text-muted">
 									Select the packet type (if supported) to stamp
 							</small>
 					</td>
@@ -896,13 +899,14 @@
 			<th>Group {{loadgen_grp.group}}</th>
 			<th>SSH IP</th>
 			<th>SSH Username</th>
-			<th data-toggle="tooltip" data-placement="top" title="For iPerf3 packets">Loadgen Iface (e.g. eth0)</th>
-			<th data-toggle="tooltip" data-placement="top" title="Retrieve MAC and IP from host. SSH user, SSH ip and loadgen interface are needed!">Fetch config</th>
+			<th>Namespace</th>
+			<th data-toggle="tooltip" data-placement="top" title="Name of loadgen network interface connected to stamper, e.g. eth0"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Loadgen Interface</th>
+			<th data-toggle="tooltip" data-placement="top" title="Retrieve MAC and IP from host. SSH user, SSH ip and loadgen interface are needed!"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Fetch config</th>
 			<th>Loadgen MAC(e.g. ca:fe:..)</th>
 			<th>Loadgen IP(e.g. 10.0.0.1)</th>
-			<th>Namespace</th>
-			<th data-toggle="tooltip" data-placement="top" title="Set IP to given (namespace) interface. Use /netmask if necessary. SSH user, SSH ip and loadgen interface are needed and visudo must allow sudo for ifconfig!!">Set IP/Namespace</th>
-			<th data-toggle="tooltip" data-placement="top" title="Switch front-panel port">{% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
+			<!---<th>Namespace</th>--->
+			<th data-toggle="tooltip" data-placement="top" title="Set IP to given (namespace) interface. Use /netmask if necessary. SSH user, SSH ip and loadgen interface are needed and visudo must allow sudo for ifconfig!!"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Set IP/Namespace</th>
+			<th data-toggle="tooltip" data-placement="top" title="Stamper front-panel port"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Stamper {% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
 			{% for entry in target_cfg.inputs.input_table %}
 			{% if not entry.restrict or entry.restrict == "loadgen" %}
 				<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
@@ -915,13 +919,10 @@
 			<input type="hidden" id="add_to_grp_{{loadgen_grp.group}}" name="add_to_grp_{{loadgen_grp.group}}" value="0">
 			{% for loadgen_server in loadgen_grp.loadgens %}
 			<tr id="tr_loadgen_{{loadgen_grp.group}}_{{loadgen_server.id}}">
-					<td data-toggle="tooltip" data-placement="top" title="Receives packets from client">Host {{loadgen_grp.group}}.{{ loadgen_server.id }}</td>
+					<td>Host {{loadgen_grp.group}}.{{ loadgen_server.id }}</td>
 					<td><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_ssh" type="text" class="form-control ip_addr" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_ssh_ip" value="{{loadgen_server.ssh_ip}}" /></td>
 					<td><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_user" type="text" class="form-control ssh_usr" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_ssh_user" value="{{loadgen_server.ssh_user}}" /></td>
-					<td><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_iface" type="text" class="form-control iface_inp" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_loadgen_iface" value="{{loadgen_server.loadgen_iface}}" /><div id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_iface_up"></div></td>
-					<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveIF('s{{loadgen_grp.group}}', {{forloop.counter}});"><i class="fa fa-search"></button></td>
-					<td style="min-width: 160px"><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_mac" type="text" class="form-control mac_addr" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_loadgen_mac" value="{{loadgen_server.loadgen_mac}}" /></td>
-					<td><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_ip" type="text" class="form-control ip_addr" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_loadgen_ip" value="{{loadgen_server.loadgen_ip}}" /><div id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_ip_set"></div></td>
+					
 					<td><div id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_namespace_div" style="text-align: center">
 						{% if loadgen_server.namespace_id is not None %}
 						<div class="input-group mb-3">
@@ -933,6 +934,12 @@
 						{%else%}
 						<button type="button" style="margin:auto; display:block; font-size: 18pt" class="btn btn-default btn-sm" onclick="add_namespace_input('s{{loadgen_grp.group}}_{{loadgen_server.id}}_namespace')"><i class="fa fa-plus"></i></button>{%endif%}
 					</div></td>
+			
+					<td><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_iface" type="text" class="form-control iface_inp" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_loadgen_iface" value="{{loadgen_server.loadgen_iface}}" /><div id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_iface_up"></div></td>
+					<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveIF('s{{loadgen_grp.group}}', {{forloop.counter}});"><i class="fa fa-search"></button></td>
+					<td style="min-width: 160px"><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_mac" type="text" class="form-control mac_addr" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_loadgen_mac" value="{{loadgen_server.loadgen_mac}}" /></td>
+					<td><input id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_ip" type="text" class="form-control ip_addr" name="s{{loadgen_grp.group}}_{{loadgen_server.id}}_loadgen_ip" value="{{loadgen_server.loadgen_ip}}" /><div id="s{{loadgen_grp.group}}_{{loadgen_server.id}}_ip_set"></div></td>
+
 					<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="setIP('s{{loadgen_grp.group}}', {{forloop.counter}});"><i class="fa fa-wrench"></button></td>
 					<td>
 						<div class="input-group mb-3">
@@ -983,9 +990,9 @@
 			<thead>
 				<tr>
 					<th>DUT ID</th>
-					<th data-toggle="tooltip" data-placement="top" title="The DUT needs to support the selected mode!">Use port?</th>
-					<th data-toggle="tooltip" data-placement="top" title="Switch front-panel port">{% if port_mapping %}Front Port (e.g. 1/0){%else%}Port{%endif%}</th>
-					<th data-toggle="tooltip" data-placement="top" title="Defines which flow gets stamped and duplicated to the external host. 'outgoing' referes to the Stamper device. ">Stamp outgoing packets</th>
+					<th data-toggle="tooltip" data-placement="top" title="The DUT needs to support the selected mode!"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Use port?</th>
+					<th data-toggle="tooltip" data-placement="top" title="Stamper front-panel port"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Stamper {% if port_mapping %}Front Port (e.g. 1/0){%else%}Port{%endif%}</th>
+					<th data-toggle="tooltip" data-placement="top" title="Defines which flow gets stamped and duplicated to the external host. 'outgoing' referes to the Stamper device. "><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Stamp outgoing packets</th>
 					{% for entry in target_cfg.inputs.input_table %}
 					{% if not entry.restrict or entry.restrict == "dut" %}
 						<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
@@ -1053,18 +1060,18 @@
 					<th>Other</th>
 					<th>SSH IP</th>
 					<th>SSH Username</th>
-					<th data-toggle="tooltip" data-placement="top" title="For iPerf3 packets">Interface (e.g. eth0)</th>
-					<th data-toggle="tooltip" data-placement="top" title="Choose front-panel port, e.g. 1/0 or bf_pci0">{% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
+					<th data-toggle="tooltip" data-placement="top" title="Name of network interface connected to stamper, e.g. eth0"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Interface (e.g. eth0)</th>
+					<th data-toggle="tooltip" data-placement="top" title="Choose Stamper front-panel port, e.g. 1/0 or bf_pci0"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Stamper {% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
 					{% for entry in target_cfg.inputs.input_table %}
 						{% if not entry.restrict or entry.restrict == "ext_host" %}
-						<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}">{{entry.title}}</th>
+						<th data-toggle="tooltip" data-placement="top" title="{{entry.description}}"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>{{entry.title}}</th>
 						{% endif %}
 					{% endfor %}
 				</tr>
 			</thead>
 			<tbody>
 				<tr>
-					<td data-toggle="tooltip" data-placement="top" title="Receives duplicated packets for python-script">External Host:</td>
+					<td data-toggle="tooltip" data-placement="top" title="Receives packets with timestamps duplicated in stamper"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>External Host:</td>
 					<td><input id="ext_host_ssh" type="text" class="form-control ip_addr" name="ext_host_ssh" value="{{ext_host_ssh}}" /></td>
 					<td><input id="ext_host_user" type="text" class="form-control ssh_usr" name="ext_host_user" value="{{ ext_host_user }}" /></td>
 					<td><input id="ext_host_if" type="text" class="form-control iface_inp" name="ext_host_if" value="{{ext_host_if}}" /></td>
@@ -1105,9 +1112,9 @@
 						{% endfor %}
 				</tr>
 				<tr>
-					<td>Stamper P4 Device (for SSH):</td>
-					<td><input id="p4_dev_ssh" type="text" class="form-control ip_addr" name="p4_dev_ssh" value="{{p4_dev_ssh}}"/></td>
-					<td><input id="p4_dev_user" type="text" class="form-control ssh_usr" name="p4_dev_user" value="{{p4_dev_user}}"/></td>
+					<td>Stamper Device (for SSH):</td>
+					<td><input id="stamper_ssh" type="text" class="form-control ip_addr" name="stamper_ssh" value="{{stamper_ssh}}"/></td>
+					<td><input id="stamper_user" type="text" class="form-control ssh_usr" name="stamper_user" value="{{stamper_user}}"/></td>
 					<td></td>
 					<td></td>
 					{% for entry in target_cfg.inputs.input_table %}

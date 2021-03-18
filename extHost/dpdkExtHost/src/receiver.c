@@ -22,7 +22,7 @@
 struct packet_data {
 	uint64_t t_stamp1;
 	uint64_t t_stamp2;
-	uint64_t throughput_at_time;
+	uint64_t packet_sizes;
 	struct packet_data *next;
 };
 
@@ -150,7 +150,6 @@ static void lcore_main(void) {
 	printf("\nCore %u Capturing packets. [Ctrl+C to quit]\n", rte_lcore_id());
 
 	uint64_t raw_packet_counter = 0;
-	uint64_t total_throughput = 0;
 	struct packet_data *first = NULL;
 	struct packet_data *last = NULL;
 
@@ -188,7 +187,6 @@ static void lcore_main(void) {
             #endif
 
 		    raw_packet_counter += 1;
-		    total_throughput += p_len;
 			if( (p_ether_type == 0x0800) && (p_len >= 64) ) {
 			    uint8_t ihl             = start[14] & 0x0f; //ip header length in 32 bit words
                 uint8_t ipv4_protocol   = start[23] & 0xff; //17 = UDP and 6 = TCP
@@ -254,7 +252,8 @@ static void lcore_main(void) {
 
 				    if(first == NULL) first = last = p;
 
-				    p->throughput_at_time = total_throughput;
+					p->packet_sizes = p_len;
+
 				    p->next = NULL;
 				    last->next = p;
 				    last = p;
@@ -285,20 +284,12 @@ static void lcore_main(void) {
 	fprintf(raw_pkt_cntr, "%"PRIu64, raw_packet_counter);
 	fclose(raw_pkt_cntr);
 
-	strcpy(filename, "total_throughput_");
-	strcat(filename, fname);
-	strcat(filename, ".csv");
-
-	FILE *tot_through = fopen(filename, "w");
-	fprintf(tot_through, "%"PRIu64, total_throughput);
-	fclose(tot_through);
-
 	if (first != NULL){
 		//create files
-		strcpy(filename, "throughput_at_time_");
+		strcpy(filename, "packet_sizes_");
 		strcat(filename, fname);
 		strcat(filename, ".csv");
-		FILE *throughput_at_time = fopen(filename, "w");
+		FILE *packet_sizes = fopen(filename, "w");
 
 		strcpy(filename, "timestamp1_list_");
 		strcat(filename, fname);
@@ -314,12 +305,12 @@ static void lcore_main(void) {
 		do {
 			fprintf(timestamp1_list, "%"PRIu64"\n", iter->t_stamp1);
 			fprintf(timestamp2_list, "%"PRIu64"\n", iter->t_stamp2);
-			fprintf(throughput_at_time, "%"PRIu64"\n", iter->throughput_at_time);
+			fprintf(packet_sizes, "%"PRIu64"\n", iter->packet_sizes);
 			struct packet_data *current = iter;
 			iter = iter->next;
 			free(current);
 		} while(iter != NULL);
-		fclose(throughput_at_time);
+		fclose(packet_sizes);
 		fclose(timestamp1_list);
 		fclose(timestamp2_list);
 	}

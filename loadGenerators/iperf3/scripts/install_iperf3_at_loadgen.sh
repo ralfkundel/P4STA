@@ -1,13 +1,4 @@
 current_user=$USER # to prevent root as $USER save it before root execution
-add_sudo_rights() {
-  current_user=$USER 
-  if (sudo -l | grep -q '(ALL : ALL) NOPASSWD: '$1); then 
-    echo 'visudo entry already exists';  
-  else
-    sleep 0.1
-    echo $current_user' ALL=(ALL:ALL) NOPASSWD:'$1 | sudo EDITOR='tee -a' visudo; 
-  fi
-}
 
 check_iperf_version() {
   currentver="$(iperf3 -v)"
@@ -19,7 +10,6 @@ check_iperf_version() {
           echo "nok"
    fi
 }
-
 
 result=$(check_iperf_version)
 if [ $result = "ok" ]; then
@@ -38,12 +28,5 @@ else
 fi
 printf "Installing ethtool"
 sudo apt -y install ethtool iproute2 net-tools lsof
-printf "\n-----------------------------------------\n"
-printf "\nAdding the following entries to visudo at ***HOST***:\n"
-add_sudo_rights $(which reboot)
-add_sudo_rights $(which ethtool)
-add_sudo_rights $(which ifconfig)
-add_sudo_rights $(which ip)
-add_sudo_rights $(which pkill)
 printf "\n-----------------------------------------\n"
 

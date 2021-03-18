@@ -1,2 +1,3 @@
 p4_src/build
 p4_src/Makefile-nfp4build
+scripts/install_nfp.sh

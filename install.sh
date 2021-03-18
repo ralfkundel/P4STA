@@ -71,14 +71,14 @@ then
 		sleep 1
 		read -p "Do you wish to install the dependencies on this machine? Y/N: " yn
 		case $yn in
-		    [Yy]* ) add_sudo_rights $(which pkill); sudo apt update; sudo apt -y install python3-pip virtualenv net-tools shellinabox;  create_env; pip3 install -r requirements.txt ;  deactivate; echo "finished pip3 on webserver"; break;; 
+		    [Yy]* ) add_sudo_rights $(which pkill); sudo apt update; sudo apt -y install python3-pip virtualenv net-tools shellinabox; rm -rf p4staenv/; create_env; pip3 install -r requirements.txt ;  deactivate; echo "finished pip3 on webserver"; break;; 
 		    [Nn]* ) break;;
 		    * ) echo "Please answer yes or no.";;
 		esac
 	done
 else
       add_sudo_rights $(which pkill);
-      sudo apt update; sudo apt -y install python3-pip virtualenv net-tools;  create_env; pip3 install -r requirements.txt ;  deactivate; echo "finished pip3 on webserver";
+      sudo apt update; sudo apt -y install python3-pip virtualenv net-tools;  rm -rf pastaenv/; create_env; pip3 install -r requirements.txt ;  deactivate; echo "finished pip3 on webserver";
 fi
 
 mkdir -p results

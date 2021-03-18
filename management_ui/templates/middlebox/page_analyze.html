@@ -25,8 +25,8 @@
 
 		$(document).ready(function(){ 
 			$("#external_results, #all").click(function() {
-				$("#output_results").html('<img src="{% static 'images/spinner.svg' %}" />');
-				$.get("/externalResults/", function(data) {
+				$("#output_results").html('<p>Loading External Host results ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$.get("/subpage_analyze_external_results/", function(data) {
 					$("#output_results").html(data);
 				}, "html");
 				$(document).ajaxComplete(function() {
@@ -37,18 +37,18 @@
 
 		$(document).ready(function(){ 
 			$("#loadgen_results, #all").click(function() {
-				$("#output_loadgen_results").html('<img src="{% static 'images/spinner.svg' %}" />');
-				$.get("/loadgen_results/", function(data) {
+				$("#output_loadgen_results").html('<p>Loading Loadgen results ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$.get("/subpage_analyze_loadgen_results/", function(data) {
 					$("#output_loadgen_results").html(data);
 				}, "html");
 			});
 		});
 
 		$(document).ready(function(){ 
-			$("#p4_dev_results, #all").click(function() {
-				$("#output_p4_dev_results").html('<img src="{% static 'images/spinner.svg' %}" />');
-				$.get("/p4_dev_results/", function(data) {
-					$("#output_p4_dev_results").html(data);
+			$("#stamper_results, #all").click(function() {
+				$("#output_stamper_results").html('<p>Loading Stamper results ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$.get("/subpage_analyze_stamper_results/", function(data) {
+					$("#output_stamper_results").html(data);
 				}, "html");
 			});
 		});
@@ -110,8 +110,8 @@
 </div>
 <div style="margin-top:20px;"></div>
 <div class="row">
-	<div class="col-md-2"><button id="p4_dev_results" type="button" class="save btn btn-secondary"{% if error %}disabled{% endif %}>Display results</button></div>
-	<div class="col-md-10"><div id="output_p4_dev_results" class="card card-body"></div></div>
+	<div class="col-md-2"><button id="stamper_results" type="button" class="save btn btn-secondary"{% if error %}disabled{% endif %}>Display results</button></div>
+	<div class="col-md-10"><div id="output_stamper_results" class="card card-body"></div></div>
 </div>
 <hr/>
 <div class="row">

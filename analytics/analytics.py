@@ -30,25 +30,35 @@ import numpy as np
 import os
 import sys
 import threading
+import time
 
 csv.field_size_limit(sys.maxsize)
 dir_path = os.path.dirname(os.path.realpath(__file__))
-project_path = dir_path[0:dir_path.find("/calculate")]
+project_path = dir_path[0:dir_path.find("/analytics")]
 lock = threading.RLock()
 
 
 # read the csv files and plots the graphs
 def main(file_id, multicast, results_path):
     # importing the csv files into integers / lists of integers
+    start = time.time()
     raw_packet_counter = read_csv(results_path, "raw_packet_counter", file_id)[0]
-    total_throughput = read_csv(results_path, "total_throughput", file_id)[0]
-    throughput_at_time = read_csv(results_path, "throughput_at_time", file_id)
+    packet_sizes = read_csv(results_path, "packet_sizes", file_id)
     timestamp1_list = read_csv(results_path, "timestamp1_list", file_id)
     timestamp2_list = read_csv(results_path, "timestamp2_list", file_id)
+    end = time.time()
+    print("It took " + str(end-start) + "s to load csv files for analytics.")
+
+    # get list of cumulative packet sizes
+    throughput_at_time = []
+    total_throughput = 0
+    for i in range(len(packet_sizes)):
+        total_throughput = total_throughput + packet_sizes[i]
+        throughput_at_time.append(total_throughput)
 
     latency_list = []
     min_latency = max_latency = ave_latency = latency_variance = latency_std_deviation = 0
-    total_ipdv = abs_total_ipdv = total_pdv = total_latencies = total_packets = 0
+    total_ipdv = abs_total_ipdv = total_pdv = total_latencies = 0
     min_ipdv = max_ipdv = ave_ipdv = ave_abs_ipdv = 0
     min_pdv = max_pdv = ave_pdv = 0
     min_packets = max_packets = ave_packet_sec = 0
@@ -95,7 +105,7 @@ def main(file_id, multicast, results_path):
                 for z in range(0, len(latency_list)):
                     total_sqr_dev += (latency_list[z] - ave_latency)**2
                 latency_variance = total_sqr_dev / len(ipdv_list)
-                latency_std_deviation = latency_variance **(0.5)
+                latency_std_deviation = latency_variance ** 0.5
             # minimum and maximum ipdv
             min_ipdv = min(ipdv_list, default=0)
             max_ipdv = max(ipdv_list, default=0)
@@ -110,24 +120,35 @@ def main(file_id, multicast, results_path):
             packet_list.append(0)
             # prepares lists for speed and packet rate graph
             for y in range(0, len(throughput_at_time)):
-                if (time_throughput[y] - last_time_hit) >= 100:  # more than 99ms difference -> 0.1s intervals
+                # more than 99ms difference -> 0.1s intervals
+                if (time_throughput[y] - last_time_hit) >= 100:
                     if (time_throughput[y] - last_time_hit) >= 100:
                         amount = (time_throughput[y] - last_time_hit) / 100
-                        if amount >= 2:  # more than 200ms difference between two hits -> pause
+                        # more than 200ms difference between two hits -> pause
+                        if amount >= 2:
                             for i in range(0, int(round(amount))):
                                 mbit_list.append(0)
                                 packet_list.append(0)
                     last_time_hit = time_throughput[y]
-                    mbit_list.append((throughput_at_time[y] - last_throughput_hit) * 8 / 100000)  # byte to megabit / 10 because it measures for every 0.1s but the unit is mbit/seconds
-                    packet_list.append((y - last_packet_hit)*10)  # *10 because it measures for every 0.1s but unit is packets/seconds
+                    # byte->megabit/10 measure every 0.1s but unit is mbit/s
+                    mbit_list.append((throughput_at_time[y] - last_throughput_hit) * 8 / 100000)
+                    # *10 measure for every 0.1s but unit is packets/seconds
+                    packet_list.append((y - last_packet_hit)*10)
                     last_packet_hit = y
                     last_throughput_hit = throughput_at_time[y]
             mbit_list.append(0)  # set next entry to 0
             packet_list.append(0)
-            min_packets = min(packet_list[1:-1], default=0)  # ignores the first and last second to prevent min = 0
+
+            # round by 9 digits after , float could result in weird fractions
+            upsc_mbit_list = [round(x*int(multicast), 9) for x in mbit_list]
+
+            upsc_packet_list = [x*int(multicast) for x in packet_list]
+            # ignores the first and last second to prevent min = 0
+            min_packets = min(packet_list[1:-1], default=0)
             max_packets = max(packet_list, default=0)
             if len(packet_list) != 2:
-                ave_packet_sec = round((len(throughput_at_time)/(len(packet_list)-2)) * 10, 2)  # -2 because we added 0 at beginning and end. *10 because of 0.1s steps
+                # -2 because we added 0 at beginning and end. *10 because of 0.1s steps
+                ave_packet_sec = round((len(throughput_at_time)/(len(packet_list)-2)) * 10, 2)
             else:
                 ave_packet_sec = 0
 
@@ -140,7 +161,14 @@ def main(file_id, multicast, results_path):
             plot_graph(pdv_list, count_list, "PDVs of DUT for every " + multicast + ". packet", "Packets", "PDV", "pdv", True, False)
             plot_graph(pdv_list, count_list_sec, "PDVs of DUT for every " + multicast + ". packet", "t[s]", "PDV", "pdv_sec", True, False)
             plot_graph(mbit_list, np.arange(0, len(mbit_list)/10, 0.1), "Throughput of DUT for every " + multicast + ". packet", "t[s]", "Megabit/s", "speed", False, False)
-            plot_graph(packet_list, np.arange(0, len(packet_list)/10, 0.1), "Rate jitter of DUT for every " + multicast + ". packet", "t[s]", "Packet/s", "packet_rate", False, False)
+
+            plot_graph(upsc_mbit_list, np.arange(0, len(upsc_mbit_list)/10, 0.1), "Upscaled throughput of DUT", "t[s]", "Megabit/s", "speed_upscaled", False, False)
+
+            plot_graph(upsc_packet_list, np.arange(0, len(upsc_packet_list)/10, 0.1), "Upscaled rate jitter of DUT", "t[s]", "Packet/s", "packet_rate_upscaled", False, False)
+
+            plot_graph(packet_list, np.arange(0, len(packet_list) / 10, 0.1),"Rate jitter of DUT for every " + multicast + ". packet",
+                       "t[s]", "Packet/s", "packet_rate", False, False)
+
             plot_bar(latency_list, min_latency, max_latency, "latency_bar", "Latency", "Packets", 10, True)
 
     return {"num_raw_packets": raw_packet_counter, "num_processed_packets": len(latency_list), "total_throughput": round(total_throughput/1000000, 2), "min_latency": min_latency, "max_latency": max_latency, "avg_latency": ave_latency, "min_ipdv": min_ipdv, "max_ipdv": max_ipdv, "avg_ipdv": ave_ipdv, "avg_abs_ipdv": ave_abs_ipdv, "min_pdv": min_pdv, "max_pdv": max_pdv, "avg_pdv": ave_pdv, "min_packets_per_second": min_packets, "max_packets_per_second": max_packets, "avg_packets_per_second": ave_packet_sec, "latency_std_deviation": latency_std_deviation, "latency_variance": latency_variance, "latency_list": latency_list}
@@ -170,7 +198,7 @@ def plot_graph(value_list_input, index_list, titel, x_label, y_label, filename, 
                         temp = temp / 1000000
                 # -0.075 sets the 0 point 7.5% under 0 to have equal 0 at x and y axis
                 ax.set_ylim([-0.075 * temp, temp + 0.1 * temp])
-            except:
+            except Exception:
                 pass  # no adjustment of y axis if error occurs (e.g. empty iperf3 results)
         plt.xlabel(x_label, fontsize=12)
         plt.ylabel(y_label, fontsize=12)
@@ -211,7 +239,7 @@ def find_unit(value_list_input):
         else:
             unit = "nanoseconds"
             return value_list_input, unit
-    except:
+    except Exception:
         unit = "nanoseconds"
         return value_list_input, unit
 
@@ -246,7 +274,7 @@ def find_unit_sqr(value_ns2):
             return value, unit
         unit = "ns²"
         return round(value_ns2, 2), unit
-    except:
+    except Exception:
         unit = "ns²"
         return value_ns2, unit
 
@@ -321,7 +349,7 @@ def read_csv(results_path, file_name, file_id):
     return temp
 
 
-# entry point if calculate gets execute directly as a script and NOT as an included module
+# entry point if analytics gets execute directly as a script and NOT as an included module
 if __name__ == "__main__":  # for direct execution of the script outside of the webserver
     parser = argparse.ArgumentParser(description='CSV reader for external host results.')
     parser.add_argument('--id', help='ID of the csv files. If not set the config file in /data will be used.',
@@ -334,15 +362,15 @@ if __name__ == "__main__":  # for direct execution of the script outside of the 
         multicast = "n/a"
         dir_path = os.path.dirname(os.path.realpath(__file__))
         try:
-            with open(dir_path[0:dir_path.find("calculate")]+"/data/config_" + id + ".json", "r") as cfg:
+            with open(dir_path[0:dir_path.find("analytics")]+"/data/config_" + id + ".json", "r") as cfg:
                 config = json.load(cfg)
                 multicast = config["multicast"]
-        except:
+        except Exception:
             multicast = ""
-            print("config.json not found. path: "+dir_path[0:dir_path.find("calculate")]+"/data/config_" + id + ".json")
+            print("config.json not found. path: "+dir_path[0:dir_path.find("analytics")]+"/data/config_" + id + ".json")
 
         if len(id) > 0 and len(multicast) > 0:
-            path = dir_path[0:dir_path.find("calculate")]+"results"
+            path = dir_path[0:dir_path.find("analytics")]+"results"
             results = main(id, multicast, path)
         else:
             print("Aborted execution.")

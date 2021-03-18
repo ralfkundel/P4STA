@@ -12,52 +12,97 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.urls import path, include
 
-from . import views
+import management_ui.views_dir.analyze as analyze
+import management_ui.views_dir.configure as configure
+import management_ui.views_dir.deploy as deploy
+import management_ui.views_dir.run as run
+import management_ui.views_dir.setup_devices as setup_devices
 
+from management_ui import globals
+
+# initialize global used variables
+globals.main()
+
+
+# 'job_' => does not render html template but returns json
 urlpatterns = [
-    path('', views.configure_page, name='index'),
-    path('setup_devices/', views.setup_devices),
-    path('skip_setup_redirect_to_config/', views.skip_setup_redirect_to_config),
-    path('run_setup_script/', views.run_setup_script),
-    path('stop_shellinabox_redirect_to_config/', views.stop_shellinabox_redirect_to_config),
-    path('setup_ssh_checker/', views.setup_ssh_checker),
-    path('configuration/', views.configure_page),
-    path('deploy/', views.page_deploy),
-    path('run/', views.page_run),
-    path('analyze/', views.page_analyze),
-    path('run_loadgens/', views.run_loadgens_first),
-    path('loadgen_results/', views.read_loadgen_results_again),
-    path('deploy_device/', views.deploy),
-    path('show_ports/', views.p4_dev_ports),
-    path('host_iface_status/', views.host_iface_status),
-    path('ping/', views.ping),
-    path('p4_dev_results/', views.p4_dev_results),
-    path('reset/', views.reset),
-    path('p4_dev_status/', views.p4_dev_status),
-    path('start_p4_dev_software/', views.start_p4_dev_software),
-    path('get_p4_dev_startup_log/', views.get_p4_dev_startup_log),
-    path('stop_p4_dev_software/', views.stop_p4_dev_software),
-    path('reboot/', views.reboot),
-    path('refresh_links/', views.refresh_links),
-    path('startExternal/', views.start_external),
-    path('stopExternal/', views.stop_external),
-    path('externalResults/', views.external_results),
-    path('downloadExtResults/', views.download_external_results),
-    path('deleteData/', views.delete_data), #delete measurement on analyze page
-    path('deleteNamespace/', views.delete_namespace),
-    path('downloadSwitch/', views.download_p4_dev_results),
-    path('downloadLoadgen/', views.download_loadgen_results),
-    path('fetch_iface/', views.fetch_iface),
-    path('set_iface/', views.set_iface),
-    path('status_overview/', views.status_overview),
-    path('createConfig/', views.create_new_cfg_from_template),
-    path('openConfig/', views.open_selected_config),
-    path('deleteConfig/', views.delete_selected_config),
-    path('saveConfig/', views.save_config_as_file),
-    path('dygraph/', views.dygraph)
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # base path returns configuration page
+    path('', configure.configure_page, name='index'),
 
+    # main pages
+    path('analyze/', analyze.page_analyze),
+    path('configuration/', configure.configure_page),
+    path('deploy/', deploy.page_deploy),
+    path('run/', run.page_run),
+    path('setup_devices/', setup_devices.setup_devices),
+
+    # helper functions for setup_devices
+    path('skip_setup_redirect_to_config/', setup_devices.
+         skip_setup_redirect_to_config),
+    path('run_setup_script/', setup_devices.run_setup_script),
+    path('stop_shellinabox_redirect_to_config/',
+         setup_devices.stop_shellinabox_redirect_to_config),
+
+    # non-ajax related GET or POST's (e.g. <a> or form submit)
+    path('deleteData/', analyze.delete_data),
+    path('downloadExtResults/', analyze.download_external_results),
+    path('downloadLoadgenResults/', analyze.download_loadgen_results),
+    path('downloadStamperResults/', analyze.download_stamper_results),
+    path('createConfig/', configure.create_new_cfg_from_template),
+    path('openConfig/', configure.open_selected_config),
+    path('deleteConfig/', configure.delete_selected_config),
+    path('saveConfig/', configure.save_config_as_file),
+
+    # ajax
+    # page_analyze.html
+    path('subpage_analyze_external_results/', analyze.external_results),
+    path('subpage_analyze_loadgen_results/', run.read_loadgen_results_again),
+    path('subpage_analyze_stamper_results/', analyze.stamper_results),
+
+    # page_config.html
+    path('job_fetch_iface/', configure.fetch_iface),
+    path('job_set_iface/', configure.set_iface),
+    # also used in output_external_started.html
+    path('status_overview/', configure.status_overview),
+
+    # page_deploy.html
+    path('subpage_deploy_stamper_status/', deploy.stamper_status),
+    path('subpage_deploy_stop_stamper_software/',
+         deploy.stop_stamper_software),
+
+    # page_run.html
+    path('subpage_run_ping/', run.ping),
+    path('subpage_run_start_external/', run.start_external),
+    path('subpage_run_stop_external/', run.stop_external),
+
+    # setup_page.html
+    path('job_setup_ssh_checker/', setup_devices.setup_ssh_checker),
+
+    # output_external_started.html
+    path('subpage_run_run_loadgens/', run.run_loadgens_first),
+
+    # page_deploy.html => output_stamper_software_status.html
+    path('subpage_deploy_deploy_device/', deploy.deploy),
+    path('subpage_deploy_show_ports/', deploy.stamper_ports),
+    path('subpage_deploy_host_iface_status/', deploy.host_iface_status),
+    path('subpage_deploy_start_stamper_software/',
+         deploy.start_stamper_software),
+    path('subpage_deploy_get_stamper_startup_log/',
+         deploy.get_stamper_startup_log),
+    path('subpage_deploy_reboot/', deploy.reboot),
+    path('subpage_deploy_refresh_links/', deploy.refresh_links),
+
+    # page_run.html => output_external_started.html
+    path('subpage_run_reset/', run.reset),
+
+    # output_status_overview.html
+    path('job_delete_namespace/', configure.delete_namespace),
+
+    # output_external_results.html
+    path('dygraph/', analyze.dygraph)
+
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

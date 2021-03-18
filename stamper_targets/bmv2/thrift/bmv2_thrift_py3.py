@@ -25,11 +25,13 @@ from collections import Counter
 import SimplePreLAG
 import Standard
 
-from thrift.Thrift import TType, TMessageType, TException, TApplicationException
+from thrift.Thrift import TType, TMessageType, TException, \
+    TApplicationException
 from thrift.Thrift import TProcessor
 from thrift.transport import TTransport, TSocket
 from thrift.protocol import TBinaryProtocol, TProtocol, TMultiplexedProtocol
 from ttypes import *
+
 
 def thrift_connect(thrift_ip, thrift_port, services):
     transport = TSocket.TSocket(thrift_ip, thrift_port)
@@ -42,14 +44,16 @@ def thrift_connect(thrift_ip, thrift_port, services):
         if service_name is None:
             clients.append(None)
             continue
-        protocol = TMultiplexedProtocol.TMultiplexedProtocol(bprotocol, service_name)
+        protocol = TMultiplexedProtocol.TMultiplexedProtocol(
+            bprotocol, service_name)
         client = service_cls(protocol)
         clients.append(client)
 
     try:
         transport.open()
     except TTransport.TTransportException:
-        print("Could not connect to thrift port " + str(thrift_port) + " at IP " + str(thrift_ip))
+        print("Could not connect to thrift port " +
+              str(thrift_port) + " at IP " + str(thrift_ip))
         sys.exit(1)
 
     return clients
@@ -87,7 +91,9 @@ class Table:
         return len(self.key)
 
     def key_str(self):
-        return ",\t".join([name + "(" + MatchType.to_str(t) + ", " + str(bw) + ")" for name, t, bw in self.key])
+        return ",\t".join(
+            [name + "(" + MatchType.to_str(
+                t) + ", " + str(bw) + ")" for name, t, bw in self.key])
 
     def table_str(self):
         ap_str = "implementation={}".format(
@@ -103,27 +109,28 @@ class Table:
 
 
 class BmMatchParamType:
-  EXACT = 0
-  LPM = 1
-  TERNARY = 2
-  VALID = 3
-  RANGE = 4
+    EXACT = 0
+    LPM = 1
+    TERNARY = 2
+    VALID = 3
+    RANGE = 4
 
-  _VALUES_TO_NAMES = {
-    0: "EXACT",
-    1: "LPM",
-    2: "TERNARY",
-    3: "VALID",
-    4: "RANGE",
-  }
+    _VALUES_TO_NAMES = {
+        0: "EXACT",
+        1: "LPM",
+        2: "TERNARY",
+        3: "VALID",
+        4: "RANGE",
+    }
 
-  _NAMES_TO_VALUES = {
-    "EXACT": 0,
-    "LPM": 1,
-    "TERNARY": 2,
-    "VALID": 3,
-    "RANGE": 4,
-  }
+    _NAMES_TO_VALUES = {
+      "EXACT": 0,
+      "LPM": 1,
+      "TERNARY": 2,
+      "VALID": 3,
+      "RANGE": 4,
+    }
+
 
 class Action:
     def __init__(self, name, id_):
@@ -137,7 +144,8 @@ class Action:
         return len(self.runtime_data)
 
     def runtime_data_str(self):
-        return ",\t".join([name + "(" + str(bw) + ")" for name, bw in self.runtime_data])
+        return ",\t".join([name + "(" + str(
+            bw) + ")" for name, bw in self.runtime_data])
 
     def action_str(self):
         return "{0:30} [{1}]".format(self.name, self.runtime_data_str())
@@ -248,11 +256,11 @@ class UIn_BadMacError(UIn_Error):
 
 
 _match_types_mapping = {
-    MatchType.EXACT : BmMatchParamType.EXACT,
-    MatchType.LPM : BmMatchParamType.LPM,
-    MatchType.TERNARY : BmMatchParamType.TERNARY,
-    MatchType.VALID : BmMatchParamType.VALID,
-    MatchType.RANGE : BmMatchParamType.RANGE,
+    MatchType.EXACT: BmMatchParamType.EXACT,
+    MatchType.LPM: BmMatchParamType.LPM,
+    MatchType.TERNARY: BmMatchParamType.TERNARY,
+    MatchType.VALID: BmMatchParamType.VALID,
+    MatchType.RANGE: BmMatchParamType.RANGE,
 }
 
 
@@ -276,19 +284,19 @@ def int_to_bytes(i, num):
 
 
 def ipv4Addr_to_bytes(addr):
-    if not '.' in addr:
+    if '.' not in addr:
         raise CLI_FormatExploreError()
     s = addr.split('.')
     if len(s) != 4:
         raise UIn_BadIPv4Error()
     try:
         return [int(b) for b in s]
-    except:
+    except Exception:
         raise UIn_BadIPv4Error()
 
 
 def macAddr_to_bytes(addr):
-    if not ':' in addr:
+    if ':' not in addr:
         raise CLI_FormatExploreError()
     s = addr.split(':')
     if len(s) != 6:
@@ -296,21 +304,21 @@ def macAddr_to_bytes(addr):
     try:
         ret = [int(b, 16) for b in s]
         return ret
-    except:
+    except Exception:
         raise UIn_BadMacError()
 
 
 def ipv6Addr_to_bytes(addr):
     from ipaddr import IPv6Address
-    if not ':' in addr:
+    if ':' not in addr:
         raise CLI_FormatExploreError()
     try:
         ip = IPv6Address(addr)
-    except:
+    except Exception:
         raise UIn_BadIPv6Error()
     try:
         return [ord(b) for b in ip.packed]
-    except:
+    except Exception:
         raise UIn_BadIPv6Error()
 
 
@@ -338,9 +346,10 @@ def parse_param(input_str, bitwidth):
             raise UIn_BadParamError("Invalid IPv6 address")
     try:
         input_ = int(input_str, 0)
-    except:
+    except Exception:
         raise UIn_BadParamError(
-            "Invalid input, could not cast to integer, try in hex with 0x prefix"
+            "Invalid input, could not cast to integer, "
+            "try in hex with 0x prefix"
         )
     try:
         return int_to_bytes(input_, int((bitwidth + 7) / 8))
@@ -381,7 +390,7 @@ def parse_runtime_data(action, params):
                 "Error while parsing %s - %s" % (field, e)
             )
 
-    bitwidths = [bw for( _, bw) in action.runtime_data]
+    bitwidths = [bw for(_, bw) in action.runtime_data]
     byte_array = []
     for input_str, bitwidth in zip(params, bitwidths):
         byte_array += [bytes_to_string(parse_param_(input_str, bitwidth))]
@@ -417,7 +426,8 @@ def load_json_str(json_str):
 
     def get_field_bitwidth(header_type, field_name, j_header_types):
         for h in j_header_types:
-            if h["name"] != header_type: continue
+            if h["name"] != header_type:
+                continue
             for t in h["fields"]:
                 # t can have a third element (field signedness)
                 f, bw = t[0], t[1]
@@ -516,10 +526,10 @@ def load_json_str(json_str):
     # valid identifiers.
     suffix_count = Counter()
     for res_type, res_dict in [
-        (ResType.table, TABLES), (ResType.action_prof, ACTION_PROFS),
-        (ResType.action, ACTIONS), (ResType.meter_array, METER_ARRAYS),
-        (ResType.counter_array, COUNTER_ARRAYS),
-        (ResType.register_array, REGISTER_ARRAYS)]:
+            (ResType.table, TABLES), (ResType.action_prof, ACTION_PROFS),
+            (ResType.action, ACTIONS), (ResType.meter_array, METER_ARRAYS),
+            (ResType.counter_array, COUNTER_ARRAYS),
+            (ResType.register_array, REGISTER_ARRAYS)]:
         for name, res in list(res_dict.items()):
             suffix = None
             for s in reversed(name.split('.')):
@@ -533,7 +543,8 @@ def load_json_str(json_str):
 
 
 # table = instance of table class
-# key fields = list of searched key, e.g. ["1", "2"] when table_add ingress.t_l3_forwarding ingress.send 1 2 => 3
+# key fields = list of searched key, e.g. ["1", "2"]
+# when table_add ingress.t_l3_forwarding ingress.send 1 2 => 3
 def parse_match_key(table, key_fields):
     def parse_param_(field, bw):
         try:
@@ -549,8 +560,8 @@ def parse_match_key(table, key_fields):
         bw = bitwidths[idx]
         if param_type == BmMatchParamType.EXACT:
             key = bytes_to_string(parse_param_(field, bw))
-            param = BmMatchParam(type = param_type,
-                                 exact = BmMatchParamExact(key))
+            param = BmMatchParam(type=param_type,
+                                 exact=BmMatchParamExact(key))
         elif param_type == BmMatchParamType.LPM:
             try:
                 prefix, length = field.split("/")
@@ -559,8 +570,8 @@ def parse_match_key(table, key_fields):
                     "Invalid LPM value {}, use '/' to separate prefix "
                     "and length".format(field))
             key = bytes_to_string(parse_param_(prefix, bw))
-            param = BmMatchParam(type = param_type,
-                                 lpm = BmMatchParamLPM(key, int(length)))
+            param = BmMatchParam(type=param_type,
+                                 lpm=BmMatchParamLPM(key, int(length)))
         elif param_type == BmMatchParamType.TERNARY:
             try:
                 key, mask = field.split("&&&")
@@ -572,14 +583,15 @@ def parse_match_key(table, key_fields):
             mask = bytes_to_string(parse_param_(mask, bw))
             if len(mask) != len(key):
                 raise UIn_MatchKeyError(
-                    "Key and mask have different lengths in expression %s" % field
+                    "Key and mask have "
+                    "different lengths in expression %s" % field
                 )
-            param = BmMatchParam(type = param_type,
-                                 ternary = BmMatchParamTernary(key, mask))
+            param = BmMatchParam(type=param_type,
+                                 ternary=BmMatchParamTernary(key, mask))
         elif param_type == BmMatchParamType.VALID:
             key = bool(int(field))
-            param = BmMatchParam(type = param_type,
-                                 valid = BmMatchParamValid(key))
+            param = BmMatchParam(type=param_type,
+                                 valid=BmMatchParamValid(key))
         elif param_type == BmMatchParamType.RANGE:
             try:
                 start, end = field.split("->")
@@ -591,14 +603,15 @@ def parse_match_key(table, key_fields):
             end = bytes_to_string(parse_param_(end, bw))
             if len(start) != len(end):
                 raise UIn_MatchKeyError(
-                    "start and end have different lengths in expression %s" % field
+                    "start and end have "
+                    "different lengths in expression %s" % field
                 )
             if start > end:
                 raise UIn_MatchKeyError(
                     "start is less than end in expression %s" % field
                 )
-            param = BmMatchParam(type = param_type,
-                                 range = BmMatchParamRange(start, end))
+            param = BmMatchParam(type=param_type,
+                                 range=BmMatchParamRange(start, end))
         else:
             assert(0)
         params.append(param)
@@ -615,7 +628,7 @@ def get_json_config(standard_client=None, json_path=None, out=sys.stdout):
             print("Obtaining JSON from switch...\n")
             json_cfg = standard_client.bm_get_config()
             print("Done\n")
-        except:
+        except Exception:
             print("Error when requesting JSON config from switch\n")
             sys.exit(1)
         return json_cfg
@@ -628,13 +641,17 @@ def get_json_config(standard_client=None, json_path=None, out=sys.stdout):
 class Bmv2Thrift():
     def __init__(self, ip, json_path):
         # Thrift client, start later
-        services = [("standard", Standard.Client)] + [("simple_pre_lag", SimplePreLAG.Client)]
-        self.standard_client, self.mc_client = thrift_connect(ip, "22223", services)
+        services = [("standard", Standard.Client)] + \
+                   [("simple_pre_lag", SimplePreLAG.Client)]
+        self.standard_client, self.mc_client = thrift_connect(
+            ip, "22223", services)
         load_json_str(get_json_config(self.standard_client, json_path))
 
     def call_method(self, method, arguments, p4_action_args=[]):
         if method == "table_add":
-            result = self.table_add(arguments[0], arguments[1], arguments[2:], action_parameters=p4_action_args)
+            result = self.table_add(
+                arguments[0], arguments[1], arguments[2:],
+                action_parameters=p4_action_args)
         else:
             result = getattr(self, method)(*arguments)
         return result
@@ -646,9 +663,13 @@ class Bmv2Thrift():
         table = get_res("table", table_name, ResType.table)
         return table
 
-    # table_name="ingress.t_l1_forwarding"; e.g. action_name="ingress.send"; machtes=["1"], action_parameters=["2", "3"]
-    def table_add(self, table_name, action_name, matches=[], action_parameters=[]):
-        last_add = "table add " + table_name + " " + action_name + " matches=" + str(matches) + " action_parameters=" + str(action_parameters)
+    # table_name="ingress.t_l1_forwarding"; e.g.
+    # action_name="ingress.send"; machtes=["1"], action_parameters=["2", "3"]
+    def table_add(self, table_name, action_name, matches=[],
+                  action_parameters=[]):
+        last_add = "table add " + table_name + " " + action_name + \
+                   " matches=" + str(matches) + " action_parameters=" + \
+                   str(action_parameters)
         print(last_add)
         try:
             if type(matches) == tuple:
@@ -657,9 +678,12 @@ class Bmv2Thrift():
             matches = parse_match_key(table_obj, matches)
             action = table_obj.get_action(action_name)
             runtime_data = parse_runtime_data(action, action_parameters)
-            entry_handle = self.standard_client.bm_mt_add_entry(0, table_name, matches, action_name, runtime_data, BmAddEntryOptions(priority=0))
+            entry_handle = self.standard_client.bm_mt_add_entry(
+                0, table_name, matches, action_name, runtime_data,
+                BmAddEntryOptions(priority=0)
+            )
             return ""
-        except:
+        except Exception:
             msg = "ERROR while: \n" + last_add + "\n" + traceback.format_exc()
             print(msg)
             return msg
@@ -756,10 +780,15 @@ class Bmv2Thrift():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="bmv2 thrift module")
-    parser.add_argument("--json", help="Path to the compiled p4 json", type=str, action="store", required=True)
-    parser.add_argument("--method", help="Method to call", type=str, action="store", required=True)
-    parser.add_argument('--args', help="Arguments to pass as list", nargs='+', default=[], required=False)
-    parser.add_argument('--p4_action_args', help="Arguments to pass to p4 action", nargs='+', default=[], required=False)
+    parser.add_argument("--json", help="Path to the compiled p4 json",
+                        type=str, action="store", required=True)
+    parser.add_argument("--method", help="Method to call", type=str,
+                        action="store", required=True)
+    parser.add_argument('--args', help="Arguments to pass as list", nargs='+',
+                        default=[], required=False)
+    parser.add_argument('--p4_action_args',
+                        help="Arguments to pass to p4 action", nargs='+',
+                        default=[], required=False)
     args = parser.parse_args()
 
     thr = Bmv2Thrift(args.json)

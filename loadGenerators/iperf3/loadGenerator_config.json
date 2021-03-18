@@ -1,4 +1,7 @@
 {
 	"name": "iperf3",
-	"driver": "iperf3.py"
+	"driver": "iperf3.py",
+	"status_check": {
+		"needed_sudos_to_add": ["ethtool", "reboot", "ifconfig", "/bin/ip", "pkill"]
+	}
 }

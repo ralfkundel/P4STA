@@ -19,8 +19,8 @@
 	<script type="text/javascript">
 		$(document).ready(function(){ 
 			$("#reset").click(function() {
-				$.get("/reset/", function(data) {
-					$("#output_reset").html('<img src="{% static 'images/spinner.svg' %}" />');
+				$("#output_reset").html('<img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$.get("/subpage_run_reset/", function(data) {
 					$("#output_reset").html(data);
 				}, "html");
 			});
@@ -75,7 +75,7 @@
 			document.getElementById("output_loadgens").append(scr);
 			$.ajax({
 			      type: "POST",
-			      url: "/run_loadgens/",
+			      url: "/subpage_run_run_loadgens/",
 			      data: {
 					'csrfmiddlewaretoken': csrf_value,
 					'duration': dur,
@@ -95,7 +95,7 @@
         }
 	
 	function load_status_overview() {
-		$("#status_overview").html('<img src="{% static 'images/spinner.svg' %}" />');
+		$("#status_overview").html('<p>Retrieving status ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
 		$.get("/status_overview/", function(data) {
 			$("#status_overview").html(data);
 		}, "html");

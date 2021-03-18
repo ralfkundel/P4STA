@@ -58,7 +58,7 @@ class AbstractTarget:
         return all_dut_dst_p4_ports
 
     # if not overwritten = everything is zero
-    def read_p4_device(self, cfg):
+    def read_stamperice(self, cfg):
         cfg["total_deltas"] = cfg["delta_counter"] = cfg["min_delta"] = cfg["max_delta"] = 0
         for dut in cfg["dut_ports"]:
             dut["num_ingress_packets"] = 0
@@ -79,31 +79,31 @@ class AbstractTarget:
 
         return cfg
 
-    def p4_dev_status(self, cfg):
+    def stamper_status(self, cfg):
         return ["No portmanager available", "Are you sure you selected a target before?"], False, "no target selected!"
 
     # starts specific p4 software on device
-    def start_p4_dev_software(self, cfg):
+    def start_stamper_software(self, cfg):
         pass
 
-    def stop_p4_dev_software(self, cfg):
+    def stop_stamper_software(self, cfg):
         pass
 
     # reset registers of p4 device
     def reset_p4_registers(self, cfg):
         pass
 
-    def get_p4_dev_startup_log(self, cfg):
+    def get_stamper_startup_log(self, cfg):
         return ["For this target is no log available."]
 
     def check_if_p4_compiled(self, cfg):
         return False, "Can not check if P4 program is compiled."
 
     def execute_ssh(self, cfg, arg):
-        # input = ["ssh", cfg["p4_dev_user"] + "@" + cfg["p4_dev_ssh"], arg]
+        # input = ["ssh", cfg["stamper_user"] + "@" + cfg["stamper_ssh"], arg]
         # res = subprocess.Popen(input, stdout=subprocess.PIPE).stdout
         # return res.read().decode().split("\n")
-        return P4STA_utils.execute_ssh(cfg["p4_dev_user"], cfg["p4_dev_ssh"], arg)
+        return P4STA_utils.execute_ssh(cfg["stamper_user"], cfg["stamper_ssh"], arg)
 
     # returns list of strings with needed dynamic sudos for this target
     # in difference to fixed needed sudos defined in target_config.json this checks for needed sudos which are not clear for every use case (e.g. different software version)
@@ -122,18 +122,18 @@ class AbstractTarget:
         # instances inheriting from abstract_target could implement additional checks in the following way:
         # res["custom_checks"] = [[True=green/False=red, "ipv4_forwarding"(=label to check), "=1"(=text indicating result of check)]]
         res = {}
-        res["p4_dev_ssh_ping"] = (os.system("timeout 1 ping " + cfg["p4_dev_ssh"] + " -c 1") == 0)
-        res["p4_dev_sudo_rights"], list_of_path_possibilities = P4STA_utils.check_sudo(cfg["p4_dev_user"], cfg["p4_dev_ssh"], dynamic_mode=True)
+        res["stamper_ssh_ping"] = (os.system("timeout 1 ping " + cfg["stamper_ssh"] + " -c 1") == 0)
+        res["stamper_sudo_rights"], list_of_path_possibilities = P4STA_utils.check_sudo(cfg["stamper_user"], cfg["stamper_ssh"], dynamic_mode=True)
         print("Target sudo path possibilities:")
         print(list_of_path_possibilities)
 
-        if res["p4_dev_ssh_ping"]:
-            res["p4_dev_compile_status_color"], res["p4_compile_status"] = self.check_if_p4_compiled(cfg)
+        if res["stamper_ssh_ping"]:
+            res["stamper_compile_status_color"], res["p4_compile_status"] = self.check_if_p4_compiled(cfg)
         else:
-            res["p4_dev_compile_status_color"], res["p4_compile_status"] = (False, "P4-Stamper is not reachable at SSH IP!")
+            res["stamper_compile_status_color"], res["p4_compile_status"] = (False, "P4-Stamper is not reachable at SSH IP!")
         # needed sudos = defined in target_config.json + dynamic sudos (e.g. software version)
         needed_sudos = self.target_cfg["status_check"]["needed_sudos_to_add"] + self.needed_dynamic_sudos(cfg)
-        res["p4_dev_needed_sudos_to_add"] = P4STA_utils.check_needed_sudos({"sudo_rights": res["p4_dev_sudo_rights"]}, needed_sudos, dynamic_mode_inp=list_of_path_possibilities)
+        res["stamper_needed_sudos_to_add"] = P4STA_utils.check_needed_sudos({"sudo_rights": res["stamper_sudo_rights"]}, needed_sudos, dynamic_mode_inp=list_of_path_possibilities)
 
         # store in results list (no return possible for a thread)
         results[index] = res

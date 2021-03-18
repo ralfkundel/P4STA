@@ -25,7 +25,7 @@ import traceback
 dir_path = os.path.dirname(os.path.realpath(__file__))
 project_path = dir_path[0:dir_path.find("/cli")]
 sys.path.append(project_path)
-from calculate import calculate
+from analytics import analytics
 from core import P4STA_utils
 
 
@@ -187,7 +187,7 @@ class PastaConfigure(Cmd):
         print(tabulate(self.table_external_host, tablefmt="fancy_grid"))
 
         print("STAMPER:")
-        self.table_stamper.append([self.cfg["p4_dev_ssh"], self.cfg["p4_dev_user"]])
+        self.table_stamper.append([self.cfg["stamper_ssh"], self.cfg["stamper_user"]])
         print(tabulate(self.table_stamper, tablefmt="fancy_grid"))
 
     def do_change_general_cfg(self, args):
@@ -390,8 +390,8 @@ class PastaConfigure(Cmd):
         arg_list = args.split()
         try:
             if len(arg_list) == 2:
-                self.cfg["p4_dev_ssh"] = arg_list[0]
-                self.cfg["p4_dev_user"] = arg_list[1]
+                self.cfg["stamper_ssh"] = arg_list[0]
+                self.cfg["stamper_user"] = arg_list[1]
 
                 P4STA_utils.write_config(self.cfg)
                 self.do_show("")
@@ -598,15 +598,15 @@ class DeployPasta(Cmd):
 
     def do_status(self, args):
         """Displays status of P4 device and loadgenerators."""
-        p4_dev_status = rpyc.timed(core_conn.root.p4_dev_status, 15)
-        p4_dev_status_job = p4_dev_status()
+        stamper_status = rpyc.timed(core_conn.root.stamper_status, 15)
+        stamper_status_job = stamper_status()
         try:
-            p4_dev_status_job.wait()
+            stamper_status_job.wait()
         except Exception as e:
             print(e)
             return
 
-        self.cfg, lines_pm, running, dev_status = p4_dev_status_job.value
+        self.cfg, lines_pm, running, dev_status = stamper_status_job.value
 
         if running:
             print(self.green("P4 device is running."))
@@ -631,7 +631,7 @@ class DeployPasta(Cmd):
 
     def do_start_device(self, args):
         """Starts P4 device, after this you can deploy your config to the device."""
-        answer = core_conn.root.start_p4_dev_software() 
+        answer = core_conn.root.start_stamper_software() 
         print("Started P4 device. Please check the status by entering 'status'")
         self.wait(50)
 
@@ -639,7 +639,7 @@ class DeployPasta(Cmd):
         """"Shows P4 device startup log."""
         if self.ready_to_deploy:
             try:
-                log = core_conn.root.get_p4_dev_startup_log()
+                log = core_conn.root.get_stamper_startup_log()
                 log = P4STA_utils.flt(log)
                 for l in log:
                     print(l)
@@ -659,7 +659,7 @@ class DeployPasta(Cmd):
     def do_stop_device(self, args):
         """Stops P4 device."""
         try:
-            answer = core_conn.root.stop_p4_dev_software()
+            answer = core_conn.root.stop_stamper_software()
             print("Stopped P4 device. Please check the status by entering 'status'")
         except Exception as e:
             print("error: "+str(e))
@@ -829,9 +829,9 @@ class DisplayResultsPasta(Cmd):
             for out in output:
                 print(out)
         else:
-            tot_bits = calculate.find_unit_bit_byte(total_bits, "bit")
+            tot_bits = analytics.find_unit_bit_byte(total_bits, "bit")
             print("Load generators total average throughput speed: " + str(tot_bits[0]) + " " + tot_bits[1] + "/s")
-            tot_byte = calculate.find_unit_bit_byte(total_byte, "byte")
+            tot_byte = analytics.find_unit_bit_byte(total_byte, "byte")
             print("Load generators total transmitted data: " + str(tot_byte[0]) + " " + tot_byte[1])
             print("Load generators total retransmitted packets: " + str(total_retransmits))
 
@@ -922,8 +922,8 @@ class DisplayResultsPasta(Cmd):
             except:
                 print("Please enter a correct id 'delete_dataset ID' or 'delete_dataset' without id to get more information.")
 
-    def do_show_p4_dev_results(self, args):
-        sw = core_conn.root.p4_dev_results(self.selected_run_id)
+    def do_show_stamper_results(self, args):
+        sw = core_conn.root.stamper_results(self.selected_run_id)
 
         print("\n##### RESULTS FROM P4 TARGET REGISTERS ####\n")
         print("Average latency: " + str(sw["average"][0][0]) + " " + str(sw["average"][1]))
@@ -999,34 +999,34 @@ class DisplayResultsPasta(Cmd):
 
     def do_show_external_results(self, args):
         cfg = P4STA_utils.read_result_cfg(self.selected_run_id)
-        extH_results = calculate.main(str(self.selected_run_id), cfg["multicast"], P4STA_utils.get_results_path(self.selected_run_id))
+        extH_results = analytics.main(str(self.selected_run_id), cfg["multicast"], P4STA_utils.get_results_path(self.selected_run_id))
 
         print("\n\nShowing results from external host for id: " + self.selected_run_id + " from " + time.strftime('%H:%M:%S %d.%m.%Y', time.localtime(int(self.selected_run_id))))
         print("Results from external Host for every " + str(cfg["multicast"] + ". packet") + "\n")
         print("Raw packets: " + str(extH_results["num_raw_packets"]) + " Processed packets: " + str(
             extH_results["num_processed_packets"]) + " Total throughput: " + str(
             extH_results["total_throughput"]) + " Megabytes \n")
-        print("Min latency: " + str(calculate.find_unit(extH_results["min_latency"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["min_latency"])[1]))
+        print("Min latency: " + str(analytics.find_unit(extH_results["min_latency"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["min_latency"])[1]))
 
-        print("Max latency: " + str(calculate.find_unit(extH_results["max_latency"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["max_latency"])[1]))
-        print("Average latency: " + str(calculate.find_unit(extH_results["avg_latency"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["avg_latency"])[1]) + "\n")
-        print("Min IPDV: " + str(calculate.find_unit(extH_results["min_ipdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["min_ipdv"])[1]))
-        print("Max IPDV: " + str(calculate.find_unit(extH_results["max_ipdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["max_ipdv"])[1]))
-        print("Average IPDV: " + str(calculate.find_unit(extH_results["avg_ipdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["avg_ipdv"])[1])
-                + " and abs(): " + str(calculate.find_unit(extH_results["avg_abs_ipdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["avg_abs_ipdv"])[1]) + "\n")
-        print("Min PDV: " + str(calculate.find_unit(extH_results["min_pdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["min_pdv"])[1]))
-        print("Max PDV: " + str(calculate.find_unit(extH_results["max_pdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["max_pdv"])[1]))
-        print("Average PDV: " + str(calculate.find_unit(extH_results["avg_pdv"])[0][0]) + " " + str(
-            calculate.find_unit(extH_results["avg_pdv"])[1]) + "\n")
+        print("Max latency: " + str(analytics.find_unit(extH_results["max_latency"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["max_latency"])[1]))
+        print("Average latency: " + str(analytics.find_unit(extH_results["avg_latency"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["avg_latency"])[1]) + "\n")
+        print("Min IPDV: " + str(analytics.find_unit(extH_results["min_ipdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["min_ipdv"])[1]))
+        print("Max IPDV: " + str(analytics.find_unit(extH_results["max_ipdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["max_ipdv"])[1]))
+        print("Average IPDV: " + str(analytics.find_unit(extH_results["avg_ipdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["avg_ipdv"])[1])
+                + " and abs(): " + str(analytics.find_unit(extH_results["avg_abs_ipdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["avg_abs_ipdv"])[1]) + "\n")
+        print("Min PDV: " + str(analytics.find_unit(extH_results["min_pdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["min_pdv"])[1]))
+        print("Max PDV: " + str(analytics.find_unit(extH_results["max_pdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["max_pdv"])[1]))
+        print("Average PDV: " + str(analytics.find_unit(extH_results["avg_pdv"])[0][0]) + " " + str(
+            analytics.find_unit(extH_results["avg_pdv"])[1]) + "\n")
         print("Min packet/s: " + str(extH_results["min_packets_per_second"]))
         print("Max packet/s: " + str(extH_results["max_packets_per_second"]))
         print("Average packet/s: " + str(extH_results["avg_packets_per_second"]) + "\n")

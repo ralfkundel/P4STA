@@ -92,7 +92,7 @@ class AbstractLoadgenerator:
             res["sudo_rights"], list_of_path_possibilities = P4STA_utils.check_sudo(host['ssh_user'], host['ssh_ip'], dynamic_mode=True)
             print("Loadgen sudo path possibilities:")
             print(list_of_path_possibilities)
-            res["needed_sudos_to_add"] = P4STA_utils.check_needed_sudos({"sudo_rights": res["sudo_rights"]}, ["/sbin/ethtool", "/sbin/reboot", "/sbin/ifconfig", "/bin/ip", "usr/bin/pkill"], dynamic_mode_inp=list_of_path_possibilities)
+            res["needed_sudos_to_add"] = P4STA_utils.check_needed_sudos({"sudo_rights": res["sudo_rights"]}, self.loadgen_cfg["status_check"]["needed_sudos_to_add"], dynamic_mode_inp=list_of_path_possibilities)
             res["ip_routes"] = P4STA_utils.execute_ssh(host['ssh_user'], host['ssh_ip'], "ip route")
             res["namespaces"] = check_namespaces(host['ssh_user'], host['ssh_ip'])
 
