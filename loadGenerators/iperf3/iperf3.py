@@ -49,6 +49,12 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
             else:
                 return ""
 
+        def thread_join(thrs):
+            for thread in thrs:
+                thread.start()
+            for thread in thrs:
+                thread.join()
+
         def check_iperf_server(server_ssh_user, server_ip, start_port,
                                ns_option):
             # ssh into server and check locally if port is open
@@ -60,36 +66,38 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                     ns_option_end)
                 return "running" in answer_list
 
+            def check_thrd(server_ssh_user, server_ip, port, ns_option):
+                print_str = "check iPerf3 Server Port " + str(
+                    port) + " at " + server["ssh_ip"] + \
+                            " with Namespace " + ns_option + " => "
+                time.sleep(0.5)
+                if not check_port_open(server_ssh_user, server_ip,
+                                       port, ns_option):
+                    time.sleep(1.5)
+                    if not check_port_open(server_ssh_user, server_ip,
+                                           port, ns_option):
+                        print_str += "[fail]"
+                        raise Exception("iPerf3 Server Port " + str(
+                            port) + " at " + server[
+                                            "ssh_ip"] + " not open.")
+                    else:
+                        print_str += "[ok]"
+                        print(print_str)
+                else:
+                    print_str += "[ok]"
+                    print(print_str)
+
             ns_option_end = ""
             if ns_option != "":
                 ns_option = ns_option + " bash -c '"
                 ns_option_end = "'"
 
+            thrds = []
             for add in range(loadgen_flows):
-                sys.stdout.write(
-                    "check iPerf3 Server Port " + str(start_port + add) +
-                    " at " + server["ssh_ip"] + " with Namespace " +
-                    ns_option + " => ")
-                time.sleep(0.5)
-                if not check_port_open(server_ssh_user, server_ip,
-                                       start_port + add, ns_option):
-                    time.sleep(1.5)
-                    if not check_port_open(server_ssh_user, server_ip,
-                                           start_port + add, ns_option):
-                        sys.stdout.write("[fail]\n")
-                        raise Exception("iPerf3 Server Port " + str(
-                            start_port + add) + " at " + server[
-                                            "ssh_ip"] + " not open.")
-                    else:
-                        sys.stdout.write("[ok]\n")
-                else:
-                    sys.stdout.write("[ok]\n")
-
-        def thread_join(thrs):
-            for thread in thrs:
-                thread.start()
-            for thread in thrs:
-                thread.join()
+                x = threading.Thread(target=check_thrd, args=(
+                    server_ssh_user, server_ip, start_port + add, ns_option))
+                thrds.append(x)
+            thread_join(thrds)
 
         # iperf -s threads at one (!) host
         def start_servers(ssh_user, ssh_ip, start_port, flows, ns_option,
@@ -237,12 +245,20 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                     start_port = start_port + loadgen_flows
 
         start_port = 5101
+        check_threads = list()
         for server_group in iperf_server_groups:
             for server in server_group["loadgens"]:
                 for i in range(num_clients):
-                    check_iperf_server(server["ssh_user"], server["ssh_ip"],
-                                       start_port, check_ns(server))
+
+                    x = threading.Thread(target=check_iperf_server,
+                                         args=(server["ssh_user"],
+                                               server["ssh_ip"],
+                                               start_port,
+                                               check_ns(server)))
+                    check_threads.append(x)
+
                     start_port = start_port + loadgen_flows
+        thread_join(check_threads)
 
         print("iperf server groups")
         print(iperf_server_groups)

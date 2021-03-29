@@ -28,7 +28,7 @@ def set_project_path(path):
 def read_current_cfg(name="config.json"):
     path = os.path.join(project_path, "data", name)
     if not Path(path).is_file():
-       return None
+        return None
 
     updated_to_new_style = False
 
@@ -44,7 +44,7 @@ def read_current_cfg(name="config.json"):
             cfg["stamper_user"] = cfg["p4_dev_user"]
             del cfg["p4_dev_user"]
             updated_to_new_style = True
-    # only update to new style if config.json - otherwise date of creation would be overwritten
+    # only update to new style if config.json - otherwise date overwritten
     if updated_to_new_style and name == "config.json":
         write_config(cfg)
 
@@ -60,7 +60,7 @@ def read_result_cfg(id):
     if Path(path).is_file():
         with open(path, "r") as f:
             cfg = json.load(f)
-            return cfg  
+            return cfg
     else:
         return
 
@@ -71,24 +71,25 @@ def write_config(cfg, file_name="config.json"):
 
 
 def execute_ssh(user, ip_address, arg):
-    input = ["ssh", "-o ConnectTimeout=5", "-o BatchMode=yes", "-o StrictHostKeyChecking=no", user + "@" + ip_address, arg]
+    input = ["ssh", "-o ConnectTimeout=5", "-o BatchMode=yes",
+             "-o StrictHostKeyChecking=no", user + "@" + ip_address, arg]
     res = subprocess.run(input, stdout=subprocess.PIPE).stdout
     return res.decode().split("\n")
 
 
-#### Logging
+# Logging
 
 
 def log_error(error):
-    print_msg = "\033[1;31m" 
+    print_msg = "\033[1;31m"
     print_msg += "-------------------- P4STA ERROR -------------------- \n"
 
-    if isinstance (error, str):
+    if isinstance(error, str):
         print_msg += error
-    elif isinstance (error, tuple):
+    elif isinstance(error, tuple):
         print_msg += ''.join(error)
     else:
-        print_msg += ("unknown error type: " + str(type(error)) )
+        print_msg += ("unknown error type: " + str(type(error)))
         print_msg += str(error)
     print_msg += "\n-----------------------------------------------------"
     print_msg += "\x1b[0m"
@@ -96,7 +97,7 @@ def log_error(error):
     print(print_msg)
 
 
-### Sudo checking
+# Sudo checking
 
 
 def check_needed_sudos(host, needed_sudos, dynamic_mode_inp=[]):
@@ -115,11 +116,12 @@ def check_needed_sudos(host, needed_sudos, dynamic_mode_inp=[]):
                 prog_name_inx = right.find("/")
                 if prog_name_inx > -1:
                     for paths_str in dynamic_mode_inp:
-                        if paths_str.find(right[prog_name_inx:]) > -1 and found_in_path_str:
+                        if paths_str.find(right[prog_name_inx:]) > -1 \
+                                and found_in_path_str:
                             found = True
                             break
 
-        # not found => maybe dynamic failed, try old method (more false negatives..)
+        # not found => maybe dynamic failed, try old method (more false neg)
         if len(dynamic_mode_inp) == 0 or not found:
             for right in host["sudo_rights"]:
                 if right.endswith("NOPASSWD: ALL"):
@@ -131,7 +133,7 @@ def check_needed_sudos(host, needed_sudos, dynamic_mode_inp=[]):
     return to_add
 
 
-# dynamic_mode returns a second variable = list of strings of possibilities (e.g. ip = "/bin/ip /sbin/ip")
+# dynamic_mode returns a second variable = list of strings of possibilities
 def check_sudo(user, ip_address, dynamic_mode=False):
     # filters list and returns list of strings containing li
     def filter_list(li, to_check):
@@ -141,16 +143,18 @@ def check_sudo(user, ip_address, dynamic_mode=False):
                 return_results.append(r)
         return return_results
 
-    visudo_results = filter_list(execute_ssh(user, ip_address, "sudo -l"), "NOPASSWD")
+    visudo_results = filter_list(
+        execute_ssh(user, ip_address, "sudo -l"), "NOPASSWD")
     dyn_ret = []
     if dynamic_mode:
         for line in visudo_results:
             last = line.rfind("/")
             if last > -1:
-                prog_name = line[line.rfind("/")+1:]  # e.g. = "ip" or "ethtool" or ..
+                # e.g. = "ip" or "ethtool" or ..
+                prog_name = line[line.rfind("/")+1:]
                 ssh_res = execute_ssh(user, ip_address, "whereis " + prog_name)
                 if len(ssh_res[0]) > len(prog_name):
-                    # cut out program name at beginning of str ("ip: /bin/ip /sbin/ip")
+                    # cut prog name at beginning of str("ip: /bin/ip /sbin/ip")
                     if ssh_res[0].find(prog_name + ":") == 0:
                         dyn_ret.append(ssh_res[0][len(prog_name)+2:])
                     # or just check if its in string
@@ -168,46 +172,53 @@ def check_sudo(user, ip_address, dynamic_mode=False):
 # Interface fetching
 def fetch_interface(ssh_user, ssh_ip, iface, namespace=""):
     try:
-        lines = subprocess.run([project_path + "/core/scripts/fetch.sh", ssh_user, ssh_ip, iface, namespace], stdout=subprocess.PIPE).stdout.decode("utf-8").split("\n")
+        lines = subprocess.run(
+            [project_path + "/core/scripts/fetch.sh", ssh_user, ssh_ip, iface,
+             namespace], stdout=subprocess.PIPE).stdout.decode(
+            "utf-8").split("\n")
         mac_line = ""
         ipv4_line = ""
-        for l in range(0, len(lines)):
-            if lines[l].find(iface) > -1:
+        for li in range(0, len(lines)):
+            if lines[li].find(iface) > -1:
                 try:
                     for i in range(0, 10):
-                        if lines[l + i].find("ether") > -1 or lines[l + i].find("HWaddr") > -1:
-                            mac_line = lines[l + i]
+                        if lines[li + i].find("ether") > -1 \
+                                or lines[li + i].find("HWaddr") > -1:
+                            mac_line = lines[li + i]
                             break
-                except:
+                except Exception:
                     mac_line = ""
                 try:
                     for i in range(0, 10):
-                        found = lines[l + i].find("inet ")
-                        if found > -1: # ifconfig different versions, sometimes Bcast sometimes broadcast
-                            if lines[l + i].find("Bcast") < lines[l + i].find("broadcast"):
-                                bcast = lines[l + i].find("broadcast")
+                        found = lines[li + i].find("inet ")
+                        # ifconfig diff vers, sometimes Bcast or broadcast
+                        if found > -1:
+                            if lines[li + i].find(
+                                    "Bcast") < lines[li + i].find("broadcast"):
+                                bcast = lines[li + i].find("broadcast")
                             else:
-                                bcast = lines[l + i].find("Bcast")
-                            if lines[l + i].find("netmask") < lines[l + i].find("Mask"):
-                                nm = lines[l + i].find("Mask")
+                                bcast = lines[li + i].find("Bcast")
+                            if lines[li + i].find(
+                                    "netmask") < lines[li + i].find("Mask"):
+                                nm = lines[li + i].find("Mask")
                             else:
-                                nm = lines[l + i].find("netmask")
-
-                            if nm < bcast: # broadcast and netmask in diff versions of ifconfig swapped
+                                nm = lines[li + i].find("netmask")
+                            # broadcast and netmask in diff versions swapped
+                            if nm < bcast:
                                 stop = nm
-                                nm_line = lines[l + i][nm:bcast]
+                                nm_line = lines[li + i][nm:bcast]
                             else:
                                 stop = bcast
-                                nm_line = lines[l + i][nm:]
+                                nm_line = lines[li + i][nm:]
 
-                            ipv4_line = lines[l + i][found:stop]
+                            ipv4_line = lines[li + i][found:stop]
                             break
-                except:
+                except Exception:
                     ipv4_line = nm_line = ""
                 break
 
         re_mac = re.compile('([0-9a-f]{2}(?::[0-9a-f]{2}){5})', re.IGNORECASE)
-        re_ipv4 = re.compile('[0-9]+(?:\.[0-9]+){3}')
+        re_ipv4 = re.compile(r'[0-9]+(?:\.[0-9]+){3}')
 
         mac = re.findall(re_mac, mac_line)
         if isinstance(mac, list) and len(mac) > 0:
@@ -222,36 +233,41 @@ def fetch_interface(ssh_user, ssh_ip, iface, namespace=""):
         prefix = ""
         try:
             netmask = re.findall(re_ipv4, nm_line)[0]
-            prefix = "/" + str(sum(bin(int(x)).count('1') for x in netmask.split('.')))
-        except:
+            prefix = "/" + str(sum(bin(int(x)).count(
+                '1') for x in netmask.split('.')))
+        except Exception:
             prefix = ""
 
     except Exception as e:
-        log_error("CORE EXCEPTION: " + str( traceback.format_exc() ))
+        log_error("CORE EXCEPTION: " + str(traceback.format_exc()))
         ipv4 = mac = "fetch error"
 
     # check if iface is up
     iface_found = False
     try:
         if namespace == "":
-            up_state = execute_ssh(ssh_user, ssh_ip, 'ifconfig | grep "' + iface+'"')[0]
+            up_state = execute_ssh(
+                ssh_user, ssh_ip, 'ifconfig | grep "' + iface+'"')[0]
         else:
-            up_state = execute_ssh(ssh_user, ssh_ip, 'sudo ip netns exec ' + str(namespace) + ' ifconfig | grep "' + iface + '"')[0]
+            up_state = execute_ssh(
+                ssh_user, ssh_ip, 'sudo ip netns exec ' + str(
+                    namespace) + ' ifconfig | grep "' + iface + '"')[0]
         if len(up_state) > 0:
             up_state = "up"
             iface_found = True
         else:
             up_state = "down"
-            found = execute_ssh(ssh_user, ssh_ip, 'ifconfig -a | grep "' + iface + '"')[0]
+            found = execute_ssh(
+                ssh_user, ssh_ip, 'ifconfig -a | grep "' + iface + '"')[0]
             if len(found) > 0:
                 iface_found = True
-    except:
+    except Exception:
         up_state = "error"
 
     return ipv4, mac, prefix, up_state, iface_found
 
 
-### RPC tools:
+# RPC tools:
 
 
 def flt(x):
@@ -267,7 +283,7 @@ def flt(x):
 
 def flt_dict(cfg):
     new = {}
-    for k,v in cfg.items():
+    for k, v in cfg.items():
         new[k] = flt(v)
     return new
 

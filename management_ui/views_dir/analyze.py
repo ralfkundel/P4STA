@@ -191,56 +191,63 @@ def external_results(request):
                                                   traceback.format_exc()))})
 
 
-# packs zip object for results from external host
-def download_external_results(request):
+def get_ext_host_zip_list():
     globals.core_conn.root.external_results(globals.selected_run_id)
-    file_id = str(globals.selected_run_id)
+    fid = str(globals.selected_run_id)
     files = [
-        "management_ui/generated/latency.svg",
-        "management_ui/generated/latency_sec.svg",
-        "management_ui/generated/latency_bar.svg",
-        "management_ui/generated/latency_sec_y0.svg",
-        "management_ui/generated/latency_y0.svg",
-        "management_ui/generated/ipdv.svg",
-        "management_ui/generated/ipdv_sec.svg",
-        "management_ui/generated/pdv.svg",
-        "management_ui/generated/pdv_sec.svg",
-        "management_ui/generated/speed.svg",
-        "management_ui/generated/packet_rate.svg",
-        "management_ui/generated/speed_upscaled.svg",
-        "management_ui/generated/packet_rate_upscaled.svg",
+        "results/" + fid + "/generated/latency.svg",
+        "results/" + fid + "/generated/latency_sec.svg",
+        "results/" + fid + "/generated/latency_bar.svg",
+        "results/" + fid + "/generated/latency_sec_y0.svg",
+        "results/" + fid + "/generated/latency_y0.svg",
+        "results/" + fid + "/generated/ipdv.svg",
+        "results/" + fid + "/generated/ipdv_sec.svg",
+        "results/" + fid + "/generated/pdv.svg",
+        "results/" + fid + "/generated/pdv_sec.svg",
+        "results/" + fid + "/generated/speed.svg",
+        "results/" + fid + "/generated/packet_rate.svg",
+        "results/" + fid + "/generated/speed_upscaled.svg",
+        "results/" + fid + "/generated/packet_rate_upscaled.svg",
     ]
-    folder = P4STA_utils.get_results_path(globals.selected_run_id)
+
+    folder = P4STA_utils.get_results_path(fid)
     for i in range(0, len(files)):
         name = files[i][files[i][16:].find("/") + 17:]
-        files[i] = [files[i], "graphs/" + name[:-4] + file_id + ".svg"]
+        files[i] = [files[i], "results/" + fid + "/" +
+                    name[:-4] + fid + ".svg"]
 
-    files.append([folder + "/timestamp1_list_" + file_id + ".csv",
-                  "results/timestamp1_list_" + file_id + ".csv"])
-    files.append([folder + "/timestamp2_list_" + file_id + ".csv",
-                  "results/timestamp2_list_" + file_id + ".csv"])
-    files.append([folder + "/total_throughput_" + file_id + ".csv",
-                  "results/total_throughput_" + file_id + ".csv"])
-    files.append([folder + "/packet_sizes_" + file_id + ".csv",
-                  "results/packet_sizes_" + file_id + ".csv"])
-    files.append([folder + "/raw_packet_counter_" + file_id + ".csv",
-                  "results/raw_packet_counter_" + file_id + ".csv"])
-    files.append([folder + "/output_external_host_" + file_id + ".txt",
-                  "results/output_external_host_" + file_id + ".txt"])
+    files.append([folder + "/timestamp1_list_" + fid + ".csv",
+                  "results/" + fid + "/timestamp1_list_" + fid + ".csv"])
+    files.append([folder + "/timestamp2_list_" + fid + ".csv",
+                  "results/" + fid + "/timestamp2_list_" + fid + ".csv"])
+    files.append([folder + "/packet_sizes_" + fid + ".csv",
+                  "results/" + fid + "/packet_sizes_" + fid + ".csv"])
+    files.append([folder + "/raw_packet_counter_" + fid + ".csv",
+                  "results/" + fid + "/raw_packet_counter_" + fid + ".csv"])
+    files.append([folder + "/output_external_host_" + fid + ".txt",
+                  "results/" + fid + "/output_external_host_" + fid + ".txt"])
     files.append(["analytics/analytics.py", "analytics/analytics.py"])
     files.append(["analytics/README.MD", "analytics/README.MD"])
 
     f = open("create_graphs.sh", "w+")
     f.write("#!/bin/bash\n")
-    f.write("python3 analytics/analytics.py --id " + file_id)
+    f.write("python3 analytics/analytics.py --id " + fid)
     f.close()
     os.chmod("create_graphs.sh", 0o777)  # make run script executable
     files.append(["create_graphs.sh", "create_graphs.sh"])
 
-    files.append([folder + "/config_" + file_id + ".json",
-                  "data/config_" + file_id + ".json"])
+    files.append([folder + "/config_" + fid + ".json",
+                  "data/config_" + fid + ".json"])
 
-    zip_file = pack_zip(request, files, file_id, "external_host_")
+    return files
+
+
+# packs zip object for results from external host
+def download_external_results(request):
+    files = get_ext_host_zip_list()
+    file_id = str(globals.selected_run_id)
+
+    zip_file = pack_zip(files, file_id, "external_host_")
 
     try:
         os.remove("create_graphs.sh")
@@ -248,6 +255,54 @@ def download_external_results(request):
         pass
 
     return zip_file
+
+
+def download_all_zip(request):
+    # first check if cached results are already available
+    # this step is not neccessary for download_external_results because
+    # it's only possible to trigger inside the ext host results view
+    # which already generated the graphs
+    cfg = P4STA_utils.read_result_cfg(globals.selected_run_id)
+    folder = P4STA_utils.get_results_path(globals.selected_run_id)
+    fid = str(globals.selected_run_id)
+
+    # ext host
+    files = get_ext_host_zip_list()
+    trigger_generation = False
+    for file in files:
+        if not os.path.isfile(file[0]):
+            trigger_generation = True
+    if trigger_generation:
+        # trigger generation of graphs
+        _ = analytics.main(
+            str(globals.selected_run_id), cfg["multicast"],
+            P4STA_utils.get_results_path(globals.selected_run_id)
+        )
+
+    # stamper
+    files.append([folder + "/stamper_" + fid + ".json",
+                  "results/" + fid + "/stamper_" + fid + ".json"])
+    files.append([folder + "/output_stamperice_" + fid + ".txt",
+                  "results/" + fid + "/output_stamperice_" + fid + ".txt"])
+
+    # loadgen
+    files.extend([
+        ["results/" + fid + "/generated/loadgen_1.svg",
+         "results/" + fid + "/generated/loadgen_1.svg"],
+        ["results/" + fid + "/generated/loadgen_2.svg",
+         "results/" + fid + "/generated/loadgen_2.svg"],
+        ["results/" + fid + "/generated/loadgen_3.svg",
+         "results/" + fid + "/generated/loadgen_3.svg"]
+    ])
+
+    zip = pack_zip(files, fid, "stamper_and_ext_host_")
+
+    try:
+        os.remove("create_graphs.sh")
+    except Exception:
+        pass
+
+    return zip
 
 
 # packs zip object for results from p4 registers
@@ -261,7 +316,7 @@ def download_stamper_results(request):
          "results/output_stamperice_" + str(globals.selected_run_id) + ".txt"]
     ]
 
-    return pack_zip(request, files, str(globals.selected_run_id),
+    return pack_zip(files, str(globals.selected_run_id),
                     "stamperice_results_")
 
 
@@ -269,22 +324,23 @@ def download_stamper_results(request):
 def download_loadgen_results(request):
     file_id = str(globals.selected_run_id)
     cfg = P4STA_utils.read_result_cfg(globals.selected_run_id)
+
     files = [
-        ["management_ui/generated/loadgen_1.svg", "loadgen_1.svg"],
-        ["management_ui/generated/loadgen_2.svg", "loadgen_2.svg"],
-        ["management_ui/generated/loadgen_3.svg", "loadgen_3.svg"]
+        ["results/" + file_id + "/generated/loadgen_1.svg", "loadgen_1.svg"],
+        ["results/" + file_id + "/generated/loadgen_2.svg", "loadgen_2.svg"],
+        ["results/" + file_id + "/generated/loadgen_3.svg", "loadgen_3.svg"]
     ]
 
     folder = P4STA_utils.get_results_path(globals.selected_run_id)
     file_id = str(file_id)
     files.append([folder + "/output_loadgen_" + file_id + ".txt",
                   "output_loadgen_" + file_id + ".txt"])
-    zip_file = pack_zip(request, files, file_id, cfg["selected_loadgen"] + "_")
+    zip_file = pack_zip(files, file_id, cfg["selected_loadgen"] + "_")
     return zip_file
 
 
 # returns downloadable zip in browser
-def pack_zip(request, files, file_id, zip_name):
+def pack_zip(files, file_id, zip_name):
     response = HttpResponse(content_type="application/zip")
     zip_file = zipfile.ZipFile(response, "w")
     for f in files:

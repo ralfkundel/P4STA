@@ -18,6 +18,7 @@
 import os
 import P4STA_utils
 
+
 class AbstractExtHost:
     def __init__(self, host_cfg):
         self.host_cfg = host_cfg
@@ -42,19 +43,29 @@ class AbstractExtHost:
 
     def ext_host_status_overview(self, results, index, cfg):
         def check_iface(user, ip, iface, namespace=""):
-            ipv4, mac, prefix, up_state, iface_found = P4STA_utils.fetch_interface(user, ip, iface, namespace)
+            ipv4, mac, prefix, up_state, iface_found = \
+                P4STA_utils.fetch_interface(user, ip, iface, namespace)
             if ipv4 == "" or ipv4 == []:
                 ipv4 = "n/a"
             if mac == "" or mac == []:
                 mac = "device not found"
             return ipv4, mac, prefix, up_state
-        res = {"ext_host_ssh_ping": (os.system("timeout 1 ping " + cfg["ext_host_ssh"] + " -c 1") == 0)}
+        res = {"ext_host_ssh_ping": (os.system(
+            "timeout 1 ping " + cfg["ext_host_ssh"] + " -c 1") == 0)}
         if res["ext_host_ssh_ping"]:
-            res["ext_host_sudo_rights"], list_of_path_possibilities = P4STA_utils.check_sudo(cfg["ext_host_user"], cfg["ext_host_ssh"], dynamic_mode=True)
+            res["ext_host_sudo_rights"], list_of_path_possibilities = \
+                P4STA_utils.check_sudo(
+                    cfg["ext_host_user"], cfg["ext_host_ssh"],
+                    dynamic_mode=True)
             print("Ext Host sudo path possibilities:")
             print(list_of_path_possibilities)
             res["list_of_path_possibilities"] = list_of_path_possibilities
-            res["ext_host_fetched_ipv4"], res["ext_host_fetched_mac"], res["ext_host_fetched_prefix"], res["ext_host_up_state"] = check_iface(cfg["ext_host_user"], cfg["ext_host_ssh"], cfg["ext_host_if"])
+            iface_status = check_iface(
+                cfg["ext_host_user"], cfg["ext_host_ssh"], cfg["ext_host_if"])
+            res["ext_host_fetched_ipv4"] = iface_status[0]
+            res["ext_host_fetched_mac"] = iface_status[1]
+            res["ext_host_fetched_prefix"] = iface_status[2]
+            res["ext_host_up_state"] = iface_status[3]
 
             # store in results list (no return possible for a thread)
             results[index] = res

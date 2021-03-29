@@ -129,11 +129,6 @@ class ExtHostImpl(AbstractExtHost):
                         "/p4sta/externalHost/python/raw_packet_counter_" +
                         file_id + ".csv",
                         P4STA_utils.get_results_path(file_id)])
-        # subprocess.run(["scp", self.cfg["ext_host_user"] + "@" + self.cfg[
-        #     "ext_host_ssh"] + ":/home/" + self.cfg["ext_host_user"] +
-        #                 "/p4sta/externalHost/python/total_throughput_" +
-        #                 file_id + ".csv",
-        #                 P4STA_utils.get_results_path(file_id)])
         subprocess.run(["scp", self.cfg["ext_host_user"] + "@" + self.cfg[
             "ext_host_ssh"] + ":/home/" + self.cfg[
                             "ext_host_user"] +
@@ -218,7 +213,8 @@ class ExtHostImpl(AbstractExtHost):
             '/p4sta/externalHost/python; ./install_python_sudo.sh;"')
         lst.append(
             '  ssh  -t -o ConnectTimeout=2 -o StrictHostKeyChecking=no ' +
-            user_name + '@' + ip + ' "sudo apt update; sudo apt install -y python3-pip"')
+            user_name + '@' + ip +
+            ' "sudo apt update; sudo apt install -y python3-pip"')
         for version in self.host_cfg["python_dependencies"]:
             for module in version["modules"]:
                 pip_str = "pip" + version[

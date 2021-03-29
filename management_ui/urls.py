@@ -49,6 +49,7 @@ urlpatterns = [
 
     # non-ajax related GET or POST's (e.g. <a> or form submit)
     path('deleteData/', analyze.delete_data),
+    path('downloadAllResults/', analyze.download_all_zip),
     path('downloadExtResults/', analyze.download_external_results),
     path('downloadLoadgenResults/', analyze.download_loadgen_results),
     path('downloadStamperResults/', analyze.download_stamper_results),

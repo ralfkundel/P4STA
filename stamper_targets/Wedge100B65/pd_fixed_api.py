@@ -27,11 +27,22 @@ class PDFixedConnect:
             self.error_message = message
 
     def set_port_shaping_rate(self, port, rate):
+        # rate limit over 100 Gbit/s is not possible
+        if rate > 100000000:
+            rate = 100000000
+        cells = int(rate / 300)
+        if cells > 250000:
+            # more doesn't make sense
+            cells = 250000
+        elif cells < 300:
+            cells = 300
+        print("Set Tofino Shaping Rate: " + str(rate/1000) + "Mbit/s | Cells: "
+              + str(cells) + " for port " + str(port))
         self.meth_dict["tm_set_port_shaping_rate"](0, port, False, 1600, rate)
+        self.meth_dict["tm_set_ingress_port_drop_limit"](0, port, cells)
 
     def enable_port_shaping(self, port):
         self.meth_dict["tm_enable_port_shaping"](0, port)
-        # self.meth_dict["set_ingress_port_drop_limit"](0, port, ??)
 
     def disable_port_shaping(self, port):
         self.meth_dict["tm_disable_port_shaping"](0, port)

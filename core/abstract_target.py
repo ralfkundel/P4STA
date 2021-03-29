@@ -23,7 +23,7 @@ import P4STA_utils
 class AbstractTarget:
     def __init__(self, target_cfg):
         self.target_cfg = target_cfg
-        self.speed_list = ["1G", "10G", "25G", "40G"]  # speedlist if no new one will be defined in child class
+        self.speed_list = ["1G", "10G", "25G", "40G"]
 
     def setRealPath(self, path):
         self.realPath = path
@@ -53,13 +53,17 @@ class AbstractTarget:
                     else:
                         all_dut_dst_p4_ports.append(dut["p4_port"])
                 else:
-                    print("Port " + str(dut["p4_port"] + " seems to be configured to more than one DUT port, P4STA may not work properly."))
+                    print("Port " +
+                          str(dut["p4_port"] + " seems to be configured to "
+                                               "more than one DUT port, P4STA "
+                                               "may not work properly."))
 
         return all_dut_dst_p4_ports
 
     # if not overwritten = everything is zero
     def read_stamperice(self, cfg):
-        cfg["total_deltas"] = cfg["delta_counter"] = cfg["min_delta"] = cfg["max_delta"] = 0
+        cfg["total_deltas"] = cfg["delta_counter"] = \
+            cfg["min_delta"] = cfg["max_delta"] = 0
         for dut in cfg["dut_ports"]:
             dut["num_ingress_packets"] = 0
             dut["num_ingress_stamped_packets"] = 0
@@ -80,7 +84,9 @@ class AbstractTarget:
         return cfg
 
     def stamper_status(self, cfg):
-        return ["No portmanager available", "Are you sure you selected a target before?"], False, "no target selected!"
+        return ["No portmanager available",
+                "Are you sure you selected a target before?"], \
+                False, "no target selected!"
 
     # starts specific p4 software on device
     def start_stamper_software(self, cfg):
@@ -103,14 +109,17 @@ class AbstractTarget:
         # input = ["ssh", cfg["stamper_user"] + "@" + cfg["stamper_ssh"], arg]
         # res = subprocess.Popen(input, stdout=subprocess.PIPE).stdout
         # return res.read().decode().split("\n")
-        return P4STA_utils.execute_ssh(cfg["stamper_user"], cfg["stamper_ssh"], arg)
+        return P4STA_utils.execute_ssh(
+            cfg["stamper_user"], cfg["stamper_ssh"], arg)
 
     # returns list of strings with needed dynamic sudos for this target
-    # in difference to fixed needed sudos defined in target_config.json this checks for needed sudos which are not clear for every use case (e.g. different software version)
+    # in difference to fixed needed sudos defined in target_config.json this
+    # checks for needed sudos which aren't clear for every use case
     def needed_dynamic_sudos(self, cfg):
         return []
 
-    def get_server_install_script(self, user_name, ip, target_specific_dict={}):
+    def get_server_install_script(self, user_name, ip,
+                                  target_specific_dict={}):
         lst = []
         lst.append('echo "====================================="')
         lst.append('echo "not implemented for this Stamper device"')
@@ -119,21 +128,34 @@ class AbstractTarget:
 
     # thread method used in core.py status_overview()
     def stamper_status_overview(self, results, index, cfg):
-        # instances inheriting from abstract_target could implement additional checks in the following way:
-        # res["custom_checks"] = [[True=green/False=red, "ipv4_forwarding"(=label to check), "=1"(=text indicating result of check)]]
+        # instances inheriting from abstract_target could implement additional
+        # checks in the following way:
+        # res["custom_checks"] = [[True=green/False=red,
+        # "ipv4_forwarding"(=label to check),
+        # "=1"(=text indicating result of check)]]
         res = {}
-        res["stamper_ssh_ping"] = (os.system("timeout 1 ping " + cfg["stamper_ssh"] + " -c 1") == 0)
-        res["stamper_sudo_rights"], list_of_path_possibilities = P4STA_utils.check_sudo(cfg["stamper_user"], cfg["stamper_ssh"], dynamic_mode=True)
+        res["stamper_ssh_ping"] = (
+                os.system(
+                    "timeout 1 ping " + cfg["stamper_ssh"] + " -c 1") == 0)
+        res["stamper_sudo_rights"], list_of_path_possibilities = \
+            P4STA_utils.check_sudo(
+                cfg["stamper_user"], cfg["stamper_ssh"], dynamic_mode=True)
         print("Target sudo path possibilities:")
         print(list_of_path_possibilities)
 
         if res["stamper_ssh_ping"]:
-            res["stamper_compile_status_color"], res["p4_compile_status"] = self.check_if_p4_compiled(cfg)
+            res["stamper_compile_status_color"], res["p4_compile_status"] = \
+                self.check_if_p4_compiled(cfg)
         else:
-            res["stamper_compile_status_color"], res["p4_compile_status"] = (False, "P4-Stamper is not reachable at SSH IP!")
-        # needed sudos = defined in target_config.json + dynamic sudos (e.g. software version)
-        needed_sudos = self.target_cfg["status_check"]["needed_sudos_to_add"] + self.needed_dynamic_sudos(cfg)
-        res["stamper_needed_sudos_to_add"] = P4STA_utils.check_needed_sudos({"sudo_rights": res["stamper_sudo_rights"]}, needed_sudos, dynamic_mode_inp=list_of_path_possibilities)
+            res["stamper_compile_status_color"], res["p4_compile_status"] = (
+                False, "P4-Stamper is not reachable at SSH IP!")
+        # needed sudos = defined in target_config.json + dynamic sudos
+        needed_sudos = self.target_cfg["status_check"]["needed_sudos_to_add"] \
+            + self.needed_dynamic_sudos(cfg)
+        res["stamper_needed_sudos_to_add"] = P4STA_utils.check_needed_sudos(
+            {"sudo_rights": res["stamper_sudo_rights"]},
+            needed_sudos,
+            dynamic_mode_inp=list_of_path_possibilities)
 
         # store in results list (no return possible for a thread)
         results[index] = res
