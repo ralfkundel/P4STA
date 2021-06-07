@@ -550,8 +550,12 @@ class TargetImpl(AbstractTarget):
                 "pipe.SwitchIngress.delta_register_high")
             print("delta_register_high: " + str(high_read))
             low_read = max(high_read)
-            overflow = min([x for x in high_read
-                            if ((x > 0) and (x != low_read))] + [0])
+            overflow = 0
+            try:
+                overflow = min([x for x in high_read
+                                if ((x > 0) and (x != low_read))])
+            except Exception:
+                overflow = 0
             total_deltas = (overflow << 32) + low_read
 
             delta_counter = sum(interface.read_register(
