@@ -21,17 +21,13 @@ import sys
 import time
 import traceback
 
-from core import P4STA_utils
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 project_path = dir_path[0:dir_path.find("/cli")]
 sys.path.append(project_path)
-try:
-    from analytics import analytics
-except Exception as e:
-    # prevent PEP3 warning because sys append must be before
-    raise e
 
+from core import P4STA_utils
+from analytics import analytics
 
 def main():
     global selected_run_id

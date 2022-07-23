@@ -36,20 +36,17 @@ class ExtHostImpl(AbstractExtHost):
         answer = P4STA_utils.execute_ssh(
             self.cfg["ext_host_user"],
             self.cfg["ext_host_ssh"],
-            "python3 -c 'import pkgutil; print(1 if pkgutil.find_loader"
-            "(\"setproctitle\") else 0)'")
+            "python3 -c 'import pkgutil; print(1 if pkgutil.find_loader(\"setproctitle\") else 0)'")
         if answer[0] == "0":
             errors = errors + (
-                "Python Module 'setproctitle' not found at external host -> "
-                "'pip3 install setproctitle'",)
+                "Python Module 'setproctitle' not found at external host -> 'pip3 install setproctitle'",)
             return errors
 
         answer = P4STA_utils.execute_ssh(
             self.cfg["ext_host_user"],
             self.cfg["ext_host_ssh"],
             "mkdir -p /home/" + self.cfg["ext_host_user"] +
-            "/p4sta/externalHost/python; "
-            "sudo killall external_host_python_receiver")
+            "/p4sta/externalHost/python; sudo killall external_host_python_receiver")
 
         input = ["scp", ext_py_dir + "/pythonRawSocketExtHost.py",
                  self.cfg["ext_host_user"] + "@" + self.cfg[
@@ -73,8 +70,8 @@ class ExtHostImpl(AbstractExtHost):
         res = P4STA_utils.execute_ssh(self.cfg["ext_host_user"],
                                       self.cfg["ext_host_ssh"], args)
 
-        print("now start python extHost")
-        call = "sudo ./pythonRawSocketExtHost.py --name " + file_id + \
+        print("start python extHost")
+        call = "sudo -E ./pythonRawSocketExtHost.py --name " + file_id + \
                " --interface " + self.cfg["ext_host_if"] + " --multi " + str(
                    multi) + " --tsmax " + str(tsmax)
         args = "cd /home/" + self.cfg["ext_host_user"] + \
@@ -89,8 +86,7 @@ class ExtHostImpl(AbstractExtHost):
         input = ["ssh",
                  self.cfg["ext_host_user"] + "@" + self.cfg["ext_host_ssh"],
                  "cd /home/" + self.cfg["ext_host_user"] +
-                 "/p4sta/externalHost/python; cat pythonRawSocketExtHost.log; "
-                 "exit"]
+                 "/p4sta/externalHost/python; cat pythonRawSocketExtHost.log; exit"]
         res = subprocess.run(input, stdout=subprocess.PIPE, timeout=3).stdout
         result = res.decode("utf-8")
 
@@ -160,7 +156,7 @@ class ExtHostImpl(AbstractExtHost):
             "echo 'visudo entry " \
             "already exists';\n  else\n    sleep 0.1\n    " \
             "echo $current_user' ALL=(ALL:ALL) " \
-            "NOPASSWD:'$1 | sudo EDITOR='tee -a' visudo;\n  fi\n}\n"
+            "NOPASSWD:SETENV:'$1 | sudo EDITOR='tee -a' visudo;\n  fi\n}\n"
 
         with open(dir_path + "/scripts/install_python_sudo.sh", "w") as f:
             f.write(add_sudo_rights_str)

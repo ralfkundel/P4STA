@@ -2,37 +2,37 @@
 "dataplane_duplication": "0",
   "dut_ports": [
     {
-      "an": "",
-      "fec": "",
-      "id": "1",
+      "an": "default",
+      "fec": "NONE",
+      "id": 1,
       "p4_port": "",
       "real_port": "",
       "shape": "",
-      "speed": "",
+      "speed": "10G",
       "stamp_outgoing": "checked",
       "use_port": "checked"
     },
     {
-      "an": "",
-      "fec": "",
-      "id": "2",
+      "an": "default",
+      "fec": "NONE",
+      "id": 2,
       "p4_port": "",
       "real_port": "",
       "shape": "",
-      "speed": "",
+      "speed": "10G",
       "stamp_outgoing": "checked",
       "use_port": "checked"
     }
   ],
-  "ext_host": "",
-  "ext_host_an": "",
-  "ext_host_fec": "",
-  "ext_host_if": "",
-  "ext_host_real": "",
-  "ext_host_speed": "",
+  "ext_host": "192",
+  "ext_host_an": "default",
+  "ext_host_fec": "NONE",
+  "ext_host_if": "ens1",
+  "ext_host_real": "bf_pci0",
+  "ext_host_speed": "10G",
   "ext_host_ssh": "",
-  "ext_host_user": "",
-  "forwarding_mode": "1",
+  "ext_host_user": "YOUR_USER_NAME",
+  "forwarding_mode": "2",
   "loadgen_groups": [
     {
       "group": 1,
@@ -41,14 +41,15 @@
           "an": "default",
           "fec": "NONE",
           "id": 1,
-          "loadgen_iface": "",
-          "loadgen_ip": "",
+          "loadgen_iface": "enp2s0f0",
+          "loadgen_ip": "10.0.0.1",
           "loadgen_mac": "",
-          "p4_port": "",
-          "real_port": "",
+          "namespace_id": "foo",
+          "p4_port": "66",
+          "real_port": "33/2",
           "speed": "10G",
           "ssh_ip": "",
-          "ssh_user": "root"
+          "ssh_user": "YOUR_USER_NAME"
         }
       ],
       "use_group": "checked"
@@ -60,14 +61,15 @@
           "an": "default",
           "fec": "NONE",
           "id": 1,
-          "loadgen_iface": "",
-          "loadgen_ip": "",
+          "loadgen_iface": "enp2s0f1",
+          "loadgen_ip": "10.0.0.2",
           "loadgen_mac": "",
-          "p4_port": "",
-          "real_port": "",
+          "namespace_id": "bar",
+          "p4_port": "67",
+          "real_port": "33/3",
           "speed": "10G",
           "ssh_ip": "",
-          "ssh_user": "root"
+          "ssh_user": "YOUR_USER_NAME"
         }
       ],
       "use_group": "checked"
@@ -77,8 +79,10 @@
   "program": "tofino_stamper_v1_0_1",
   "sde": "/opt/bf-sde-9.7.2",
   "selected_loadgen": "iperf3",
-  "selected_target": "Stordis_BF6064XT",
   "selected_extHost": "PythonExtHost",
+  "selected_target": "UfispaceS9180-32X",
   "stamper_ssh": "",
-  "stamper_user": ""
+  "stamper_user": "YOUR_USER_NAME",
+  "stamp_tcp": "checked",
+  "stamp_udp": "checked"
 }

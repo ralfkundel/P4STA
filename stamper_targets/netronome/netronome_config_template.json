@@ -1,53 +1,71 @@
 {
+"dataplane_duplication": "0",
   "dut_ports": [
     {
-      "id": "1",
-      "p4_port": "",
-      "real_port": "",
-      "speed": "n/a",
+      "id": 1,
+      "p4_port": "0",
+      "real_port": "p0",
       "stamp_outgoing": "checked",
       "use_port": "checked"
     },
     {
-      "id": "2",
-      "p4_port": "",
-      "real_port": "",
-      "speed": "n/a",
+      "id": 2,
+      "p4_port": "p2",
+      "real_port": "p2",
       "stamp_outgoing": "checked",
       "use_port": "checked"
     }
   ],
-  "ext_host": "",
-  "ext_host_if": "",
-  "ext_host_real": "",
+  "ext_host": "768",
+  "ext_host_an": "",
+  "ext_host_fec": "",
+  "ext_host_if": "vf0_0",
+  "ext_host_real": "v0.0",
+  "ext_host_speed": "",
   "ext_host_ssh": "",
-  "ext_host_user": "",
-  "forwarding_mode": "2",
-  "loadgen_clients": [
+  "ext_host_user": "root",
+  "forwarding_mode": "1",
+    "loadgen_groups": [
     {
-      "id": 1,
-      "loadgen_iface": "",
-      "loadgen_ip": "",
-      "loadgen_mac": "",
-      "p4_port": "",
-      "real_port": "",
-      "ssh_ip": "",
-      "ssh_user": ""
+      "group": 1,
+      "loadgens": [
+        {
+          "an": "default",
+          "fec": "NONE",
+          "id": 1,
+          "loadgen_iface": "vf0_1",
+          "loadgen_ip": "",
+          "loadgen_mac": "",
+          "p4_port": "769",
+          "real_port": "v0.1",
+          "speed": "10G",
+          "ssh_ip": "",
+          "ssh_user": "root"
+        }
+      ],
+      "use_group": "checked"
+    },
+    {
+      "group": 2,
+      "loadgens": [
+        {
+          "an": "default",
+          "fec": "NONE",
+          "id": 1,
+          "loadgen_iface": "vf0_2",
+          "loadgen_ip": "",
+          "loadgen_mac": "",
+          "p4_port": "770",
+          "real_port": "v0.2",
+          "speed": "10G",
+          "ssh_ip": "",
+          "ssh_user": "root"
+        }
+      ],
+      "use_group": "checked"
     }
   ],
-  "loadgen_servers": [
-    {
-      "id": 1,
-      "loadgen_iface": "",
-      "loadgen_ip": "",
-      "loadgen_mac": "",
-      "p4_port": "",
-      "real_port": "",
-      "ssh_ip": "",
-      "ssh_user": ""
-    }
-  ],
-  "multicast": "20",
+  "multicast": "50",
   "program": "middlebox_v7",
   "thrift_port": "20206",
   "nfpfw": "stamper_targets/netronome/p4_src/build/firmware.nffw",
@@ -56,7 +74,7 @@
   "selected_target": "netronome",
   "selected_extHost": "PythonExtHost",
   "stamper_ssh": "",
-  "stamper_user": "",
+  "stamper_user": "root",
   "stamp_tcp": "checked",
   "stamp_udp": "checked"
 }

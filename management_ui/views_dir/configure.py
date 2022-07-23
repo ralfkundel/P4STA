@@ -107,9 +107,9 @@ def updateCfg(request):
                 request.POST["num_grp_" + str(loadgen_grp["group"])])
             servers = []
             i = 1
+            _grp = str(loadgen_grp["group"])
             for j in range(1, num_servers + 1):
                 s = {"id": j}
-                _grp = str(loadgen_grp["group"])
                 _key = "s" + _grp + "_" + str(i) + "_real_port"
                 while _key not in request.POST:
                     i += 1
@@ -158,8 +158,9 @@ def updateCfg(request):
                               "config parameters:" + str(e))
                 servers.append(s)
                 i += 1
-
+            print(str(request.POST["add_to_grp_" + _grp]))
             if str(request.POST["add_to_grp_" + _grp]) == "1":
+                print("addtogrp i was here")
                 s = {}
                 s["id"] = num_servers + 1
                 s["real_port"] = ""

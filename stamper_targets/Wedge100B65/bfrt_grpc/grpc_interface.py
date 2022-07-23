@@ -141,12 +141,10 @@ class TofinoInterface:
             send_request.client_id = self.client_id
             bfrt_info = self.grpc_stub.GetForwardingPipelineConfig(
                 send_request)
-            self.non_p4_config = json.loads(
-                bfrt_info.non_p4_config.bfruntime_info.decode())
+            self.non_p4_config = json.loads(bfrt_info.non_p4_config.bfruntime_info.decode())
             for config in bfrt_info.config:
                 if config.p4_name == p4_program:
-                    self.bfruntime_info = json.loads(
-                        config.bfruntime_info.decode())
+                    self.bfruntime_info = json.loads(config.bfruntime_info.decode())
 
         except grpc.RpcError as e:
             print("Binding P4 name " + p4_program + " error")

@@ -1,0 +1,80 @@
+cfg = {
+  "bmv2_dir": "/root/behavioral-model",
+  "dut_ports": [
+    {
+      "id": 1,
+      "p4_port": "3",
+      "real_port": "3",
+      "speed": "n/a",
+      "stamp_outgoing": "checked",
+      "use_port": "checked"
+    },
+    {
+      "id": 2,
+      "p4_port": "4",
+      "real_port": "4",
+      "speed": "n/a",
+      "stamp_outgoing": "checked",
+      "use_port": "checked"
+    }
+  ],
+  "ext_host": "5",
+  "ext_host_if": "extH-eth1",
+  "ext_host_real": "5",
+  "ext_host_ssh": "10.99.66.99",
+  "ext_host_user": "root",
+  "forwarding_mode": "2",
+  "loadgen_groups": [
+    {
+      "group": 1,
+      "loadgens": [
+        {
+          "id": 1,
+          "loadgen_iface": "h10-eth1",
+          "loadgen_ip": "10.0.1.3",
+          "loadgen_mac": "22:22:22:22:22:22",
+          "p4_port": "1",
+          "real_port": "1",
+          "ssh_ip": "10.99.66.3",
+          "ssh_user": "root"
+        }
+      ],
+      "use_group": "checked"
+    },
+    {
+      "group": 2,
+      "loadgens": [
+        {
+          "id": 1,
+          "loadgen_iface": "h20-eth1",
+          "loadgen_ip": "10.0.2.4",
+          "loadgen_mac": "22:22:22:33:33:33",
+          "p4_port": "2",
+          "real_port": "2",
+          "ssh_ip": "10.99.66.4",
+          "ssh_user": "root"
+        },
+        {
+          "id": 2,
+          "loadgen_iface": "h21-eth1",
+          "loadgen_ip": "10.0.2.5",
+          "loadgen_mac": "22:22:22:33:33:34",
+          "p4_port": "6",
+          "real_port": "6",
+          "ssh_ip": "10.99.66.5",
+          "ssh_user": "root"
+        }
+      ],
+      "use_group": "checked"
+    }
+  ],
+  "multicast": "1",
+  "stamper_ssh": "172.17.0.3",
+  "stamper_user": "root",
+  "program": "bmv2_stamper_v1_0_0",
+  "selected_extHost": "PythonExtHost",
+  "selected_loadgen": "iperf3",
+  "selected_target": "bmv2",
+  "stamp_tcp": "checked",
+  "stamp_udp": "checked"
+}

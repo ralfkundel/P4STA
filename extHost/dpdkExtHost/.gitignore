@@ -1,2 +1,2 @@
 src/build/*
-/script/install_dpdk_sudo.sh
+scripts/install_dpdk_sudo.sh

@@ -48,7 +48,7 @@ class TargetImpl(AbstractTarget):
             else:
                 raise Exception
         except Exception:
-            return "/opt/bf-sde-9.3.0"
+            return "/opt/bf-sde-9.7.2"
 
     def port_lists(self):
         temp = {}
@@ -118,7 +118,13 @@ class TargetImpl(AbstractTarget):
                                "pipe.SwitchIngress.delta_register_high",
                                "pipe.SwitchIngress.delta_register_pkts",
                                "pipe.SwitchIngress.min_register",
-                               "pipe.SwitchIngress.max_register"]
+                               "pipe.SwitchIngress.max_register",
+                               "pipe.snapshot.ingress_data",
+                               "pipe.snapshot.ingress_liveness",
+                               "pipe.snapshot.egress_data",
+                               "pipe.snapshot.egress_liveness",
+                               "tbl_dbg_counter"
+                               ]
                 interface.clear_all_tables(ignore_list)
 
                 hosts = []
@@ -644,16 +650,13 @@ class TargetImpl(AbstractTarget):
             if len(lines) > 0 and lines[0].isdigit() and int(lines[0]) > 0:
                 dev_status = "Yes! PID: " + str(lines[0])
                 try:
-                    start = lines[2].find("/p4/targets/tofino/") + 19
+                    start = lines[2].find("compile/") + 8
                     end = lines[2].find(".conf")
                     parsed_prog = lines[2][start:end]
                     if parsed_prog == cfg["program"]:
                         dev_status = dev_status + " | " + parsed_prog
                     else:
-                        dev_status = dev_status + \
-                                     ' | <span style="color:red">' + \
-                                     parsed_prog + ' (does not match ' \
-                                                   'configured program)</span>'
+                        dev_status = dev_status + ' | <span style="color:red">' + parsed_prog + ' (does not match configured program)</span>'
                 except Exception:
                     dev_status = dev_status + \
                                  " | error parsing currently " \
@@ -734,9 +737,11 @@ class TargetImpl(AbstractTarget):
 
     def start_stamper_software(self, cfg):
         script_dir = dir_path + "/scripts/run_switchd.sh"
+        user_name = cfg["stamper_user"]
         output_sub = subprocess.run(
             [dir_path + "/scripts/start_switchd.sh", cfg["stamper_ssh"],
-             cfg["stamper_user"], self.get_sde(cfg), cfg["program"],
+             cfg["stamper_user"], self.get_sde(cfg),
+             '/home/' + user_name + '/p4sta/stamper/tofino1/compile/' + cfg["program"] + '.conf',
              script_dir], stdout=subprocess.PIPE)
         print("started stamper dev software - sleep 15 sec until grpc is up")
         time.sleep(15)
@@ -798,24 +803,22 @@ class TargetImpl(AbstractTarget):
             interface.teardown()
 
     def check_if_p4_compiled(self, cfg):
-        arg = "[ -d '" + self.get_sde(cfg) + "/build/p4-build/" + cfg[
-            "program"] + "' ] && echo 'y'; exit"
+        user_name = cfg["stamper_user"]
+        path = '/home/' + user_name + '/p4sta/stamper/tofino1/compile/' + cfg["program"] + '.conf'
+        arg = "[ -f '" + path + "' ] && echo 'y'; exit"
         answer = self.execute_ssh(cfg, arg)
 
         if answer[0] != "y":
-            return False, cfg["program"] + " not compiled: " + cfg[
-                "sde"] + "/build/p4-build/" + cfg["program"] + "/ not found."
+            return False, cfg["program"] + " not compiled: '" + path + "' not found."
         else:
-            return True, cfg["program"] + " is compiled: " + cfg[
-                "sde"] + "/build/p4-build/" + cfg["program"] + "/ found."
+            return True, cfg["program"] + " is compiled: '" + path + "' found."
 
     def needed_dynamic_sudos(self, cfg):
         return [cfg["sde"] + "/run_switchd.sh"]
 
     # target_specific_dict contains input fields from /setup_devices/
     # => here SDE path
-    def get_server_install_script(self, user_name, ip,
-                                  target_specific_dict={}):
+    def get_server_install_script(self, user_name, ip, target_specific_dict={}):
         print("INSTALLING TOFINO STAMPER TARGET:")
         print(target_specific_dict)
         sde_path = ""
@@ -830,24 +833,16 @@ class TargetImpl(AbstractTarget):
                     start = lrep.find("=") + 1
                     sde_path = lrep[start:]
                     print("/**************************/")
-                    print(
-                        "Found $SDE_INSTALL at target " + ip +
-                        " = " + sde_path)
+                    print("Found $SDE_INSTALL at target " + ip + " = " + sde_path)
                     print("/**************************/")
             if sde_path == "":
-                print(
-                    "\033[1;33m/**********************************"
-                    "****************************/")
-                print(
-                    "WARNING: SDE Path not found on Tofino, using "
-                    "/opt/bf-sde-9.3.0")
-                print(
-                    "/*********************************************"
-                    "*****************/\033[0m")
-                sde_path = "/opt/bf-sde-9.3.0"
+                print("\033[1;33m/**************************************************************/")
+                print("WARNING: SDE Path not found on Tofino, using /opt/bf-sde-9.7.2")
+                print("/**************************************************************/\033[0m")
+                sde_path = "/opt/bf-sde-9.7.2"
 
         # create install_tofino.sh
-        add_sudo_rights_str = "#!/bin/bash\nadd_sudo_rights() {\ncurrent_" \
+        add_sudo_rights_str = "#!/bin/bash\n#AUTOGENERATED BY P4STA installer\nadd_sudo_rights() {\ncurrent_" \
                               "user=$USER\n  if (sudo -l | grep -q " \
                               "'(ALL : ALL) SETENV: NOPASSWD: '$1); then\n  " \
                               "  echo 'visudo entry already exists';" \
@@ -855,78 +850,51 @@ class TargetImpl(AbstractTarget):
                               "$current_user' ALL=(ALL:ALL) NOPASSWD:" \
                               "SETENV:'$1 | " \
                               "sudo EDITOR='tee -a' visudo; \n  fi\n}\n"
+        compile_p4_src = "export SDE_INSTALL=" + sde_path + "/install\n" \
+                         "cd /home/" + user_name + "/p4sta/stamper/tofino1/\n" \
+                         "mkdir -p compile\n" \
+                         "$SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_0_1.p4\n"
 
         with open(dir_path + "/scripts/install_tofino.sh", "w") as f:
             f.write(add_sudo_rights_str)
             for sudo in self.target_cfg["status_check"]["needed_sudos_to_add"]:
                 if sudo.find("run_switchd.sh") > -1:
-                    f.write(
-                        "add_sudo_rights " + sde_path + "/run_switchd.sh\n")
+                    f.write("add_sudo_rights " + sde_path + "/run_switchd.sh\n")
                 else:
                     f.write("add_sudo_rights $(which " + sudo + ")\n")
+            f.write(compile_p4_src)
         os.chmod(dir_path + "/scripts/install_tofino.sh", 0o775)
 
         lst = []
         lst.append('echo "====================================="')
-        lst.append(
-            'echo "Installing Barefoot Tofino stamper target on ' + ip + '"')
+        lst.append('echo "Installing Barefoot Tofino stamper target on ' + ip + '"')
         lst.append('echo "====================================="')
 
         lst.append('echo "START: Copying Tofino files on remote server:"')
-        lst.append('cd ' + dir_path + "/scripts")
 
         lst.append('if ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no '
-                   + user_name + '@' + ip + ' "echo \'ssh to ' + ip
-                   + ' ***worked***\';"; [ $? -eq 255 ]; then')
+                   + user_name + '@' + ip + ' "echo \'ssh to ' + ip + ' ***worked***\';"; [ $? -eq 255 ]; then')
 
         lst.append('  echo "====================================="')
-        lst.append('  echo "\033[0;31m ERROR: Failed to connect to Stamper '
-                   'server with IP: ' + ip + ' \033[0m"')
+        lst.append('  echo "\033[0;31m ERROR: Failed to connect to Stamper server with IP: ' + ip + ' \033[0m"')
         lst.append('  echo "====================================="')
 
         lst.append('else')
-        lst.append(
-            '  chmod +x stop_switchd.sh start_switchd.sh switchd_status.sh')
+
+        lst.append('  cd ' + dir_path + "/scripts")
+        lst.append('  chmod +x stop_switchd.sh start_switchd.sh switchd_status.sh')
         lst.append('  ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no '
-                   + user_name + '@' + ip + ' \"echo "SSH to stamper device **'
-                                            '*__worked__***\"; mkdir -p /home/'
-                   + user_name + '/p4sta/stamper/tofino1/"')
+                   + user_name + '@' + ip + ' \"echo "SSH to stamper device ***__worked__***\"; mkdir -p /home/' + user_name + '/p4sta/stamper/tofino1/"')
 
         lst.append("   echo ")
 
-        lst.append('  scp install_tofino.sh ' + user_name + '@' + ip +
-                   ':/home/' + user_name + '/p4sta/stamper/tofino1/')
+        lst.append('  scp ' + dir_path + '/PLEASE_COPY/header_tofino_stamper_v1_0_1.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
+        lst.append('  scp ' + dir_path + '/PLEASE_COPY/tofino_stamper_v1_0_1.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
+
+        lst.append('  scp install_tofino.sh ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
         lst.append('  ssh  -o ConnectTimeout=2 -o StrictHostKeyChecking=no ' +
-                   user_name + '@' + ip + ' "cd /home/' + user_name +
-                   '/p4sta/stamper/tofino1/; chmod +x install_tofino.sh;"')
-        lst.append('  ssh  -t -o ConnectTimeout=2 -o StrictHostKeyChecking=no '
-                   + user_name + '@' + ip + ' "cd /home/' + user_name +
-                   '/p4sta/stamper/tofino1; ./install_tofino.sh ' + ';"')
+                   user_name + '@' + ip + ' "cd /home/' + user_name + '/p4sta/stamper/tofino1/; chmod +x install_tofino.sh; ./install_tofino.sh;"')
 
-        lst.append('  echo "Downloading bfruntime.proto from Tofino Target"')
-        # important to use dir_path because THIS file is stored
-        # there but target could be other tofino
-        lst.append('  cd ' + dir_path + '/bfrt_grpc')
-        lst.append('  scp ' + user_name + '@' + ip + ':' + sde_path +
-                   '/install/share/bf_rt_shared/proto/bfruntime.proto proto/ ')
-        lst.append('  echo "Building python3 stub at management server from '
-                   'bfruntime.proto for Tofino Target"')
-        lst.append('  source ../../../pastaenv/bin/activate; python3 -m '
-                   'grpc_tools.protoc -I ./proto --python_out=. '
-                   '--grpc_python_out=. ./proto/bfruntime.proto; deactivate')
-
-        lst.append('  echo "FINISHED setting up Barefoot Tofino target"')
-        lst.append('  echo "====================================="')
-        lst.append('  echo "\033[0;31m IMPORTANT NOTE: P4 source code must be '
-                   'compiled manually on Tofino after compiling Intel/Barefoot'
-                   ' SDE\033[0m"')
-        lst.append('  echo "====================================="')
-        lst.append('  echo ""')
-        lst.append('  echo "====================================="')
-        lst.append('  echo "\033[0;31m IMPORTANT NOTE: Please stop the install'
-                   '.sh script in the CLI and restart P4STA with ./run.sh in o'
-                   'rder to load the freshly compiled grpc files correctly. '
-                   '\033[0m"')
         lst.append('  echo "====================================="')
         lst.append('fi')
 
