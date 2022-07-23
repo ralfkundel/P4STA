@@ -65,7 +65,7 @@ We highly recommonend to use the "status check" on the bottom of the configurati
 
 
 # Publications
-* 2022: "Network Testing Utilizing Programmable Network Hardware?"@ IEEE Communications Magazine: [Article](https://ieeexplore.ieee.org/abstract/document/9722801)
+* 2022: "Network Testing Utilizing Programmable Network Hardware" in IEEE Communications Magazine: [Article](https://ieeexplore.ieee.org/abstract/document/9722801)
 * 2020: "P4STA: High Performance Packet Timestamping with Programmable Packet Processors"@ IEEE/IFIP NOMS: [Paper](https://ieeexplore.ieee.org/abstract/document/9110290)
 * 2020: "Microbursts in Software and Hardware-based Traffic Load Generation" @IEEE/IFIP NOMS: [Demo Paper](https://ieeexplore.ieee.org/abstract/document/9110305)
 * 2019: "How to measure the speed of light with programmable data plane hardware?"@ 2nd P4Europe Workshop: [Demo Paper](https://ieeexplore.ieee.org/abstract/document/8901871)
