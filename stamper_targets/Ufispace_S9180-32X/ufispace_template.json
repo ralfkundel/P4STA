@@ -76,7 +76,7 @@
     }
   ],
   "multicast": "1",
-  "program": "tofino_stamper_v1_0_1",
+  "program": "tofino_stamper_v1_1_0",
   "sde": "/opt/bf-sde-9.7.2",
   "selected_loadgen": "iperf3",
   "selected_extHost": "PythonExtHost",

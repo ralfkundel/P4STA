@@ -853,7 +853,7 @@ class TargetImpl(AbstractTarget):
         compile_p4_src = "export SDE_INSTALL=" + sde_path + "/install\n" \
                          "cd /home/" + user_name + "/p4sta/stamper/tofino1/\n" \
                          "mkdir -p compile\n" \
-                         "$SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_0_1.p4\n"
+                         "$SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_1_0.p4\n"
 
         with open(dir_path + "/scripts/install_tofino.sh", "w") as f:
             f.write(add_sudo_rights_str)
@@ -888,8 +888,8 @@ class TargetImpl(AbstractTarget):
 
         lst.append("   echo ")
 
-        lst.append('  scp ' + dir_path + '/PLEASE_COPY/header_tofino_stamper_v1_0_1.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
-        lst.append('  scp ' + dir_path + '/PLEASE_COPY/tofino_stamper_v1_0_1.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
+        lst.append('  scp ' + dir_path + '/PLEASE_COPY/header_tofino_stamper_v1_1_0.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
+        lst.append('  scp ' + dir_path + '/PLEASE_COPY/tofino_stamper_v1_1_0.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
 
         lst.append('  scp install_tofino.sh ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
         lst.append('  ssh  -o ConnectTimeout=2 -o StrictHostKeyChecking=no ' +

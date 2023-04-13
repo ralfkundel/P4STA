@@ -107,12 +107,12 @@ function job_ptf_tofino(){
     sleep 2
     
     #DIRTY HACK
-    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/#define MAC_STAMPING/\\/\\/#define MAC_STAMPING/g" tofino_stamper_v1_0_1.p4'
-    sudo docker exec -t $dockerid_tofino bash -c 'export SDE_INSTALL=/opt/bf-sde-9.7.2/install; cd /home/root/p4sta/stamper/tofino1; mkdir -p compile; $SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_0_1.p4'
+    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/#define MAC_STAMPING/\\/\\/#define MAC_STAMPING/g" tofino_stamper_v1_1_0.p4'
+    sudo docker exec -t $dockerid_tofino bash -c 'export SDE_INSTALL=/opt/bf-sde-9.7.2/install; cd /home/root/p4sta/stamper/tofino1; mkdir -p compile; $SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_1_0.p4'
 
-    sudo docker exec -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.7.2 export SDE_INSTALL=/opt/bf-sde-9.7.2/install export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.7.2/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_0_1.conf -p tofino_stamper_v1_0_1 -q' &
+    sudo docker exec -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.7.2 export SDE_INSTALL=/opt/bf-sde-9.7.2/install export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.7.2/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_1_0.conf -p tofino_stamper_v1_1_0 -q' &
     sleep 30
-    sudo docker exec -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.7.2 export SDE_INSTALL=/opt/bf-sde-9.7.2/install export PATH=$PATH:$SDE_INSTALL/bin; /opt/bf-sde-9.7.2/run_switchd.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_0_1.conf > /opt/p4-timestamping-middlebox/log/tof_startup.log 2>&1 ' &
+    sudo docker exec -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.7.2 export SDE_INSTALL=/opt/bf-sde-9.7.2/install export PATH=$PATH:$SDE_INSTALL/bin; /opt/bf-sde-9.7.2/run_switchd.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_1_0.conf > /opt/p4-timestamping-middlebox/log/tof_startup.log 2>&1 ' &
     sleep 30
     sudo docker exec -t $dockerid_tofino bash -c 'cd /opt/p4-timestamping-middlebox/; ptf --log-file log/ptf_tofino.log --test-dir ./tests/ptf/tofino --pypath $PWD --interface 0@veth1 --interface 1@veth3 --interface 2@veth5 --interface 3@veth7 --interface 4@veth9 --interface 5@veth11 --interface 6@veth13'
     sudo docker exec -t $dockerid_tofino bash -c 'pkill bf_switchd; pkill tofino-model'
@@ -168,10 +168,10 @@ function job_test_django_tofino(){
     # now prepare BF_SDE container by starting tofino model again, assigning namespaces to veths and create routes
     
     #DIRTY HACK
-    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/#define MAC_STAMPING/\\/\\/#define MAC_STAMPING/g" tofino_stamper_v1_0_1.p4'
-    sudo docker exec -t $dockerid_tofino bash -c 'export SDE_INSTALL=/opt/bf-sde-9.7.2/install; cd /home/root/p4sta/stamper/tofino1; mkdir -p compile; $SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_0_1.p4'
+    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/#define MAC_STAMPING/\\/\\/#define MAC_STAMPING/g" tofino_stamper_v1_1_0.p4'
+    sudo docker exec -t $dockerid_tofino bash -c 'export SDE_INSTALL=/opt/bf-sde-9.7.2/install; cd /home/root/p4sta/stamper/tofino1; mkdir -p compile; $SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_1_0.p4'
     
-    sudo docker exec -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.7.2 export SDE_INSTALL=/opt/bf-sde-9.7.2/install; export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.7.2/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_0_1.conf -p tofino_stamper_v1_0_1 -q'  &
+    sudo docker exec -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.7.2 export SDE_INSTALL=/opt/bf-sde-9.7.2/install; export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.7.2/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_1_0.conf -p tofino_stamper_v1_1_0 -q'  &
     sleep 2
     sudo docker exec -t $dockerid_tofino bash -c 'sysctl -w net.ipv4.ip_forward=1; ip netns add nsveth3; ip link set veth3 netns nsveth3; ip netns add nsveth5; ip link set veth5 netns nsveth5; ip netns add dut; ip link set veth7 netns dut; ip link set veth9 netns dut; ip netns exec dut ifconfig veth7 10.0.1.1/24; ip netns exec dut ifconfig veth7 up; ip netns exec dut ifconfig veth9 10.0.2.1/24; ip netns exec dut ifconfig veth9 up; ip netns exec nsveth3 ifconfig veth3 hw ether 22:22:22:22:22:22; ip netns exec nsveth3 ifconfig veth3 10.0.1.3/24; ip netns exec nsveth3 ifconfig veth3 up; ip netns exec nsveth3 ip route add 10.0.2.0/24 via 10.0.1.1 dev veth3; ip netns exec nsveth5 ifconfig veth5 hw ether 22:22:22:33:33:33; ip netns exec nsveth5 ifconfig veth5 10.0.2.4/24; ip netns exec nsveth5 ifconfig veth5 up; ip netns exec nsveth5 ip route add 10.0.1.0/24 via 10.0.2.1 dev veth5; ip netns exec nsveth3 ethtool --offload veth3 rx off tx off; ip netns exec nsveth5 ethtool --offload veth5 rx off tx off; ip netns exec dut ethtool --offload veth7 rx off tx off; ip netns exec dut ethtool --offload veth9 rx off tx off '
     

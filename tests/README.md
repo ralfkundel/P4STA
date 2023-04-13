@@ -1,7 +1,11 @@
 
 ## A. Running the CI scripts locally:
 ### 1. build the docker containers
+<<<<<<< HEAD
 within this test directory
+=======
+Note: you must copy the bf-sde-9.7.2.tgz file into bf_sde_docker before creating the container if tests for the tofino target should be executed.
+>>>>>>> ci_test
 ```
 ./build_docker_images.sh
 ```
@@ -51,4 +55,5 @@ gitlab-runner ALL=(ALL:ALL) NOPASSWD: /usr/bin/git
 
 ## general remarks:
 * Gitlab runs the job on a dedicated CI VM. The docker images are static and not rebuild ever run.
+* Jobs are currently bound to branches, you can easily change that in .gitlab-ci.yml
 

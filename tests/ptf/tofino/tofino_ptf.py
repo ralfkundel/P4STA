@@ -126,7 +126,7 @@ cfg = {
     "multicast": "1",
     "stamper_ssh": "0.0.0.0",
     "stamper_user": "root",
-    "program": "tofino_stamper_v1_0_1",
+    "program": "tofino_stamper_v1_1_0",
     "sde": "/opt/bf-sde-9.7.2",
     "selected_extHost": "PythonExtHost",
     "selected_loadgen": "iperf3",
