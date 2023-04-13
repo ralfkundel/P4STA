@@ -1,14 +1,11 @@
 
 ## A. Running the CI scripts locally:
 ### 1. build the docker containers
-<<<<<<< HEAD
-within this test directory
-=======
-Note: you must copy the bf-sde-9.7.2.tgz file into bf_sde_docker before creating the container if tests for the tofino target should be executed.
->>>>>>> ci_test
+within this test directory:
 ```
 ./build_docker_images.sh
 ```
+Note: you must copy the bf-sde-9.7.2.tgz file into bf_sde_docker before creating the container if tests for the tofino target should be executed.
 
 ### 2. run test initialization
 in the root directory of this repo:
