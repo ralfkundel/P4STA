@@ -31,8 +31,8 @@ try:
 
     import bfrt_grpc.grpc_interface as grpc_interface
     import pd_fixed_api
-except Exception:
-    pass
+except Exception as e:
+    print(e)
 
 
 class TargetImpl(AbstractTarget):
@@ -40,6 +40,7 @@ class TargetImpl(AbstractTarget):
     def __init__(self, target_cfg):
         super().__init__(target_cfg)
         self.speed_list = ["10G", "25G", "40G", "50G", "100G"]
+        self.port_mapping = None
 
     def get_sde(self, cfg):
         try:
@@ -48,26 +49,47 @@ class TargetImpl(AbstractTarget):
             else:
                 raise Exception
         except Exception:
-            return "/opt/bf-sde-9.7.2"
+            return "/opt/bf-sde-9.13.0"
 
-    def port_lists(self):
-        temp = {}
-        real_ports = []  # stores all real port name possibilities
-        nr_ports = self.target_cfg["nr_ports"]
-        for i in range(1, nr_ports + 1):
-            for z in range(0, 4):
-                real_ports.append(str(i) + "/" + str(z))
-        real_ports.append("bf_pci0")
-        if "p4_ports" in self.target_cfg:
-            logical_ports = self.target_cfg["p4_ports"]
-        else:
-            P4STA_utils.log_error(
-                "Error reading key 'p4_ports' from target_config.json")
-            logical_ports = [-1 for i in range(nr_ports * 4 + 1)]
-        temp["real_ports"] = real_ports
-        temp["logical_ports"] = logical_ports
+    def get_port_mapping(self, ssh_ip, data_plane_program_name):
+        if self.port_mapping is None:
+            try:
+                interface = grpc_interface.TofinoInterface(ssh_ip, device_id=0)
+                interface.bind_p4_name(data_plane_program_name)
+                self.port_mapping = interface.get_port_mapping()
+                if "static_ports" in self.target_cfg:
+                    for port_name in self.target_cfg["static_ports"]:
+                        internal_port_id = self.target_cfg["static_ports"][port_name]
+                        self.port_mapping[port_name] = internal_port_id
+            except Exception:
+                P4STA_utils.log_error(traceback.format_exc())
+            finally:
+                if interface is not None:
+                    interface.teardown()
+        return self.port_mapping
 
-        return temp
+    def update_portmapping(self, cfg):
+        port_map = self.get_port_mapping(cfg["stamper_ssh"], cfg["program"])
+
+        if port_map is None:
+            return cfg
+
+        # 1 dut ports
+        for dut_port in cfg["dut_ports"]:
+            if dut_port["real_port"] in port_map:
+                dut_port["p4_port"] = port_map[dut_port["real_port"]]
+
+        # 2 loadgen ports
+        for loadgen_group in cfg["loadgen_groups"]:
+            for loadgen in loadgen_group["loadgens"]:
+                if loadgen["real_port"] in port_map:
+                    loadgen["p4_port"] = port_map[loadgen["real_port"]]
+
+        # 3 ext host
+        if cfg["ext_host_real"] in port_map:
+            cfg["ext_host"] = port_map[cfg["ext_host_real"]]
+
+        return cfg
 
     # returns list of stamper ports which are used
     def get_used_ports_list(self, cfg):
@@ -86,8 +108,7 @@ class TargetImpl(AbstractTarget):
     def deploy(self, cfg):
         try:
             # client id is chosen randomly by TofinoInterface
-            interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"],
-                                                       device_id=0)
+            interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], device_id=0)
 
             if type(interface) == str:  # error case
                 interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"],
@@ -249,7 +270,7 @@ class TargetImpl(AbstractTarget):
                 set_shape(cfg, key="ext_host_")
 
                 print("Set port shaping finished.")
-        if total_error is not "":
+        if total_error != "":
             return total_error
 
     def deploy_tables(self, cfg, interface):
@@ -663,8 +684,7 @@ class TargetImpl(AbstractTarget):
                                  "loaded program on p4 device."
                 running = True
 
-                interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"],
-                                                           0)
+                interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], 0)
                 try:
                     interface.bind_p4_name(cfg["program"])
 
@@ -837,9 +857,9 @@ class TargetImpl(AbstractTarget):
                     print("/**************************/")
             if sde_path == "":
                 print("\033[1;33m/**************************************************************/")
-                print("WARNING: SDE Path not found on Tofino, using /opt/bf-sde-9.7.2")
+                print("WARNING: SDE Path not found on Tofino, using /opt/bf-sde-9.13.0")
                 print("/**************************************************************/\033[0m")
-                sde_path = "/opt/bf-sde-9.7.2"
+                sde_path = "/opt/bf-sde-9.13.0"
 
         # create install_tofino.sh
         add_sudo_rights_str = "#!/bin/bash\n#AUTOGENERATED BY P4STA installer\nadd_sudo_rights() {\ncurrent_" \
@@ -853,7 +873,7 @@ class TargetImpl(AbstractTarget):
         compile_p4_src = "export SDE_INSTALL=" + sde_path + "/install\n" \
                          "cd /home/" + user_name + "/p4sta/stamper/tofino1/\n" \
                          "mkdir -p compile\n" \
-                         "$SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_1_0.p4\n"
+                         "$SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_2_0.p4\n"
 
         with open(dir_path + "/scripts/install_tofino.sh", "w") as f:
             f.write(add_sudo_rights_str)
@@ -863,7 +883,7 @@ class TargetImpl(AbstractTarget):
                 else:
                     f.write("add_sudo_rights $(which " + sudo + ")\n")
             f.write(compile_p4_src)
-        os.chmod(dir_path + "/scripts/install_tofino.sh", 0o775)
+        os.chmod(dir_path + "/scripts/install_tofino.sh", 0o777)
 
         lst = []
         lst.append('echo "====================================="')
@@ -888,11 +908,11 @@ class TargetImpl(AbstractTarget):
 
         lst.append("   echo ")
 
-        lst.append('  scp ' + dir_path + '/PLEASE_COPY/header_tofino_stamper_v1_1_0.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
-        lst.append('  scp ' + dir_path + '/PLEASE_COPY/tofino_stamper_v1_1_0.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
+        lst.append('  scp ' + dir_path + '/PLEASE_COPY/header_tofino_stamper_v1_2_0.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
+        lst.append('  scp ' + dir_path + '/PLEASE_COPY/tofino_stamper_v1_2_0.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
 
         lst.append('  scp install_tofino.sh ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
-        lst.append('  ssh  -o ConnectTimeout=2 -o StrictHostKeyChecking=no ' +
+        lst.append('  ssh  -t -o ConnectTimeout=2 -o StrictHostKeyChecking=no ' +
                    user_name + '@' + ip + ' "cd /home/' + user_name + '/p4sta/stamper/tofino1/; chmod +x install_tofino.sh; ./install_tofino.sh;"')
 
         lst.append('  echo "====================================="')

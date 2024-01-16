@@ -149,13 +149,12 @@ def main(file_id, multicast, results_path):
             for y in range(0, len(throughput_at_time)):
                 # more than 99ms difference -> 0.1s intervals
                 if (time_throughput[y] - last_time_hit) >= 100:
-                    if (time_throughput[y] - last_time_hit) >= 100:
-                        amount = (time_throughput[y] - last_time_hit) / 100
-                        # more than 200ms difference between two hits -> pause
-                        if amount >= 2:
-                            for i in range(0, int(round(amount))):
-                                mbit_list.append(0)
-                                packet_list.append(0)
+                    amount = (time_throughput[y] - last_time_hit) / 100
+                    # more than 200ms difference between two hits -> pause
+                    if amount >= 2:
+                        for i in range(0, int(round(amount))):
+                            mbit_list.append(0)
+                            packet_list.append(0)
                     last_time_hit = time_throughput[y]
                     # byte->megabit/10 measure every 0.1s but unit is mbit/s
                     mbit_list.append((throughput_at_time[y] -

@@ -71,9 +71,14 @@ class ExtHostImpl(AbstractExtHost):
                                       self.cfg["ext_host_ssh"], args)
 
         print("start python extHost")
+        enable_gtpu = ""
+        if ("enable_gtp" in self.host_cfg and self.host_cfg["enable_gtp"] == True):
+            enable_gtpu = " --gtp"
+        enable_pppoe = ""
+        if ("enable_pppoe" in self.host_cfg and self.host_cfg["enable_pppoe"] == True):
+            enable_pppoe = " --pppoe"
         call = "sudo -E ./pythonRawSocketExtHost.py --name " + file_id + \
-               " --interface " + self.cfg["ext_host_if"] + " --multi " + str(
-                   multi) + " --tsmax " + str(tsmax)
+               " --interface " + self.cfg["ext_host_if"] + " --multi " + str(multi) + " --tsmax " + str(tsmax) + enable_gtpu + enable_pppoe
         args = "cd /home/" + self.cfg["ext_host_user"] + \
                "/p4sta/externalHost/python/; nohup " + call + \
                " > foo.out 2> foo.err < /dev/null &"
@@ -152,17 +157,18 @@ class ExtHostImpl(AbstractExtHost):
     def get_server_install_script(self, user_name, ip):
         add_sudo_rights_str = "current_user=$USER\nadd_sudo_rights() {\n  " \
             "current_user=$USER\n  if " \
-            "(sudo -l | grep -q '(ALL : ALL) NOPASSWD: '$1); then\n    " \
-            "echo 'visudo entry " \
-            "already exists';\n  else\n    sleep 0.1\n    " \
+            "(sudo -l | grep -q '(ALL : ALL) SETENV: NOPASSWD: '$1); then\n    " \
+            "echo 'visudo entry already exists';\n  else\n    sleep 0.1\n    " \
             "echo $current_user' ALL=(ALL:ALL) " \
             "NOPASSWD:SETENV:'$1 | sudo EDITOR='tee -a' visudo;\n  fi\n}\n"
 
         with open(dir_path + "/scripts/install_python_sudo.sh", "w") as f:
             f.write(add_sudo_rights_str)
-            f.write(
-                'printf "\nAdding the following entries to '
-                'visudo at ***External Host***:\n"\n')
+
+            f.write("sudo apt update\n\n")
+            f.write("sudo apt install psmisc\n\n")
+
+            f.write('printf "Adding the following entries to visudo at ***External Host***:"\n')
             for sudo in self.host_cfg["status_check"]["needed_sudos_to_add"]:
                 # e.g. sudo =
                 # "/p4sta/externalHost/python/pythonRawSocketExtHost.py" case
@@ -172,7 +178,7 @@ class ExtHostImpl(AbstractExtHost):
                 else:
                     f.write("add_sudo_rights $(which " + sudo + ")\n")
             f.write("\n")
-        os.chmod(dir_path + "/scripts/install_python_sudo.sh", 0o775)
+        os.chmod(dir_path + "/scripts/install_python_sudo.sh", 0o777)
 
         lst = []
         lst.append('echo "====================================="')

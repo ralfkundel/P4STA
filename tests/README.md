@@ -5,7 +5,7 @@ within this test directory:
 ```
 ./build_docker_images.sh
 ```
-Note: you must copy the bf-sde-9.7.2.tgz file into bf_sde_docker before creating the container if tests for the tofino target should be executed.
+Note: you must copy the bf-sde-9.13.0.tgz file into bf_sde_docker before creating the container if tests for the tofino target should be executed.
 
 ### 2. run test initialization
 in the root directory of this repo:
@@ -35,7 +35,7 @@ Mounted files edited/created inside a container are owned by root afterwards, he
 pre_clone_script = "[ -d \"/home/gitlab-runner/builds/PLEASE_INSERT/0/gitlab/ralf.kundel/p4-timestamping-middlebox/\" ] && cd /home/gitlab-runner/builds/PLEASE_INSERT/0/gitlab/ralf.kundel/p4-timestamping-middlebox/ && sudo git clean -ffdx"
 ```
 ### 2. create docker images:
-Note: you must copy the bf-sde-9.7.2.tgz file into bf_sde_docker before creating the container
+Note: you must copy the bf-sde-9.13.0.tgz file into bf_sde_docker before creating the container
 ```
 ./build_docker_images.sh
 ```

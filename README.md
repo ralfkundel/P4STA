@@ -52,7 +52,7 @@ In this setup window:
 ** Important:  For Intel Tofino ** 
 
 1. it is required to stop P4STA in the CLI and restart it after installation. Otherwise the grpc drivers are not loaded correctly.
-2. Compile the P4-Code of the stamper target on your P4-device. For details see the [Tofino readme](stamper_targets/Wedge100B65/README.md). For BMV2 (Mininet) and Netronome this is not necessary as this repository contains the compiler output.
+2. Compile the P4-Code of the stamper target on your P4-device. If P4 features such as PPPoE support are changed, the P4 code needs to be recompiled. For details see the [Tofino readme](stamper_targets/Wedge100B65/README.md). For BMV2 (Mininet) and Netronome this is not necessary as this repository contains the compiler output.
 
 
 # Using P4STA

@@ -629,7 +629,7 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                     in self.loadgen_cfg["status_check"]["needed_sudos_to_add"]:
                 f.write("add_sudo_rights $(which " + sudo + ")\n")
             f.write("\n")
-        os.chmod(dir_path + "/scripts/install_iperf3_sudo.sh", 0o775)
+        os.chmod(dir_path + "/scripts/install_iperf3_sudo.sh", 0o777)
 
         lst = []
         for server in list_of_server:
@@ -693,27 +693,17 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
             ver_split = version.split(".")
             if len(ver_split) == 3 and ver_split[0] == "3":
                 if float(".".join(ver_split[1:3])) >= 1.3:
-                    results[index]["custom_checks"] = [
-                        [True, "iPerf3", version]]
+                    results[index]["custom_checks"] = [[True, "iPerf3", version]]
                 else:
-                    results[index]["custom_checks"] = [
-                        [False, "iPerf3", version +
-                         " [version older than 3.1.3 will not work]"]]
+                    results[index]["custom_checks"] = [[False, "iPerf3", version + " [version older than 3.1.3 will not work]"]]
             elif len(ver_split) == 2 and ver_split[0] == "3":
                 if float(ver_split[1] > 7):
-                    results[index]["custom_checks"] = [
-                        [True, "iPerf3", version]]
+                    results[index]["custom_checks"] = [[True, "iPerf3", version]]
                 else:
-                    results[index]["custom_checks"] = [
-                        [False, "iPerf3", version +
-                         " [version older than 3.1.3 will not work]"]]
+                    results[index]["custom_checks"] = [[False, "iPerf3", version + " [version older than 3.1.3: will not work]"]]
         else:
-            answer = P4STA_utils.execute_ssh(host["ssh_user"], host["ssh_ip"],
-                                             "which iperf3")
+            answer = P4STA_utils.execute_ssh(host["ssh_user"], host["ssh_ip"], "which iperf3")
             if answer[0] != "":
-                results[index]["custom_checks"] = [
-                    [False, "iPerf3",
-                     "version not detected but installed at " + answer[0]]]
+                results[index]["custom_checks"] = [[False, "iPerf3", "version not detected but installed at " + answer[0]]]
             else:
-                results[index]["custom_checks"] = [
-                    [False, "iPerf3", "installation not found"]]
+                results[index]["custom_checks"] = [[False, "iPerf3", "installation not found"]]

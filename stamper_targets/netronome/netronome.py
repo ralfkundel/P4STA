@@ -59,22 +59,41 @@ class TargetImpl(AbstractTarget):
 
         return rte_client
 
-    # returns a dict["real_ports"] and ["logical_ports"]
-    def port_lists(self):
-        real_ports = []
-        logical_ports = []
-
+    def get_port_mapping(self):
+        portmap = {}
         # physical ports
         for p in range(4):
-            real_ports.append("p" + str(p))
-            logical_ports.append(str((p & 0xff) | (0 << 8)))
+            key = "p" + str(p)
+            val = str((p & 0xff) | (0 << 8))
+            portmap[key] = val
 
         # host ports
         for p in range(64):
-            real_ports.append("v0." + str(p))
-            logical_ports.append(str((p & 0xff) | (3 << 8)))
+            key = "v0." + str(p)
+            val = str((p & 0xff) | (3 << 8))
+            portmap[key] = val
 
-        return {"real_ports": real_ports, "logical_ports": logical_ports}
+        return portmap
+
+    def update_portmapping(self, cfg):
+        port_map = self.get_port_mapping()
+
+        # 1 dut ports
+        for dut_port in cfg["dut_ports"]:
+            if dut_port["real_port"] in port_map:
+                dut_port["p4_port"] = port_map[dut_port["real_port"]]
+
+        # 2 loadgen ports
+        for loadgen_group in cfg["loadgen_groups"]:
+            for loadgen in loadgen_group["loadgens"]:
+                if loadgen["real_port"] in port_map:
+                    loadgen["p4_port"] = port_map[loadgen["real_port"]]
+
+        # 3 ext host
+        if cfg["ext_host_real"] in port_map:
+            cfg["ext_host"] = port_map[cfg["ext_host_real"]]
+
+        return cfg
 
     # deploy config file (table entries) to p4 device
     def deploy(self, cfg):
@@ -606,7 +625,7 @@ class TargetImpl(AbstractTarget):
             f.write(add_sudo_rights_str)
             for sudo in self.target_cfg["status_check"]["needed_sudos_to_add"]:
                 f.write("add_sudo_rights " + sudo + "\n")
-        os.chmod(dir_path + "/scripts/install_nfp.sh", 0o775)
+        os.chmod(dir_path + "/scripts/install_nfp.sh", 0o777)
 
         lst = []
         lst.append('echo "====================================="')

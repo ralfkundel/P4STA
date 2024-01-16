@@ -5,14 +5,14 @@ For this version of P4STA please install the SDE in version 9.7.x on your Tofino
 Please include at least the grpc and thrift APIs while building the SDE.
 Assuming the SDE is already extracted in the /opt directory:
 ```
-cd /opt/bf-sde-9.7.2/p4studio/
+cd /opt/bf-sde-9.13.0/p4studio/
 ./install-p4studio-dependencies.sh
 ./p4studio build
 ```
 
 or alternatively use our yaml config file (located in tests/bf_sde_docker/p4sta_cfg.yaml):
 ```
-cd /opt/bf-sde-9.7.2/p4studio/
+cd /opt/bf-sde-9.13.0/p4studio/
 ./install-p4studio-dependencies.sh
 ./p4studio profile apply /opt/p4sta_cfg.yaml
 ```

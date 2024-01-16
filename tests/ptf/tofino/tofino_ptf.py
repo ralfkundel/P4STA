@@ -1,7 +1,10 @@
 import copy
+import csv
 import ptf
 import ptf.testutils as testutils
 import time
+import os
+import subprocess
 import sys
 
 from ptf.base_tests import BaseTest
@@ -14,9 +17,11 @@ sys.path.append("stamper_targets/Wedge100B65/")
 sys.path.append("core/")
 try:
     from cfg import cfg
-    import tofino1_65p_stamper_v1_0_1
+    import tofino1_65p_stamper_v1_2_0
     import p4sta_ptf_base_tcp
     import p4sta_ptf_base_udp
+    import p4sta_ptf_encap_tcp
+    import p4sta_ptf_encap_udp
 except Exception as e:
     print(e)
 
@@ -25,7 +30,7 @@ for i in range(17):
     target_cfg["p4_ports"].append(str(i))
 target_cfg["p4_ports"].append("64")
 
-target_tofino = tofino1_65p_stamper_v1_0_1.TargetImpl(target_cfg)
+target_tofino = tofino1_65p_stamper_v1_2_0.TargetImpl(target_cfg)
 
 cfg = {
     "available_loadgens": [
@@ -126,8 +131,8 @@ cfg = {
     "multicast": "1",
     "stamper_ssh": "0.0.0.0",
     "stamper_user": "root",
-    "program": "tofino_stamper_v1_1_0",
-    "sde": "/opt/bf-sde-9.7.2",
+    "program": "tofino_stamper_v1_2_0",
+    "sde": "/opt/bf-sde-9.13.0",
     "selected_extHost": "PythonExtHost",
     "selected_loadgen": "iperf3",
     "selected_target": "tofino_model",
@@ -644,3 +649,144 @@ class TOF_L3_Only1DUTDut1ToGroup1_UDP(p4sta_ptf_base_udp.Only1DUTDut1ToGroup1):
         cfg2["loadgen_groups"][0]["loadgens"].append(new_serv)
         cfg2["dut_ports"][1]["use_port"] = "unchecked"
         target_tofino.deploy(cfg2)
+
+
+###########
+#### ENCAP TESTS: PPPoE and GTP-U
+####
+
+### Group2ToDut2
+# TCP
+class TOF_L1_Group2ToDut2_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_Group2ToDut2):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_Group2ToDut2.setUp(self)
+        cfg["forwarding_mode"] = "1"
+        target_tofino.deploy(cfg)
+
+class TOF_L2_Group2ToDut2_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_Group2ToDut2):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_Group2ToDut2.setUp(self)
+        cfg["forwarding_mode"] = "2"
+        target_tofino.deploy(cfg)
+
+class TOF_L3_Group2ToDut2_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_Group2ToDut2):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_Group2ToDut2.setUp(self)
+        cfg["forwarding_mode"] = "3"
+        target_tofino.deploy(cfg)
+# UDP
+class TOF_L1_Group2ToDut2_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_Group2ToDut2):
+    def setUp(self):
+        p4sta_ptf_encap_udp.Encap_Group2ToDut2.setUp(self)
+        cfg["forwarding_mode"] = "1"
+        target_tofino.deploy(cfg)
+
+class TOF_L2_Group2ToDut2_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_Group2ToDut2):
+    def setUp(self):
+        p4sta_ptf_encap_udp.Encap_Group2ToDut2.setUp(self)
+        cfg["forwarding_mode"] = "2"
+        target_tofino.deploy(cfg)
+
+class TOF_L3_Group2ToDut2_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_Group2ToDut2):
+    def setUp(self):
+        p4sta_ptf_encap_udp.Encap_Group2ToDut2.setUp(self)
+        cfg["forwarding_mode"] = "3"
+        target_tofino.deploy(cfg)
+
+
+### Group1ToDut1
+# Case where pppoe/gtpu packets are encapsulated by DUT (UPF or BNG) and then go back into tofino => upstream
+# TCP
+class TOF_L1_Dut1ToGroup1_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1.setUp(self)
+        cfg["forwarding_mode"] = "1"
+        target_tofino.deploy(cfg)
+
+class TOF_L2_Dut1ToGroup1_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1.setUp(self)
+        cfg["forwarding_mode"] = "2"
+        target_tofino.deploy(cfg)
+
+class TOF_L3_Dut1ToGroup1_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1.setUp(self)
+        cfg["forwarding_mode"] = "3"
+        target_tofino.deploy(cfg)
+
+## Skipping UDP test cases for now
+
+
+### Group1ToDut1 Python Ext Host Tests (with real ext host running at port 5, not grabbed by PTF)
+# TCP
+class TOF_L1_Dut1ToGroup1_ENCAP_TCP_PY_EXT_HOST(p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1.setUp(self)
+
+        self.check_ext_host = False # ignore PTF check for ext host packet so python script can sniff packet
+        
+        cfg["forwarding_mode"] = "1"
+        target_tofino.deploy(cfg)
+
+        # receive at PTF iface 5 => --interface 5@veth11
+        cmd = "killall external_host_python_receiver"
+        subprocess.run(cmd, shell = True, executable="/bin/bash")
+        print("Killed possible running external_host_python_receiver instance(s)")
+        time.sleep(2)
+
+        cmd = "cd /home/root/p4sta/externalHost/python/; nohup python3 pythonRawSocketExtHost.py --name PTF_L1_PPPOE_GTPU --interface veth11 --multi 1 --tsmax 281474976710655  --gtp --pppoe > foo.out 2> foo.err < /dev/null &"
+        subprocess.run(cmd, shell = True, executable="/bin/bash")
+        print("Start external_host_python_receiver")
+        time.sleep(2)
+
+    def runTest(self):
+        p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1.runTest(self)
+
+
+        # Kill receiver to generate CSV files
+        cmd = "killall external_host_python_receiver"
+        subprocess.run(cmd, shell = True, executable="/bin/bash")
+
+        time.sleep(2)
+
+        def read_csv(name):
+            temp = []
+            with open(os.path.join("/home/root/p4sta/externalHost/python/" + name), "r") as csv_input:
+                reader = csv.reader(csv_input, lineterminator="\n")
+                for elem in reader:
+                    temp.append(int(elem[0]))
+            return temp
+        
+        timestamp1_list = read_csv("timestamp1_list_PTF_L1_PPPOE_GTPU.csv")
+        if len(timestamp1_list) > 0:
+            for ts1 in timestamp1_list:
+                if int(ts1) != 0xaaaaaaaaaaaa:
+                    self.fail("Test TOF_L1_Dut1ToGroup1_ENCAP_TCP_PY_EXT_HOST failed: Timestamp1 in packet not 0xaaaaaaaaaaaa")
+        else:
+            self.fail("Test TOF_L1_Dut1ToGroup1_ENCAP_TCP_PY_EXT_HOST failed: len(timestamp1_list) is 0 - should be > 0")
+
+        timestamp2_list = read_csv("timestamp2_list_PTF_L1_PPPOE_GTPU.csv")
+        if len(timestamp2_list) != len(timestamp1_list):
+            self.fail("Test TOF_L1_Dut1ToGroup1_ENCAP_TCP_PY_EXT_HOST failed: len(timestamp1_list) is !=  len(timestamp2_list) " + str(len(timestamp1_list) + " != " + str(len(timestamp2_list))))
+        if len(timestamp2_list) == 0:
+            self.fail("Test TOF_L1_Dut1ToGroup1_ENCAP_TCP_PY_EXT_HOST failed: len(timestamp2list) is 0 - should be > 0")
+
+
+        raw_packet_counter = read_csv("raw_packet_counter_PTF_L1_PPPOE_GTPU.csv")
+        packet_counter = int(raw_packet_counter[0]) if len(raw_packet_counter) > 0 else 0
+        if packet_counter > 0:
+            if packet_counter > 1:
+                print("Test TOF_L1_Dut1ToGroup1_ENCAP_TCP_PY_EXT_HOST: packet counter > 1 (" + str(packet_counter) + ") - expected 1 but not failing.")
+        else:
+            self.fail("Test TOF_L1_Dut1ToGroup1_ENCAP_TCP_PY_EXT_HOST failed: packet counter of external host is 0 - should be 1")
+
+        # reaching here: passed :-)
+
+    def tearDown(self):
+        p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1.tearDown(self)
+
+        cmd = "killall external_host_python_receiver"
+        subprocess.run(cmd, shell = True, executable="/bin/bash")
+
+
