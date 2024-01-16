@@ -56,7 +56,7 @@ def connect(args):
                         'selected_extHost': ['PythonExtHost'],
                         'enable_stamper': ['on'],
                         'selected_stamper': ['Stordis_BF6064XT'],
-                        "sde": ["/opt/bf-sde-9.7.2"],
+                        "sde": ["/opt/bf-sde-9.13.0"],
                         'ext_host_ip': [ip_bf_sde],
                         'loadgen_ip_1': [ip_bf_sde], 'enable_ext_host': ['on'],
                         'selected_loadgen': ['iperf3'],
@@ -86,7 +86,7 @@ class TestP4staInstallServer(unittest.TestCase):
     def test_script(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         project_path = dir_path[0:dir_path.find("/tests")]
-        self.assertTrue("install_server.sh" in os.listdir(project_path))
+        self.assertTrue("autogen_scripts/install_server.sh" in os.listdir(project_path))
 
 
 if __name__ == '__main__':

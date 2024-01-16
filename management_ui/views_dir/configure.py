@@ -78,9 +78,6 @@ def updateCfg(request):
     print(request.POST)
     cfg = P4STA_utils.read_current_cfg()
     target_cfg = globals.core_conn.root.get_target_cfg()
-    ports = globals.core_conn.root.get_ports()
-    real_ports = ports["real_ports"]
-    logical_ports = ports["logical_ports"]
     try:
         # if target has changed first request all port config again
         if cfg["selected_target"] is not request.POST["target"]:
@@ -88,9 +85,6 @@ def updateCfg(request):
             cfg = P4STA_utils.flt(cfg)
             P4STA_utils.write_config(cfg)
             target_cfg = globals.core_conn.root.get_target_cfg()
-            ports = globals.core_conn.root.get_ports()
-            real_ports = ports["real_ports"]
-            logical_ports = ports["logical_ports"]
 
         cfg["selected_loadgen"] = request.POST["selected_loadgen"]
         cfg["selected_extHost"] = request.POST["selected_extHost"]
@@ -115,28 +109,17 @@ def updateCfg(request):
                     i += 1
                     if i == 99:
                         break
-                s["real_port"] = str(request.POST["s" + _grp + "_" +
-                                                  str(i) + "_real_port"])
-                try:
-                    s["p4_port"] = logical_ports[
-                        real_ports.index(s["real_port"])].strip("\n")
-                except Exception as e:
-                    print("FAILED: Finding: " + str(e))
-                    s["p4_port"] = s["real_port"]
-                s["ssh_ip"] = str(request.POST["s" + _grp + "_" + str(i) +
-                                               "_ssh_ip"])
-                s["ssh_user"] = str(request.POST["s" + _grp + "_" +
-                                                 str(i) + "_ssh_user"])
-                s["loadgen_iface"] = str(request.POST["s" + _grp + "_" + str(
-                        i) + "_loadgen_iface"])
-                s["loadgen_mac"] = str(request.POST["s" + str(
-                    loadgen_grp["group"]) + "_" + str(i) + "_loadgen_mac"])
-                s["loadgen_ip"] = str(request.POST["s" + _grp + "_" + str(
-                    i) + "_loadgen_ip"]).split(" ")[0].split("/")[0]
+                s["real_port"] = str(request.POST["s" + _grp + "_" + str(i) + "_real_port"])
+                s["p4_port"] = -1
+
+                s["ssh_ip"] = str(request.POST["s" + _grp + "_" + str(i) + "_ssh_ip"])
+                s["ssh_user"] = str(request.POST["s" + _grp + "_" + str(i) + "_ssh_user"])
+                s["loadgen_iface"] = str(request.POST["s" + _grp + "_" + str(i) + "_loadgen_iface"])
+                s["loadgen_mac"] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_loadgen_mac"])
+                s["loadgen_ip"] = str(request.POST["s" + _grp + "_" + str(i) + "_loadgen_ip"]).split(" ")[0].split("/")[0]
 
                 if "s" + _grp + "_" + str(i) + "_namespace" in request.POST:
-                    s["namespace_id"] = str(request.POST["s" + str(
-                        loadgen_grp["group"]) + "_" + str(i) + "_namespace"])
+                    s["namespace_id"] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_namespace"])
                 # read target specific config from webinterface
                 for t_inp in target_cfg["inputs"]["input_table"]:
                     try:
@@ -230,11 +213,7 @@ def updateCfg(request):
             print(traceback.format_exc())
 
         cfg["ext_host_real"] = str(request.POST["ext_host_real"])
-        try:
-            cfg["ext_host"] = logical_ports[
-                real_ports.index(cfg["ext_host_real"])].strip("\n")
-        except Exception as e:
-            print("FAILED: Finding Ext-Host Real Port: " + str(e))
+        cfg["ext_host"] = -1
 
         # check if second,third, ... dut port should be used or not
         for dut in cfg["dut_ports"]:
@@ -267,11 +246,7 @@ def updateCfg(request):
             if "dut" + str(dut["id"]) + "_real" in request.POST:
                 dut["real_port"] = str(
                     request.POST["dut" + str(dut["id"]) + "_real"])
-                try:
-                    dut["p4_port"] = logical_ports[
-                        real_ports.index(dut["real_port"])].strip("\n")
-                except Exception:
-                    dut["p4_port"] = ""
+                dut["p4_port"] = -1
             else:
                 dut["real_port"] = ""
                 dut["p4_port"] = ""

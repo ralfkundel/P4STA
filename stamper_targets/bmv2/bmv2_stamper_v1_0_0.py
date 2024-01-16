@@ -247,12 +247,18 @@ class TargetImpl(AbstractTarget):
         finally:
             return error_msg
 
-    def port_lists(self):
-        temp = {"real_ports": [], "logical_ports": []}
-        for i in range(0, 100):
-            temp["real_ports"].append(str(i))
-            temp["logical_ports"].append(str(i))  # = p4 ports
-        return temp
+    def update_portmapping(self, cfg):
+        # 1 dut ports
+        for dut_port in cfg["dut_ports"]:
+            dut_port["p4_port"] = dut_port["real_port"]
+        # 2 loadgen ports
+        for loadgen_group in cfg["loadgen_groups"]:
+            for loadgen in loadgen_group["loadgens"]:
+                loadgen["p4_port"] = loadgen["real_port"]
+        # 3 ext host
+        cfg["ext_host"] = cfg["ext_host_real"]
+
+        return cfg
 
     # deploy config file (table entries) again to stamper (in case of changes)
     def deploy(self, cfg):

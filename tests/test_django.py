@@ -216,9 +216,11 @@ class TestP4staDjango(unittest.TestCase):
         r = get_page("subpage_deploy_start_stamper_software/", ajax=True)
         self.assertEqual(r.status_code, 200)
         if len(r.text) > 0:
-            print("##############################")
+            print("\n##############################")
             print("PRINTED BY test_GET_start_stamper_software")
+            print("##############################")
             print(r.text)
+            print("\n############# END PRINTED #################")
         self.assertEqual(len(r.text), 0)
 
     @ordered
@@ -664,7 +666,7 @@ class TestP4staDjango(unittest.TestCase):
                    "num_grp_2": ["1"], "num_grp_1": ["1"],
                    "num_loadgen_groups": ["2"],
                    "stamper_ssh": [ip_bf_sde], "stamper_user": [SSH_USER],
-                   "program": ["tofino_stamper_v1_1_0"],
+                   "program": ["tofino_stamper_v1_2_0"],
                    "s1_1_an": ["default"], "s1_1_fec": ["NONE"],
                    "s1_1_loadgen_iface": ["veth3"],
                    "s1_1_loadgen_ip": ["10.0.1.3"],
@@ -672,7 +674,7 @@ class TestP4staDjango(unittest.TestCase):
                    "s1_1_namespace": ["nsveth3"], "s1_1_real_port": ["1/1"],
                    "s1_1_shape": [""], "s1_1_speed": ["10G"],
                    "s1_1_ssh_ip": [ip_bf_sde], "s1_1_ssh_user": [SSH_USER],
-                   "sde": ["/opt/bf-sde-9.7.2"],
+                   "sde": ["/opt/bf-sde-9.13.0"],
                    "selected_loadgen": ["iperf3"],
                    "selected_extHost": ["PythonExtHost"],
                    "stamp_tcp": ["checked"], "stamp_udp": ["checked"],
@@ -713,9 +715,11 @@ class TestP4staDjango(unittest.TestCase):
         r = get_page("subpage_deploy_start_stamper_software/", ajax=True)
         self.assertEqual(r.status_code, 200)
         if len(r.text) > 0:
-            print("##############################")
+            print("\n##############################")
             print("PRINTED BY test_GET_start_stamper_software_tofino")
+            print("##############################")
             print(r.text)
+            print("############# END PRINTED #################\n")
         self.assertEqual(len(r.text), 0)
         time.sleep(20)
 
@@ -725,6 +729,9 @@ class TestP4staDjango(unittest.TestCase):
         r = get_page("subpage_deploy_deploy_device/", ajax=True)
         self.assertEqual(r.status_code, 200)
         if r.text.find("Table entries successfully deployed!") < 0:
+            print("\n##############################")
+            print("PRINTED BY test_GET_deploy_device_tofino")
+            print("##############################")
             print(r.text)
         self.assertTrue(
             r.text.find("Table entries successfully deployed!") >= 0)

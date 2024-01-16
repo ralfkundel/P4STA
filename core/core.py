@@ -146,11 +146,11 @@ class P4staCore(rpyc.Service):
         install_script.extend(
             loadgen.get_server_install_script(first_time_cfg["loadgens"]))
 
-        with open("install_server.sh", "w") as f:
+        with open("autogen_scripts/install_server.sh", "w") as f:
             for line in install_script:
                 f.write(line + "\n")
             f.close()
-            os.chmod("install_server.sh", 0o775)
+            os.chmod("autogen_scripts/install_server.sh", 0o777)
 
     # returns an instance of current selected target config object
     def get_stamper_target_obj(self, target_name):
@@ -197,11 +197,10 @@ class P4staCore(rpyc.Service):
                                                       path_to_driver)
         foo = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(foo)
-        ext_host_target_obj = foo.LoadGeneratorImpl(
-            loadgen_description)
-        ext_host_target_obj.setRealPath(loadgen_description["real_path"])
+        loadgen_obj = foo.LoadGeneratorImpl(loadgen_description)
+        loadgen_obj.setRealPath(loadgen_description["real_path"])
 
-        return ext_host_target_obj
+        return loadgen_obj
 
     def get_all_extHost(self):
         lst = []
@@ -301,11 +300,6 @@ class P4staCore(rpyc.Service):
         except Exception as e:
             print(e)
 
-    def get_ports(self):
-        cfg = P4STA_utils.read_current_cfg()
-        target = self.get_stamper_target_obj(cfg["selected_target"])
-        return target.port_lists()
-
     def getAllMeasurements(self):
         found = []
         try:
@@ -390,10 +384,12 @@ class P4staCore(rpyc.Service):
             total_byte, custom_attr, to_plot
 
     def deploy(self):
-        target = self.get_stamper_target_obj(
-            P4STA_utils.read_current_cfg()["selected_target"])
+        cfg = P4STA_utils.read_current_cfg()
+        target = self.get_stamper_target_obj(cfg["selected_target"])
         print(target)
-        error = target.deploy(P4STA_utils.read_current_cfg())
+        cfg = target.update_portmapping(cfg)
+        P4STA_utils.write_config(cfg)
+        error = target.deploy(cfg)
         print(error)
         if error is not None and error != "":
             P4STA_utils.log_error(error)
@@ -905,9 +901,11 @@ class P4staCore(rpyc.Service):
         return cfg, lines_pm, running, dev_status
 
     def start_stamper_software(self):
-        target = self.get_stamper_target_obj(
-            P4STA_utils.read_current_cfg()["selected_target"])
-        return target.start_stamper_software(P4STA_utils.read_current_cfg())
+        cfg = P4STA_utils.read_current_cfg()
+        target = self.get_stamper_target_obj(cfg["selected_target"])
+        cfg = target.update_portmapping(cfg)
+        P4STA_utils.write_config(cfg)
+        return target.start_stamper_software(cfg)
 
     def get_stamper_startup_log(self):
         target = self.get_stamper_target_obj(

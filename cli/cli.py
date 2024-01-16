@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from cmd import Cmd
+import json
 from multiprocessing.connection import Listener, Client
 from tabulate import tabulate
 import os
@@ -21,13 +22,10 @@ import sys
 import time
 import traceback
 
-
-dir_path = os.path.dirname(os.path.realpath(__file__))
-project_path = dir_path[0:dir_path.find("/cli")]
-sys.path.append(project_path)
-
+sys.path.append(os.path.dirname(os.path.realpath(__file__)).split("cli")[0])
 from core import P4STA_utils
 from analytics import analytics
+
 
 def main():
     global selected_run_id
@@ -278,9 +276,6 @@ class PastaConfigure(Cmd):
 
         arg_list = args.split()
         if len(arg_list) >= 7:
-            ports = core_conn.root.get_ports()
-            real_ports = ports["real_ports"]
-            logical_ports = ports["logical_ports"]
             try:
                 try:  # test if group is found in cfg
                     # group id's starting at 1 but index starting at 0
@@ -294,14 +289,7 @@ class PastaConfigure(Cmd):
                 for host in self.cfg["loadgen_groups"][int(
                         arg_list[0]) - 1]["loadgens"]:
                     all_ids.append(int(host["id"]))
-                try:
-                    new_p4_port = logical_ports[
-                        real_ports.index(arg_list[6])].strip("\n")
-                except Exception:
-                    print("\nSure you entered the right port syntax "
-                          "for the selected target (" +
-                          self.cfg["selected_target"] + ") ?\n")
-                    raise Exception
+                new_p4_port = -1
 
                 dict_add = {
                     "ssh_ip": arg_list[1],
@@ -379,11 +367,7 @@ class PastaConfigure(Cmd):
                 if arg_list[1] == "checked" or arg_list[1] == "unchecked":
                     sel_dut["use_port"] = arg_list[1]
                     sel_dut["real_port"] = arg_list[2]
-                    ports = core_conn.root.get_ports()
-                    real_ports = ports["real_ports"]
-                    logical_ports = ports["logical_ports"]
-                    sel_dut["p4_port"] = logical_ports[
-                        real_ports.index(arg_list[2])].strip("\n")
+                    sel_dut["p4_port"] = -1
                     if arg_list[3] == "checked" or arg_list[3] == "unchecked":
                         sel_dut["stamp_outgoing"] = arg_list[3]
                         P4STA_utils.write_config(self.cfg)
@@ -413,10 +397,6 @@ class PastaConfigure(Cmd):
         arg_list = args.split()
         try:
             if len(arg_list) >= 5:
-                ports = core_conn.root.get_ports()
-                real_ports = ports["real_ports"]
-                logical_ports = ports["logical_ports"]
-
                 all_available = core_conn.root.get_all_extHost()
                 if arg_list[0] in all_available:
                     self.cfg["selected_extHost"] = arg_list[0]
@@ -430,15 +410,7 @@ class PastaConfigure(Cmd):
                 self.cfg["ext_host_user"] = arg_list[2]
                 self.cfg["ext_host_if"] = arg_list[3]
                 self.cfg["ext_host_real"] = arg_list[4]
-                try:
-                    self.cfg["ext_host"] = logical_ports[
-                        real_ports.index(arg_list[4])].strip("\n")
-                except Exception as e:
-                    print(e)
-                    print("\nSure you entered the right port "
-                          "syntax for the selected target (" +
-                          self.cfg["selected_target"] + ") ?\n")
-                    raise Exception
+                self.cfg["ext_host"] = -1
 
                 i = 5
                 for t_inp in self.target_cfg["inputs"]["input_table"]:

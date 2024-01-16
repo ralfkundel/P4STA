@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2019-2020-present Ralf Kundel, Fridolin Siegmund, Kadir Eryigit
+# Copyright 2019-2022-present Ralf Kundel, Fridolin Siegmund, Kadir Eryigit
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,6 +42,8 @@ parser.add_argument(
     help='Maximal possible value of the timestamps '
          '(e.g. 281474976710655 for whole 48bit)',
     type=str, action="store", required=True)
+parser.add_argument("--gtp", help="Enables GTP-U Parsing in Ext Host", action='store_true')
+parser.add_argument("--pppoe", help="Enables PPPoE Parsing in Ext Host", action='store_true')
 args = parser.parse_args()
 
 ETH_P_ALL = 3
@@ -67,6 +69,12 @@ try:
     # timeouts s.recv() after 0.1 sec to allow break of while loop
     s.settimeout(0.1)
     s.bind((args.interface, 0))
+    gtp_u = False
+    pppoe_u = False
+    if args.gtp:
+        gtp_u = True
+    if args.pppoe:
+        pppoe_u = True
     error = False
 except Exception as e:
     with open("pythonRawSocketExtHost.log", "w") as f:
@@ -86,21 +94,74 @@ signal.signal(signal.SIGINT, stop_signals_handler)
 signal.signal(signal.SIGTERM, stop_signals_handler)
 
 
+# checks if the K'th bit is set in n
+def is_bit_set(n, k):
+    if n & (1 << k):
+        return True
+    else:
+        return False
+
+
+
 while go:
     try:
         # message contains whole packet (max 4096byte) as hex string
         message = s.recv(4096).hex()
         raw_packet_counter = raw_packet_counter + 1
         ether_type = message[24:28]
-        if ether_type == "0800":
+
+        vlan_offset = 0 # in  Niples
+        l3_start = -1 # L3 offset in Niples
+
+        while True:
+            if pppoe_u and ether_type == "8864":#PPPoEDataplane
+                # add 8 bytes pppoe header = 16 chars in hex
+                l3_start = 28 + 16 + vlan_offset
+                break
+
+            elif ether_type == "8100": # VLAN
+                #vlan is 4 byte, last two byte is ether_type
+                vlan_offset += 8
+                ether_type = message[24 + vlan_offset : 28 + vlan_offset]
+                continue
+
+            elif ether_type == "0800":  #ipv4
+                l3_start = 28 + vlan_offset
+                break
+            else:
+                break
+
+        if l3_start >= 0:
+
             # ip header length in 32 bit words
-            ihl = int(message[29], 16)
+            ihl = int(message[l3_start+1], 16)
             # 17 = UDP and 6 = TCP
-            ipv4_protocol = int(message[46:48], 16)
+            ipv4_protocol = int(message[l3_start+18:l3_start+20], 16)
             # 28 is ethernet header length in bytes*2
-            l4_start = 28 + ihl * 4 * 2
-            # 14 byte eth + 20 IPv4 + 20 TCP + 16 options = 70 byte
-            if ipv4_protocol == 6 and len(message) > 140:
+            l4_start = l3_start + ihl * 4 * 2
+
+             #GTP-U CASE check
+            if gtp_u == True: 
+                udp_src_port = message[l4_start:l4_start+16]
+                udp_dst_port = message[l4_start+16:l4_start+32]
+                if (udp_src_port == udp_dst_port) and (int(udp_src_port, 16) == 2152):  # GTP-U src and dst ports => 2152
+                    # outer_ipv4 (20) + outer_udp (8) + gtpu (8) => 36 bytes
+                    add_offset = 72 # 36 bytes ip+udp+gtpu header in hex are 72 chars
+                        # bit<1>  spare;      /* reserved */
+                        # bit<1>  ex_flag;    /* next extension hdr present? */
+                        # bit<1>  seq_flag;   /* sequence no. */
+                        # bit<1>  npdu_flag;  /* n-pdn number present ? */
+                    # start at +33 and leave 1 byte 32:33 out (version + pt fields)
+                    gtpu_ex_flag_set = is_bit_set(int(message[l4_start+33:l4_start+34], 16), 2)
+                    if gtpu_ex_flag_set:
+                        # this case is not tested, but should work.
+                        add_offset = add_offset + 16
+                    
+                    # update l4_start with new offset, as GTP-U has outer IP, UDP, GTP-U headers
+                    l4_start = l4_start + add_offset
+
+
+            if ipv4_protocol == 6 and len(message) > 72+l4_start:  #TCP
                 try:
                     # tcp header length in in 32 bit words
                     tcp_data_offs = int(message[l4_start + 24], 16)
@@ -128,7 +189,7 @@ while go:
                 except Exception:
                     print(traceback.format_exc())
             # 14 byte eth + 20 IPv4 + 8 UDP (16 byte opt in payload!) = 42 byte
-            elif ipv4_protocol == 17 and len(message) > 84:
+            elif ipv4_protocol == 17 and len(message) > 48+l4_start:
                 try:
                     # UDP header is 64 bit big (8 byte) => 64/4
                     # => move 16 hex digits forward (4 bit = 1 hex digit)
@@ -141,10 +202,8 @@ while go:
                     # only parse timestamps if 0f10 directly
                     # follows after UDP header
                     if option_type == "0f10" and empty == 0:
-                        timestamp1 = int(timestamps_udp[4:16], 16) * int(
-                            args.multi)
-                        timestamp2 = int(timestamps_udp[20:], 16) * int(
-                            args.multi)
+                        timestamp1 = int(timestamps_udp[4:16], 16) * int(args.multi)
+                        timestamp2 = int(timestamps_udp[20:], 16) * int(args.multi)
                         if timestamp1 > 0 and timestamp2 > 0:
                             # divided by 2 because 2 hex digits = 1 byte
                             packet_sizes.append(int(len(message) / 2))

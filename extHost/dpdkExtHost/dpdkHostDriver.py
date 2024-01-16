@@ -123,7 +123,7 @@ class ExtHostImpl(AbstractExtHost):
                 else:
                     f.write("add_sudo_rights $(which " + sudo + ")\n")
             f.write("\n")
-        os.chmod(dir_path + "/scripts/install_dpdk_sudo.sh", 0o775)
+        os.chmod(dir_path + "/scripts/install_dpdk_sudo.sh", 0o777)
 
         lst = []
         lst.append('echo "====================================="')

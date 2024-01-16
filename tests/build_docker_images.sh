@@ -6,10 +6,10 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
-SDE_FILE=bf_sde_docker/bf-sde-9.7.2.tgz
+SDE_FILE=bf_sde_docker/bf-sde-9.13.0.tgz
 if test -f "$SDE_FILE"; then
     echo "$SDE_FILE exists."
-    sudo docker build -t bf_sde:9.7.2 bf_sde_docker
+    sudo docker build -t bf_sde:9.13.0 bf_sde_docker
     printf "${GREEN} \xE2\x9C\x94 successfully created tofino docker image\n${NC}"
 
 else

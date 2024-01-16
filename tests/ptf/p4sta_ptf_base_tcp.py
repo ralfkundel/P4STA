@@ -1,7 +1,7 @@
 from ptf.base_tests import BaseTest
 from ptf.mask import Mask
 from ptf.testutils import *
-from scapy.all import Ether, IP, TCP, Raw, RandString
+from scapy.all import Ether, IP, TCP, Raw, RandString, UDP
 import ptf
 import ptf.testutils as testutils
 

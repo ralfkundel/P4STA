@@ -74,8 +74,8 @@
     }
   ],
   "multicast": "1",
-  "program": "tofino_stamper_v1_0_1",
-  "sde": "/opt/bf-sde-9.7.2",
+  "program": "tofino_stamper_v1_2_0",
+  "sde": "/opt/bf-sde-9.3.2",
   "selected_loadgen": "iperf3",
   "selected_target": "Stordis_BF6064XT",
   "selected_extHost": "PythonExtHost",

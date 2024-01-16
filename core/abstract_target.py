@@ -39,6 +39,10 @@ class AbstractTarget:
             temp["logical_ports"].append(str(i))
         return temp
 
+    # update port mapping from physical ports to (p4) pipeline port ID
+    def update_portmapping(self, cfg):
+        pass
+
     # deploy config file (table entries) to p4 device
     def deploy(self, cfg):
         pass
@@ -118,8 +122,7 @@ class AbstractTarget:
     def needed_dynamic_sudos(self, cfg):
         return []
 
-    def get_server_install_script(self, user_name, ip,
-                                  target_specific_dict={}):
+    def get_server_install_script(self, user_name, ip, target_specific_dict={}):
         lst = []
         lst.append('echo "====================================="')
         lst.append('echo "not implemented for this Stamper device"')

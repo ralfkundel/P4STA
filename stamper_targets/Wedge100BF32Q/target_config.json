@@ -2,7 +2,7 @@
    "__authors": "contributed by Bochra Boughzala, RUG, NL",
    "target":"Wedge100BF32Q",
    "cfg_template":"tofino_model_cfg_template.json",
-   "target_driver":"../Wedge100B65/tofino1_65p_stamper_v1_0_1.py",
+   "target_driver":"../Wedge100B65/tofino1_65p_stamper_v1_2_0.py",
    "stamping_capabilities":{
       "tcp":true,
       "udp":true,

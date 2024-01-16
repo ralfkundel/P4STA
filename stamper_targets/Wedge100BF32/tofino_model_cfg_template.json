@@ -74,8 +74,8 @@
     }
   ],
   "multicast": "1",
-  "program": "tofino_stamper_v1_1_0",
-  "sde": "/opt/bf-sde-9.7.2",
+  "program": "tofino_stamper_v1_2_0",
+  "sde": "/opt/bf-sde-9.13.0",
   "selected_loadgen": "iperf3",
   "selected_extHost": "PythonExtHost",
   "selected_target": "Wedge100BF32X",

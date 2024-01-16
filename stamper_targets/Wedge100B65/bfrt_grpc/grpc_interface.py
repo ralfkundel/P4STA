@@ -726,6 +726,31 @@ class TofinoInterface:
         self.grpc_stub.Write(request)
         print("Cleared Register " + register_name)
 
+    def get_port_mapping(self):
+        print("Tofino: get_port_mapping")
+        portmap = {}
+        try:
+            table_id = self.get_table_id("$PORT_STR_INFO")
+            read_request = self._get_request(req_type="read")
+            tbl_entry = read_request.entities.add().table_entry
+            tbl_entry.table_id = table_id
+
+            answers = self.grpc_stub.Read(read_request)
+
+            for answer in answers:
+                for e in answer.entities:  # iterate over all ports
+                    keyval = ""
+                    val = 0
+                    for key in e.table_entry.key.fields:
+                        keyval = key.exact.value.decode()
+                    for data_field in e.table_entry.data.fields:
+                        val = int(data_field.stream.hex(), 16)
+                    portmap[keyval] = val
+        except Exception:
+            print_error(traceback.format_exc())
+            return None
+        return portmap
+
     def read_port_status(self):
         def get_name_by_id(_id):
             for table in self.non_p4_config["tables"]:

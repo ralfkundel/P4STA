@@ -158,16 +158,6 @@ class TestP4staCore(unittest.TestCase):
         core_conn.close()
 
     @ordered
-    def test_get_ports(self):
-        core_conn = rpyc.connect('localhost', 6789)
-        self.assertEqual(type(core_conn), rpyc.core.protocol.Connection)
-
-        ports = core_conn.root.get_ports()
-        self.assertEqual(len(ports["logical_ports"]), len(ports["real_ports"]))
-
-        core_conn.close()
-
-    @ordered
     def test_start_stamper_software(self):
         core_conn = rpyc.connect('localhost', 6789)
         self.assertEqual(type(core_conn), rpyc.core.protocol.Connection)
@@ -223,7 +213,6 @@ class TestP4staCore(unittest.TestCase):
         self.assertEqual(cfg["ext_host_up_state"], "up")
         print("Needed to add: " + str(cfg["stamper_needed_sudos_to_add"]))
         self.assertEqual(len(cfg["stamper_needed_sudos_to_add"]), 0)
-        print(cfg["stamper_needed_sudos_to_add"])
         for loadgen_grp in cfg["loadgen_groups"]:
             for host in loadgen_grp["loadgens"]:
                 self.assertEqual(host["up_state"], "up")
