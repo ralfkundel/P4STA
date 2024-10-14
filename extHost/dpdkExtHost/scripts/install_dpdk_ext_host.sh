@@ -1,3 +1,9 @@
+#!/bin/bash
+
+DPDK_VERSION=dpdk-24.07
+# dpdk-19.11
+
+
 current_user=$USER # to prevent root as $USER save it before root execution
 add_sudo_rights() {
   current_user=$USER 
@@ -10,39 +16,47 @@ add_sudo_rights() {
 }
 
 sudo apt update
-sudo apt -y install build-essential libnuma-dev libpcap0.8-dev
+sudo apt -y install build-essential libnuma-dev libpcap0.8-dev meson python3-pyelftools
 
-if [ -d "dpdk-19.11/build/" ]
+if [ -d "$DPDK_VERSION/build/" ]
 then
 	printf "\n-----------------------------------------\n"
-	printf "\n DPDK exists already on this machine in the p4sta directory and will not be reinstalled\n"
+	printf "\n DPDK $DPDK_VERSION exists already on this machine in the p4sta directory and will not be reinstalled\n"
 	printf "\n-----------------------------------------\n"
 else
 	printf "\n-----------------------------------------\n"
-	printf "\nDownloading DPDK:\n"
-	wget https://fast.dpdk.org/rel/dpdk-19.11.tar.xz
-	tar xf dpdk-19.11.tar.xz
-	cd dpdk-19.11/
-	printf "\nDownloading DPDK complete\n"
+	printf "\nDownloading DPDK $DPDK_VERSION:\n"
+	wget https://fast.dpdk.org/rel/$DPDK_VERSION.tar.xz
+	tar xf $DPDK_VERSION.tar.xz
+	cd $DPDK_VERSION/
+	printf "\nDownloading DPDK $DPDK_VERSION complete\n"
 	printf "\n-----------------------------------------\n"
-	printf "\nCompile DPDK library:\n"
-	make config T=x86_64-native-linuxapp-gcc
-	sed -ri 's,(PMD_PCAP=).*,\1y,' build/.config
-	if [ -f /.dockerenv ]; then
-		#the following kernel modules can not be compiled in docker
-		sed -ri 's,(CONFIG_RTE_LIBRTE_IGB_PMD=).*,\1n,' build/.config
-		sed -ri 's,(CONFIG_RTE_EAL_IGB_UIO=).*,\1n,' build/.config
-		sed -ri 's,(CONFIG_RTE_LIBRTE_KNI=).*,\1n,' build/.config
-		sed -ri 's,(CONFIG_RTE_LIBRTE_PMD_KNI=).*,\1n,' build/.config
-		sed -ri 's,(CONFIG_RTE_KNI_KMOD=).*,\1n,' build/.config
-		sed -ri 's,(CONFIG_RTE_KNI_PREEMPT_DEFAULT=).*,\1n,' build/.config
-	fi
-	make
+	printf "\nCompile DPDK $DPDK_VERSION library:\n"
+
+	meson setup build
+	cd build
+	ninja
+	sudo meson install
+	sudo ldconfig
+
+	# make config T=x86_64-native-linuxapp-gcc
+	# sed -ri 's,(PMD_PCAP=).*,\1y,' build/.config
+	# if [ -f /.dockerenv ]; then
+	# 	#the following kernel modules can not be compiled in docker
+	# 	sed -ri 's,(CONFIG_RTE_LIBRTE_IGB_PMD=).*,\1n,' build/.config
+	# 	sed -ri 's,(CONFIG_RTE_EAL_IGB_UIO=).*,\1n,' build/.config
+	# 	sed -ri 's,(CONFIG_RTE_LIBRTE_KNI=).*,\1n,' build/.config
+	# 	sed -ri 's,(CONFIG_RTE_LIBRTE_PMD_KNI=).*,\1n,' build/.config
+	# 	sed -ri 's,(CONFIG_RTE_KNI_KMOD=).*,\1n,' build/.config
+	# 	sed -ri 's,(CONFIG_RTE_KNI_PREEMPT_DEFAULT=).*,\1n,' build/.config
+	# fi
+	# make
 	printf "\nCompile DPDK library complete\n"
 	export RTE_SDK=$PWD
 	cd ..
 	printf "\n-----------------------------------------\n"
 	printf "\nCompile the external host program:\n"
+	cd ..
 	# we ignore warnings and errors here as we check the output later on
 	make || true
 	printf "\nSucceed in compiling the dpdk external host\n"

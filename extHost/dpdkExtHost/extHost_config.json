@@ -1,5 +1,8 @@
 {
 	"name": "DpdkExtHost",
 	"driver": "dpdkHostDriver.py",
-	"status_check": {"needed_sudos_to_add": ["/p4sta/externalHost/dpdkExtHost/build/receiver", "pkill", "killall", "rmmod", "modprobe"]}
+	"status_check": {"needed_sudos_to_add": ["/p4sta/externalHost/dpdkExtHost/build/receiver", "pkill", "killall", "rmmod", "modprobe"]},
+	"compatible_p4sta_versions": [
+	   "1.2.1"
+	]
 }

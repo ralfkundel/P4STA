@@ -39,7 +39,7 @@ class ExtHostImpl(AbstractExtHost):
             "python3 -c 'import pkgutil; print(1 if pkgutil.find_loader(\"setproctitle\") else 0)'")
         if answer[0] == "0":
             errors = errors + (
-                "Python Module 'setproctitle' not found at external host -> 'pip3 install setproctitle'",)
+                "Python Module 'setproctitle' not found at external host -> 'python3 -m pip install setproctitle'",)
             return errors
 
         answer = P4STA_utils.execute_ssh(

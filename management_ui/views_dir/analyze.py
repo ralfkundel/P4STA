@@ -98,7 +98,7 @@ def delete_by_id(file_id):
 
 # reads stamper results json and returns html object for /ouput_info/
 def stamper_results(request):
-    if request.is_ajax():
+    if P4STA_utils.is_ajax(request):
         try:
             sw = globals.core_conn.root.stamper_results(
                 globals.selected_run_id)
@@ -116,7 +116,7 @@ def stamper_results(request):
 # displays results from external host python receiver
 # from return of analytics module
 def external_results(request):
-    if request.is_ajax():
+    if P4STA_utils.is_ajax(request):
         cfg = P4STA_utils.read_result_cfg(globals.selected_run_id)
 
         try:
@@ -360,7 +360,7 @@ def pack_zip(files, file_id, zip_name):
 
 
 def dygraph(request):
-    if request.is_ajax():
+    if P4STA_utils.is_ajax(request):
         cfg = P4STA_utils.read_result_cfg(globals.selected_run_id)
         try:
             extH_results = analytics.main(str(globals.selected_run_id),

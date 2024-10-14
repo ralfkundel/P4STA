@@ -36,7 +36,6 @@ class TargetImpl(AbstractTarget):
 
     def __init__(self, target_cfg):
         super().__init__(target_cfg)
-        self.speed_list = ["n/a"]
 
     def deploy_stamper_thrift(self, cfg):
         all_dut_dst_p4_ports = self.get_all_dut_dst_p4_ports(cfg)
@@ -424,7 +423,7 @@ class TargetImpl(AbstractTarget):
             subprocess.run(
                 [
                     self.realPath + "/scripts/start_mininet.sh",
-                    "/home/" + cfg["stamper_user"] +
+                    "python3 /home/" + cfg["stamper_user"] +
                     "/p4sta/stamper/bmv2/scripts/netgen.py",
                     cfg["stamper_user"],
                     cfg["stamper_ssh"],

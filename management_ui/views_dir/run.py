@@ -32,7 +32,7 @@ def page_run(request):
 
 # executes ping test
 def ping(request):
-    if request.is_ajax():
+    if P4STA_utils.is_ajax(request):
         try:
             output = globals.core_conn.root.ping()
             output = P4STA_utils.flt(output)
@@ -46,7 +46,7 @@ def ping(request):
 
 # starts python receiver instance at external host
 def start_external(request):
-    if request.is_ajax():
+    if P4STA_utils.is_ajax(request):
         print("start_external is ajax")
         try:
             cfg = P4STA_utils.read_current_cfg()
@@ -123,7 +123,7 @@ def start_external(request):
 
 # resets registers in p4 device by overwriting them with 0
 def reset(request):
-    if request.is_ajax():
+    if P4STA_utils.is_ajax(request):
         try:
             answer = globals.core_conn.root.reset()
             return render(
@@ -138,7 +138,7 @@ def reset(request):
 # stops last started instance of python receiver at external host
 # and starts reading p4 registers
 def stop_external(request):
-    if request.is_ajax():
+    if P4STA_utils.is_ajax(request):
         try:
             # read time increases with amount of hosts
             stop_external = rpyc.timed(
@@ -214,7 +214,7 @@ def run_loadgens_first(request):
 
 # loads loadgen results again without executing another test
 def read_loadgen_results_again(request):
-    if request.is_ajax():
+    if P4STA_utils.is_ajax(request):
         return render_loadgens(request, globals.selected_run_id)
 
 

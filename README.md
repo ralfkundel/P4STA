@@ -17,8 +17,24 @@ The P4STA framework consists of:
 <a href="https://www.youtube.com/watch?v=KE4AZTF2ZJQ"><img width="60%" src="doc/img/demo1-thumbnail.png" alt="P4STA-demo"/></a>
 </p>
 
+
+## Changelog
+
+### v1.0.0
+- original P4sta version without support for specialized protocols such as GTP-U and PPPoE
+
+### v1.2.0
+- introducing VLAN, GTP-U and PPPoE stamping support
+- fixes
+
+### v1.2.1
+- improved versioning between P4STA versions and compatibility checks
+- Tofino: allow to recompile different P4STA version in GUI
+- New monitoring host (external host) written in Golang
+- Unified monitoring host receiving UDP packets on port 41111, original headers removed
+
 ## Supported Hardware
-P4STA supports different Stamper targets, currently P4-BMv2, Barefoot Tofino and Netronome SmartNICs.
+P4STA supports different Stamper targets, currently P4-BMv2, Barefoot Tofino and Netronome SmartNICs. Please be aware, that new features are only developed for the Barefoot Tofino target. 
 For each target there exists a subfolder in "stamper_targets". Further targets can be easily installed by copying the corresponding driver.
 
 Currently supported Stamper Targets are:
@@ -52,7 +68,7 @@ In this setup window:
 ** Important:  For Intel Tofino ** 
 
 1. it is required to stop P4STA in the CLI and restart it after installation. Otherwise the grpc drivers are not loaded correctly.
-2. Compile the P4-Code of the stamper target on your P4-device. If P4 features such as PPPoE support are changed, the P4 code needs to be recompiled. For details see the [Tofino readme](stamper_targets/Wedge100B65/README.md). For BMV2 (Mininet) and Netronome this is not necessary as this repository contains the compiler output.
+2. Compile the P4-Code of the stamper target on your P4-device. For details see the [Tofino readme](stamper_targets/Wedge100B65/README.md). For BMV2 (Mininet) and Netronome this is not necessary as this repository contains the compiler output.
 
 
 # Using P4STA

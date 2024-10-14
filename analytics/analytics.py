@@ -73,6 +73,12 @@ def main(file_id, multicast, results_path):
     # get list of cumulative packet sizes
     throughput_at_time = []
     total_throughput = 0
+    
+    # debugging
+    print("LEN PACKET SIZES: " + str(len(packet_sizes)))
+    print("len(timestamp1_list) = ", len(timestamp1_list))
+    print("len(timestamp2_list) = ", len(timestamp2_list))
+
     for i in range(len(packet_sizes)):
         total_throughput = total_throughput + packet_sizes[i]
         throughput_at_time.append(total_throughput)

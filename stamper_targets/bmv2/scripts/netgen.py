@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # Copyright 2019-present Ralf Kundel, Fridolin Siegmund
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,16 +31,16 @@ from mininet.util import waitListening, dumpPorts
 
 
 # encodes unicode json
-def byteify(input):
-    if isinstance(input, dict):
-        return {byteify(key): byteify(value)
-                for key, value in input.iteritems()}
-    elif isinstance(input, list):
-        return [byteify(elem) for elem in input]
-    elif isinstance(input, unicode):
-        return input.encode('utf-8')
-    else:
-        return input
+# def byteify(input):
+#     if isinstance(input, dict):
+#         return {byteify(key): byteify(value)
+#                 for key, value in input.items()} #iteritems
+#     elif isinstance(input, list):
+#         return [byteify(elem) for elem in input]
+#     elif isinstance(input, unicode):
+#         return input.encode('utf-8')
+#     else:
+#         return input
 
 
 directory = os.path.dirname(os.path.realpath(__file__))
@@ -49,7 +48,8 @@ config_path = directory[0:directory.find("stamper")] + "config.json"
 
 # load config entered by user
 with open(config_path, "r") as config:
-    cfg = byteify(json.load(config))
+    # cfg = byteify(json.load(config))
+    cfg = json.load(config)
 
 if "bmv2_dir" in cfg:
     sys.path.append(cfg["bmv2_dir"] + "/mininet/")
@@ -260,7 +260,7 @@ def main():
 
     for link in links:
         tmp = link[2]
-        if tmp["node2"] is not "s99":
+        if tmp["node2"] != "s99":
             line = tmp["node1"] + " || " + str(tmp["port1"]) + " <--> " + \
                    str(tmp["port2"]) + " || " + tmp["node2"] + "\n"
             log.append(line)
@@ -283,7 +283,7 @@ def main():
     log.append("Management network for SSH connections: \n")
     for link in links:
         tmp = link[2]
-        if tmp["node2"] is not "s1":
+        if tmp["node2"] != "s1":
             line = tmp["node1"] + " || " + str(tmp["port1"]) + " <--> " + \
                    str(tmp["port2"]) + " || " + tmp["node2"] + "\n"
             log.append(line)
@@ -291,8 +291,7 @@ def main():
     log.append("PID ext. host: " + external_host.cmd("echo $$"))
     log.append("PID dut f1: " + f1.cmd("echo $$"))
 
-    with open(
-            directory[0:directory.find("scripts")] + "data/mn.log", "wr") as f:
+    with open(directory[0:directory.find("scripts")] + "data/mn.log", "w") as f:
         f.writelines(log)
 
     s1 = net.get("s1")
@@ -325,11 +324,11 @@ def sshd(network, cmd="/usr/sbin/sshd", opts="-D", ip="10.99.99.1/32",
         host.cmd(cmd + " " + opts + "&")
     info("*** Waiting for ssh daemons to start\n")
     for server in network.hosts:
-        if server.name is not "f1":
+        if server.name != "f1":
             waitListening(server=server, port=22, timeout=5)
     info("\n*** Hosts are running sshd at the following addresses:\n")
     for host in network.hosts:
-        if host.name is not "f1":
+        if host.name != "f1":
             info(host.name, host.IP(), "\n")
 
 

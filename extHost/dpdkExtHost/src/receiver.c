@@ -1,4 +1,3 @@
-
 #include <stdint.h>
 #include <stdio.h> 
 #include <unistd.h>
@@ -22,7 +21,7 @@
 struct packet_data {
 	uint64_t t_stamp1;
 	uint64_t t_stamp2;
-	uint64_t packet_sizes;
+	uint16_t packet_size;
 	struct packet_data *next;
 };
 
@@ -39,7 +38,9 @@ static int checkStopFlag(void){
 
 static const struct rte_eth_conf port_conf_default = {
 	.rxmode = {
-		.max_rx_pkt_len = RTE_ETHER_MAX_LEN,
+		// .max_rx_pkt_len = RTE_ETHER_MAX_LEN, deprecated
+		// .max_lro_pkt_size large receive offload max size (tcp segmentation in NIC)
+		.mtu = RTE_ETHER_MAX_LEN-18
 	},
 };
 
@@ -73,9 +74,8 @@ port_init(uint16_t port, struct rte_mempool *mbuf_pool)
 		return retval;
 	}
 
-	if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE)
-		port_conf.txmode.offloads |=
-			DEV_TX_OFFLOAD_MBUF_FAST_FREE;
+	if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE) //DEV_TX_OFFLOAD_MBUF_FAST_FREE deprecated
+		port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE; //DEV_TX_OFFLOAD_MBUF_FAST_FREE deprecated
 
 	/* Configure the Ethernet device. */
 	retval = rte_eth_dev_configure(port, rx_rings, tx_rings, &port_conf);
@@ -203,33 +203,12 @@ static void lcore_main(void) {
                 uint16_t opt_type;
                 uint16_t empty_option_field;
 
-                if (ipv4_protocol == 6) {
-			        uint8_t tcp_data_offs   = (start[l4_start + 12] >> 4) & 0x0f; // #tcp header length in in 32 bit words
-			        uint8_t tcp_options_len = tcp_data_offs-5; //tcp header always has at least 5x32bit 
-                    #ifdef DEBUG
-				    printf("tcp_data_offs %02x \n", tcp_data_offs);
-				    printf("tcp_options_len %02x \n", tcp_options_len);
-                    #endif
-			        if (tcp_options_len == 0) continue;
 
-			        //tcp_options     = message[l4_start+ 40 : l4_start+ 40 +tcp_options_len*8]
-			        for (uint8_t x = 0; x < tcp_options_len; x++){
-				        memcpy(&opt_type, &start[l4_start + 20 + 4*x ], 2);
-				        memcpy(&empty_option_field, &start[l4_start + 20 + 4*x + 8 ], 2);
-				        opt_type = ntohs(opt_type);
-				            if(opt_type == 0x0f10 && empty_option_field == 0x0000) {
-					            opt_pos = l4_start + 20 + 4*x;
-					            break;
-				            }
-                        #ifdef DEBUG
-				        printf("opt_type %02x \n", opt_type);
-				        printf("empty_option_field %02x \n", empty_option_field);
-				        printf("opt_pos %04x \n", opt_pos);
-                        #endif
-                    }
-                } else if (ipv4_protocol == 17) {
-                    memcpy(&opt_type, &start[l4_start + 8], 2);
+				if (ipv4_protocol == 17) {
+					// l4_start + 10: 8 byte udp header and 2 byte ext host stats header
+                    memcpy(&opt_type, &start[l4_start + 10], 2);
                     opt_type = ntohs(opt_type);
+					memcpy(&empty_option_field, &start[l4_start + 10 + 8], 2);
                     #ifdef DEBUG
 				    printf("PARSED UDP PACKET:\n");
 			        printf("opt_type %02x \n", opt_type);
@@ -243,8 +222,12 @@ static void lcore_main(void) {
 
 			    if(opt_pos != 0) {
 				    struct packet_data *p = (struct packet_data*) malloc(sizeof(struct packet_data));
-				    memcpy( &(p->t_stamp1), &start[opt_pos+2], 6);
-				    memcpy( &(p->t_stamp2), &start[opt_pos+10], 6);
+					// start at byte 0 for ext host stats => original packet size as 2byte value
+					memcpy( &(p->packet_size), &start[opt_pos], 2);
+					p->packet_size = be16toh(p->packet_size);
+					// start at byte 4 with tstamp 1: 2 byte ext host stats, 2 byte 0x0f10
+				    memcpy( &(p->t_stamp1), &start[opt_pos+2+2], 6);
+				    memcpy( &(p->t_stamp2), &start[opt_pos+10+2], 6);
 				    p->t_stamp1 = be64toh(p->t_stamp1);
 				    p->t_stamp2 = be64toh(p->t_stamp2);
 				    p->t_stamp1 = (p->t_stamp1 >> 16) & 0x0000ffffffffffff;
@@ -252,13 +235,14 @@ static void lcore_main(void) {
 
 				    if(first == NULL) first = last = p;
 
-					p->packet_sizes = p_len;
+					//p->packet_size = p_len;
 
 				    p->next = NULL;
 				    last->next = p;
 				    last = p;
 
                     #ifdef DEBUG
+					printf("ext host statistics packet size: %d\n", p->ext_host_header);
 				    printf("tstamp1: 0x%"PRIx64"\n", p->t_stamp1);
 				    printf("tstamp2: 0x%"PRIx64"\n", p->t_stamp2);
                     #endif
@@ -305,7 +289,7 @@ static void lcore_main(void) {
 		do {
 			fprintf(timestamp1_list, "%"PRIu64"\n", iter->t_stamp1);
 			fprintf(timestamp2_list, "%"PRIu64"\n", iter->t_stamp2);
-			fprintf(packet_sizes, "%"PRIu64"\n", iter->packet_sizes);
+			fprintf(packet_sizes, "%"PRIu16"\n", iter->packet_size);
 			struct packet_data *current = iter;
 			iter = iter->next;
 			free(current);

@@ -74,10 +74,10 @@
     }
   ],
   "multicast": "1",
-  "program": "tofino_stamper_v1_2_0",
+  "program": "tofino_stamper_v1_2_1",
   "sde": "/opt/bf-sde-9.13.0",
   "selected_loadgen": "iperf3",
-  "selected_extHost": "PythonExtHost",
+  "selected_extHost": "GoExtHostUdp",
   "selected_target": "tofino_model",
   "stamper_ssh": "",
   "stamper_user": "root",

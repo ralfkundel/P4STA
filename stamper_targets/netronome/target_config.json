@@ -1,7 +1,10 @@
 {
    "target":"netronome",
    "cfg_template":"netronome_config_template.json",
-   "target_driver":"netronome.py",
+   "default_target_driver":"netronome.py",
+   "available_target_drivers": [
+      {"version": "1.0.0", "target_driver": "netronome.py"}
+   ],
    "stamping_capabilities":{
       "tcp":true,
       "udp":true,
@@ -10,6 +13,17 @@
    },
    "inputs":{
       "input_individual":[
+         {
+            "title":"P4sta Version",
+            "type":"drop-down",
+            "values":[
+               "1.0.0"
+            ],
+            "default_value":"1.0.0",
+            "target_key":"p4sta_version",
+            "onchange_func": "p4sta_version_changed()",
+            "description":"P4sta Version to use, e.g. 1.0.0"
+         },
          {
             "title":"Name of P4 program",
             "type":"input",

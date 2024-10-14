@@ -31,10 +31,12 @@ def connect(args):
             csrftoken = client.cookies["csrftoken"]
 
             data = {}
-            if target == "dpdk_host_only":
+            if target == "dpdk_tofino" or target == "dpdk_bmv2":
+                if target == "dpdk_tofino": ip = ip_bf_sde
+                else: ip = ip_mininet
                 data = {'enable_stamper': ['off'], 'ext_host_user': ['root'],
                         'selected_extHost': ['DpdkExtHost'],
-                        'ext_host_ip': [ip_mininet], 'enable_ext_host': ['on'],
+                        'ext_host_ip': [ip], 'enable_ext_host': ['on'],
                         'selected_loadgen': ['iperf3'],
                         'csrfmiddlewaretoken': [csrftoken],
                         "create_setup_script_button": [""]}
@@ -53,10 +55,12 @@ def connect(args):
             elif target == "tofino":
                 data = {'ext_host_user': ['root'], 'stamper_ip': [ip_bf_sde],
                         'loadgen_user_1': ['root'],
-                        'selected_extHost': ['PythonExtHost'],
+                        'selected_extHost': ['GoExtHostUdp'],
                         'enable_stamper': ['on'],
                         'selected_stamper': ['Stordis_BF6064XT'],
                         "sde": ["/opt/bf-sde-9.13.0"],
+                        "p4sta_version": "1.2.1",
+                        "compile_flag": "NONE",
                         'ext_host_ip': [ip_bf_sde],
                         'loadgen_ip_1': [ip_bf_sde], 'enable_ext_host': ['on'],
                         'selected_loadgen': ['iperf3'],
@@ -86,7 +90,8 @@ class TestP4staInstallServer(unittest.TestCase):
     def test_script(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         project_path = dir_path[0:dir_path.find("/tests")]
-        self.assertTrue("autogen_scripts/install_server.sh" in os.listdir(project_path))
+        print("PROJECT PATH: " + str(project_path))
+        self.assertTrue("install_server.sh" in os.listdir(project_path + "/autogen_scripts"))
 
 
 if __name__ == '__main__':

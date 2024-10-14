@@ -39,8 +39,9 @@ class TargetImpl(AbstractTarget):
 
     def __init__(self, target_cfg):
         super().__init__(target_cfg)
-        self.speed_list = ["10G", "25G", "40G", "50G", "100G"]
         self.port_mapping = None
+
+        print("tofino1_65p_stamper_v1_2_0 init")
 
     def get_sde(self, cfg):
         try:
@@ -55,6 +56,10 @@ class TargetImpl(AbstractTarget):
         if self.port_mapping is None:
             try:
                 interface = grpc_interface.TofinoInterface(ssh_ip, device_id=0)
+                if not interface.connection_established:
+                    interface.teardown()
+                    return None # case where run_switchd is not running correctly
+
                 interface.bind_p4_name(data_plane_program_name)
                 self.port_mapping = interface.get_port_mapping()
                 if "static_ports" in self.target_cfg:
@@ -685,8 +690,16 @@ class TargetImpl(AbstractTarget):
                 running = True
 
                 interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], 0)
+                print("Connection to Tofino established: " + str(interface.connection_established))
+                if not interface.connection_established:
+                    interface.teardown()
+                    return ["gRPC connection to Tofino failed, wait some time and retry."], False, "not running"
+
                 try:
-                    interface.bind_p4_name(cfg["program"])
+                    error = interface.bind_p4_name(cfg["program"])
+                    if error != "":
+                        return ["gRPC: Bind P4 Programm to Tofino failed, wait some time and retry."], True, "running"
+
 
                     # returns list of dictionaries with port status
                     port_status_list = interface.read_port_status()
@@ -760,13 +773,28 @@ class TargetImpl(AbstractTarget):
         user_name = cfg["stamper_user"]
         output_sub = subprocess.run(
             [dir_path + "/scripts/start_switchd.sh", cfg["stamper_ssh"],
-             cfg["stamper_user"], self.get_sde(cfg),
-             '/home/' + user_name + '/p4sta/stamper/tofino1/compile/' + cfg["program"] + '.conf',
-             script_dir], stdout=subprocess.PIPE)
-        print("started stamper dev software - sleep 15 sec until grpc is up")
-        time.sleep(15)
-        print("grpc ports of tofino should be up now")
+                cfg["stamper_user"], self.get_sde(cfg),
+                '/home/' + user_name + '/p4sta/stamper/tofino1/compile/' + cfg["program"] + '.conf',
+                script_dir], stdout=subprocess.PIPE)
         print(output_sub)
+        time.sleep(5)
+        
+
+        reachable = False
+        for i in range(12):
+            time.sleep(10)
+            interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], 50+i, print_errors=False)
+            established = interface.connection_established
+            print("Probing gRPC connection to Tofino... Established: " + str(established))
+            interface.teardown()
+            if established:
+                reachable = True
+                break
+                
+        if reachable:
+            print("Tofino gRPC server reachable.")
+        else:
+            print("Tofino gRPC server not reachable after 2 minutes trying.")
 
     def get_stamper_startup_log(self, cfg):
         result = self.execute_ssh(
@@ -842,8 +870,7 @@ class TargetImpl(AbstractTarget):
         print("INSTALLING TOFINO STAMPER TARGET:")
         print(target_specific_dict)
         sde_path = ""
-        if "sde" in target_specific_dict and len(
-                target_specific_dict["sde"]) > 1:
+        if "sde" in target_specific_dict and len(target_specific_dict["sde"]) > 1:
             sde_path = target_specific_dict["sde"]
         else:
             lines = P4STA_utils.execute_ssh(user_name, ip, "cat $HOME/.bashrc")
@@ -870,10 +897,22 @@ class TargetImpl(AbstractTarget):
                               "$current_user' ALL=(ALL:ALL) NOPASSWD:" \
                               "SETENV:'$1 | " \
                               "sudo EDITOR='tee -a' visudo; \n  fi\n}\n"
+
+        p4c_flags = ""
+        if "compile_flag" in target_specific_dict:
+            if target_specific_dict["compile_flag"] == "NONE":
+                pass
+            elif target_specific_dict["compile_flag"] == "GTP_ENCAP":
+                p4c_flags = "-D GTP_ENCAP"
+            elif target_specific_dict["compile_flag"] == "PPPOE_ENCAP":
+                p4c_flags = "-D PPPOE_ENCAP"
+        if "p4c-flags" in target_specific_dict:
+            if target_specific_dict["p4c-flags"] != "":
+                p4c_flags = p4c_flags + " " + target_specific_dict["p4c-flags"]
         compile_p4_src = "export SDE_INSTALL=" + sde_path + "/install\n" \
                          "cd /home/" + user_name + "/p4sta/stamper/tofino1/\n" \
                          "mkdir -p compile\n" \
-                         "$SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_2_0.p4\n"
+                         "$SDE_INSTALL/bin/bf-p4c -v "+ p4c_flags +" -o $PWD/compile/ tofino_stamper_v1_2_0.p4\n"
 
         with open(dir_path + "/scripts/install_tofino.sh", "w") as f:
             f.write(add_sudo_rights_str)
@@ -908,8 +947,8 @@ class TargetImpl(AbstractTarget):
 
         lst.append("   echo ")
 
-        lst.append('  scp ' + dir_path + '/PLEASE_COPY/header_tofino_stamper_v1_2_0.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
-        lst.append('  scp ' + dir_path + '/PLEASE_COPY/tofino_stamper_v1_2_0.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
+        lst.append('  scp ' + dir_path + '/p4_files/v1.2.0/header_tofino_stamper_v1_2_0.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
+        lst.append('  scp ' + dir_path + '/p4_files/v1.2.0/tofino_stamper_v1_2_0.p4 ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
 
         lst.append('  scp install_tofino.sh ' + user_name + '@' + ip + ':/home/' + user_name + '/p4sta/stamper/tofino1/')
         lst.append('  ssh  -t -o ConnectTimeout=2 -o StrictHostKeyChecking=no ' +

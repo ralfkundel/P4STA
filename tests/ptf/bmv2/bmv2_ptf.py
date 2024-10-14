@@ -14,8 +14,8 @@ sys.path.append("core/")
 try:
     import bmv2_stamper_v1_0_0
     from cfg import cfg
-    import p4sta_ptf_base_tcp
-    import p4sta_ptf_base_udp
+    import p4sta_ptf_base_tcp_bmv2 as p4sta_ptf_base_tcp
+    import p4sta_ptf_base_udp_bmv2 as p4sta_ptf_base_udp
 except Exception as e:
     print(e)
 

@@ -66,6 +66,7 @@ urlpatterns = [
 
     # page_config.html
     path('job_fetch_iface/', configure.fetch_iface),
+    path('job_fetch_target/', configure.fetch_target),
     path('job_set_iface/', configure.set_iface),
     # also used in output_external_started.html
     path('status_overview/', configure.status_overview),

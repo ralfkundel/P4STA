@@ -74,11 +74,11 @@
     }
   ],
   "multicast": "1",
-  "program": "tofino_stamper_v1_2_0",
+  "program": "tofino_stamper_v1_2_1",
   "sde": "/opt/bf-sde-9.3.2",
   "selected_loadgen": "iperf3",
   "selected_target": "Stordis_BF6064XT",
-  "selected_extHost": "PythonExtHost",
+  "selected_extHost": "GoExtHostUdp",
   "stamper_ssh": "",
   "stamper_user": ""
 }

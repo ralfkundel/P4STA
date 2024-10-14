@@ -7,6 +7,14 @@ from scapy_patches.ppp import PPPoE, PPP  # Needed due to https://github.com/sec
 import ptf
 import ptf.testutils as testutils
 
+from ext_host_header_scapy import Exthost
+
+
+# Returns a dictionary which includes all your parameters
+# {"mode": "pppoe" or "gtpu"} with flag --test-params="mode=pppoe"
+test_params = testutils.test_params_get()
+print("############## TEST_PARAMS: " + str(test_params))
+
 
 class Encap_Group2ToDut2(BaseTest):
     def setUp(self):
@@ -46,25 +54,25 @@ class Encap_Group2ToDut2(BaseTest):
         exp_pkt_gtpu1 = Ether(dst="aa:aa:aa:aa:ff:02", src="22:22:22:33:33:33") / IP(src="11.8.3.3", dst="7.7.8.8")/UDP(sport=2152, dport=2152, chksum=0) /gtp.GTPHeader(gtp_type=255, teid=1, E=1, next_ex=0x85) /gtp.GTPPDUSessionContainer(ExtHdrLen=1, type=1, QFI=1) / IP(
             src="10.0.2.4", dst="10.0.1.3") / UDP(sport=0xeeff, dport=50000) / Raw(load=with_empty_tstamps)
 
-        # inport 2
-        send_packet(self, 2, pppoe1)
-        m3 = Mask(exp_pkt_pppoe)
-        m3.set_do_not_care_scapy(UDP, "chksum")
-        # timestamp1 is 6 byte long, starts at bit 448 + offset of pppoe header (starting from Eth Hdr)
-        offset = 8 * 8 # 8 byte header in bit
-        m3.set_do_not_care(352+offset, 48)
-        verify_packets(self, m3, ports=[4])
+        if test_params["pppoe"]:
+            # inport 2
+            send_packet(self, 2, pppoe1)
+            m3 = Mask(exp_pkt_pppoe)
+            m3.set_do_not_care_scapy(UDP, "chksum")
+            # timestamp1 is 6 byte long, starts at bit 448 + offset of pppoe header (starting from Eth Hdr)
+            offset = 8 * 8 # 8 byte header in bit
+            m3.set_do_not_care(352+offset, 48)
+            verify_packets(self, m3, ports=[4])
 
-        # in port 6 for variation
-        send_packet(self, 6, gtpu1)
-        m4 = Mask(exp_pkt_gtpu1)
-        m4.set_do_not_care_scapy(UDP, "chksum")
-        # timestamp1 is 6 byte long, starts at bit 448 + offset of IP+udp+gtp header
-        offset = (20+8+16) * 8 # 8 byte header in bit
-
-        # inner UDP checksum
-        m4.set_do_not_care(320+offset, 16)
-
-        # first timestamp
-        m4.set_do_not_care(352+offset, 48)
-        verify_packets(self, m4, ports=[4])
+        if test_params["gtpu"]:
+            # in port 6 for variation
+            send_packet(self, 6, gtpu1)
+            m4 = Mask(exp_pkt_gtpu1)
+            m4.set_do_not_care_scapy(UDP, "chksum")
+            # timestamp1 is 6 byte long, starts at bit 448 + offset of IP+udp+gtp header
+            offset = (20+8+16) * 8 # 8 byte header in bit
+            # inner UDP checksum
+            m4.set_do_not_care(320+offset, 16)
+            # first timestamp
+            m4.set_do_not_care(352+offset, 48)
+            verify_packets(self, m4, ports=[4])

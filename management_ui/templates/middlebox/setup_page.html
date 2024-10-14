@@ -145,22 +145,62 @@
 					header.innerHTML = "<b><u>Stamper-target specific config:</u></b>";
 					div.appendChild(header);
 					options.forEach(opt => {
-						var p = document.createElement("p");
-						bold = document.createElement('strong');
-						var node = document.createTextNode(opt["title"] + ": ");
-						bold.appendChild(node);
-						p.appendChild(bold);
+
 						
 						if(opt["type"] == "input"){
+							var p = document.createElement("p");
+							bold = document.createElement('strong');
+							var node = document.createTextNode(opt["title"] + ": ");
+							bold.appendChild(node);
+							p.appendChild(bold);
+
 							var input = document.createElement("input");
 							input.name = opt["target_key"];
 							input.placeholder = opt["description"];
 							input.type="text";
 							input.className="form-control";
 							input.style="width:350px; display:inline";
+							
+							var sde_from_cfg = "{{current_cfg.sde}}";
+							if (opt["target_key"] === "sde"){
+								console.log("sde_from_cfg = " + sde_from_cfg);
+								input.value=sde_from_cfg;
+							}
+							
+
+							p.appendChild(input)
+							div.appendChild(p);
+						} else if (opt["type"] == "drop-down") {
+							console.log(opt)
+
+							var p = document.createElement("p");
+							bold = document.createElement('strong');
+							var node = document.createTextNode(opt["title"] + ": ");
+							bold.appendChild(node);
+							p.appendChild(bold);
+
+							var select = document.createElement("select");
+							select.classList.add("form-control");
+							select.id = opt["target_key"];
+							select.name = opt["target_key"];
+							select.style="width:350px; display:inline";
+							var option = document.createElement("option");
+							option.value = opt["default_value"];
+							option.innerHTML = opt["default_value"];
+							select.appendChild(option);
+
+							opt["values"].forEach(val => {
+								if (val !== opt["default_value"]){
+									var option = document.createElement("option");
+									option.value = val;
+									option.innerHTML = val;
+									select.appendChild(option);
+								}
+							});
+
+							p.appendChild(select);
+							div.appendChild(p);
 						}
-						p.appendChild(input)
-						div.appendChild(p);
 					});
 					div.appendChild(document.createElement("hr"));
 				}
@@ -242,8 +282,8 @@
 							</select>
 						</div>
 					</td>
-					<td><input id="stamper_ip" type="text" class="form-control" name="stamper_ip" value="" required/><div id="output_check_stamper_ping"></div></td>
-					<td><input id="stamper_user" type="text" class="form-control" name="stamper_user" value="" required/><div id="output_check_stamper_ssh"></div></td>
+					<td><input id="stamper_ip" type="text" class="form-control" name="stamper_ip" value="{{current_cfg.stamper_ssh}}" required/><div id="output_check_stamper_ping"></div></td>
+					<td><input id="stamper_user" type="text" class="form-control" name="stamper_user" value="{{current_cfg.stamper_user}}" required/><div id="output_check_stamper_ssh"></div></td>
 					<td><button type="button" id="stamper_check" class="btn btn-secondary" onclick="check_ssh(document.getElementById('stamper_user').value, document.getElementById('stamper_ip').value, 'output_check_stamper');">Check</button></td>
 				</tr>
 				<tr>
@@ -258,8 +298,8 @@
 							</select>
 						</div>
 					</td>
-					<td><input id="ext_host_ip" type="text" class="form-control" name="ext_host_ip" value="" required/><div id="output_check_ext_host_ping"></div></td>
-					<td><input id="ext_host_user" type="text" class="form-control" name="ext_host_user" value="" required/><div id="output_check_ext_host_ssh"></div></td>
+					<td><input id="ext_host_ip" type="text" class="form-control" name="ext_host_ip" value="{{current_cfg.ext_host_ssh}}" required/><div id="output_check_ext_host_ping"></div></td>
+					<td><input id="ext_host_user" type="text" class="form-control" name="ext_host_user" value="{{current_cfg.ext_host_user}}" required/><div id="output_check_ext_host_ssh"></div></td>
 					<td><button type="button" id="ext_host_check" class="btn btn-secondary" onclick="check_ssh(document.getElementById('ext_host_user').value, document.getElementById('ext_host_ip').value, 'output_check_ext_host');">Check</button></td>
 				</tr>
 			</tbody>

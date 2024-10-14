@@ -1,7 +1,11 @@
 {
    "target":"tofino_model",
    "cfg_template":"tofino_model_cfg_template.json",
-   "target_driver":"../Wedge100B65/tofino1_65p_stamper_v1_2_0.py",
+   "default_target_driver":"../Wedge100B65/tofino1_65p_stamper_v1_2_1.py",
+   "available_target_drivers": [
+      {"version": "1.2.0", "target_driver": "../Wedge100B65/tofino1_65p_stamper_v1_2_0.py"},
+      {"version": "1.2.1", "target_driver": "../Wedge100B65/tofino1_65p_stamper_v1_2_1.py"}
+   ],
    "stamping_capabilities":{
       "tcp":true,
       "udp":true,
@@ -20,6 +24,18 @@
    },
    "inputs":{
       "input_individual":[
+         {
+            "title":"P4sta Version",
+            "type":"drop-down",
+            "values":[
+               "1.2.0",
+               "1.2.1"
+            ],
+            "default_value":"1.2.1",
+            "target_key":"p4sta_version",
+            "onchange_func": "p4sta_version_changed()",
+            "description":"P4sta Version to use, e.g. 1.2.1 or 1.2.0"
+         },
          {
             "title":"Name of P4 program",
             "type":"input",

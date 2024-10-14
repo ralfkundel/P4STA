@@ -1,0 +1,23 @@
+{
+   "name":"GoExtHostUdp",
+   "driver":"goHostDriver.py",
+   "status_check":{
+      "needed_sudos_to_add":[
+         "/p4sta/externalHost/go/go/bin/go",
+         "/p4sta/externalHost/go/goUdpSocketExtHost.py",
+         "pkill",
+         "killall",
+         "ip",
+         "ifconfig"
+      ]
+   },
+   "python_dependencies":[
+      {
+         "python_version":"3",
+         "modules":[]
+      }
+   ],
+   "compatible_p4sta_versions": [
+      "1.2.1"
+   ]
+}

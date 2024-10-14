@@ -16,7 +16,7 @@ in the root directory of this repo:
 
 ### 4. run any test
 ```
-./run_test.sh {install|test_code_quality|test_ptf_bmv2|test_ptf_tofino|test_core|test_ui|test_ui_tofino|dpdk_install|test_core_dpdk|cleanup|all}
+./run_test.sh {install|test_code_quality|test_ptf_bmv2|test_ptf_tofino|test_ptf_tofino_encap|test_core|test_ui|test_ui_tofino|dpdk_install|test_core_dpdk|cleanup|all}
 ```
 
 

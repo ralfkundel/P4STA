@@ -1,0 +1,157 @@
+{
+   "target":"EdgecoreDCS810",
+   "cfg_template":"tofino2_dcs810_cfg_template.json",
+   "default_target_driver":"tofino2_stamper.py",
+   "available_target_drivers": [
+      {"version": "1.2.0", "target_driver": "tofino2_stamper.py"},
+      {"version": "1.2.1", "target_driver": "tofino2_stamper.py"}
+   ],
+   "stamping_capabilities":{
+      "tcp":true,
+      "udp":true,
+      "timestamp-multi":1,
+      "timestamp-max":281474976710655
+   },
+   "config":{
+      "stamper_specific":[
+         {
+            "title":"SDE",
+            "type":"input",
+            "target_key":"sde",
+            "description":"Path of SDE directory, e.g. /opt/bf-sde-.."
+         },
+          {
+            "title":"p4c flags",
+            "type":"info",
+            "target_key":"p4c-flags",
+            "target_value":"--target tofino2"
+         },
+         {
+            "title":"P4sta Version",
+            "type":"drop-down",
+            "values":[
+               "1.2.0",
+               "1.2.1"
+            ],
+            "default_value":"1.2.1",
+            "target_key":"p4sta_version",
+            "description":"P4sta Version to use, e.g. 1.2.1 or 1.2.0"
+         },
+         {
+            "title":"P4 Compile Flag",
+            "type":"drop-down",
+            "values":[
+               "NONE",
+               "GTP_ENCAP",
+               "PPPOE_ENCAP"
+            ],
+            "default_value":"NONE",
+            "target_key":"compile_flag",
+            "description":"Flag enabling GTP-U or PPPOE support in P4 file before compilation."
+         }
+      ]
+   },
+   "inputs":{
+      "input_individual":[
+         {
+            "title":"P4sta Version",
+            "type":"drop-down",
+            "values":[
+               "1.2.0",
+               "1.2.1"
+            ],
+            "default_value":"1.2.1",
+            "target_key":"p4sta_version",
+            "onchange_func": "p4sta_version_changed()",
+            "description":"P4sta Version to use, e.g. 1.2.1 or 1.2.0"
+         },
+         {
+            "title":"Name of P4 program",
+            "type":"input",
+            "target_key":"program",
+            "description":"Name of the P4 program you want to use."
+         },
+         {
+            "title":"SDE",
+            "type":"input",
+            "target_key":"sde",
+            "description":"Path of SDE directory, e.g. /opt/bf.."
+         }
+      ],
+      "input_table":[
+         {
+            "title":"Link Speed",
+            "type":"drop-down",
+            "values":[
+               "10G",
+               "25G",
+               "40G",
+               "40G-R2",
+               "50G-R2",
+               "50G-R2-C",
+               "50G-R1",
+               "100G",
+               "200G",
+               "400G"
+            ],
+            "default_value":"100G",
+            "target_key":"speed",
+            "description":"Link speed of interface"
+         },
+         {
+            "title":"FEC",
+            "type":"drop-down",
+            "values":[
+               "NONE",
+               "FC",
+               "RS"
+            ],
+            "default_value":"NONE",
+            "target_key":"fec",
+            "description":"Value must be NONE|FC|RS"
+         },
+         {
+            "title":"AN",
+            "type":"drop-down",
+            "values":[
+               "default",
+               "on",
+               "off"
+            ],
+            "default_value":"default",
+            "target_key":"an",
+            "description":"Autonegotiation value must be default|on|off"
+         },
+         {
+            "title":"Limit [Mbit/s]",
+            "type":"input",
+            "target_key":"shape",
+            "description":"Set a throughput limit (outgoing from stamper) in Mbit/s (Traffic Shaping), disable = 0"
+         },
+         {
+            "restrict":"dut",
+            "title":"DP Duplication",
+            "default_value":"0",
+            "type":"input",
+            "target_key":"dataplane_duplication",
+            "description":"For each packet N additional duplicates egressing this DUT port"
+         }
+      ]
+   },
+   "status_check":{
+      "needed_sudos_to_add":[
+         "pkill",
+         "run_switchd.sh"
+      ]
+   },
+   "static_ports":{
+      "33/0": 2,
+      "33/1": 3,
+      "33/2": 4,
+      "33/3": 5,
+      "bf_pci0": 0
+   },
+   "python_dependencies":[
+      
+   ]
+}

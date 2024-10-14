@@ -15,5 +15,9 @@
             "setproctitle"
          ]
       }
+   ],
+   "compatible_p4sta_versions": [
+      "1.0.0",
+      "1.2.0"
    ]
 }

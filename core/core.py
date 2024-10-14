@@ -120,11 +120,12 @@ class P4staCore(rpyc.Service):
         global first_run
         first_run = False
 
-    def write_install_script(self, first_time_cfg):
+    def write_install_script(self, first_time_cfg, p4sta_version=""):
         install_script = []
         if "stamper_user" in first_time_cfg:
+            print("##DEBUG: first_time_cfg: " + str(first_time_cfg))
             stamper_name = first_time_cfg["selected_stamper"]
-            stamper_target = self.get_stamper_target_obj(stamper_name)
+            stamper_target = self.get_stamper_target_obj(stamper_name, p4sta_version)
             if "target_specific_dict" in first_time_cfg:
                 target_specific_dict = first_time_cfg["target_specific_dict"]
             else:
@@ -153,20 +154,44 @@ class P4staCore(rpyc.Service):
             os.chmod("autogen_scripts/install_server.sh", 0o777)
 
     # returns an instance of current selected target config object
-    def get_stamper_target_obj(self, target_name):
+    # if version is not defined, version from current config is used
+    def get_stamper_target_obj(self, target_name, version=""):
         target_description = self.all_targets[target_name]
-        path_to_driver = (os.path.join(target_description["real_path"],
-                                       target_description["target_driver"]))
+
+        fail = False
+        try:
+            if version == "":
+                cfg = P4STA_utils.read_current_cfg()
+                if "p4sta_version" in cfg:
+                    version = cfg["p4sta_version"]
+                else:
+                    fail = True
+
+            if "available_target_drivers" in target_description:
+                for driver in target_description["available_target_drivers"]:
+                    if driver["version"] == version:
+                        driver = driver["target_driver"]
+                        break
+                else:
+                    fail = True
+        except:
+            P4STA_utils.log_error(traceback.format_exc())
+            fail = True
+
+        # use default driver if available drivers is not found in target config file
+        if fail:
+            driver = target_description["default_target_driver"]
+            
+        path_to_driver = (os.path.join(target_description["real_path"], driver))
 
         spec = importlib.util.spec_from_file_location("TargetImpl",
                                                       path_to_driver)
         foo = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(foo)
-        get_stamper_target_obj = foo.TargetImpl(
-            target_description)
-        get_stamper_target_obj.setRealPath(target_description["real_path"])
+        get_stamper_obj = foo.TargetImpl(target_description)
+        get_stamper_obj.setRealPath(target_description["real_path"])
 
-        return get_stamper_target_obj
+        return get_stamper_obj
 
     def get_extHost_obj(self, name):
         host_description = self.all_extHosts[name]
@@ -177,11 +202,10 @@ class P4staCore(rpyc.Service):
                                                       path_to_driver)
         foo = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(foo)
-        get_stamper_target_obj = foo.ExtHostImpl(
-            host_description)
-        get_stamper_target_obj.setRealPath(host_description["real_path"])
+        get_ext_host_obj = foo.ExtHostImpl(host_description)
+        get_ext_host_obj.setRealPath(host_description["real_path"])
 
-        return get_stamper_target_obj
+        return get_ext_host_obj
 
     def get_current_extHost_obj(self):
         return self.get_extHost_obj(
@@ -207,6 +231,12 @@ class P4staCore(rpyc.Service):
         for extH in self.all_extHosts.keys():
             lst.append(extH)
         return lst
+    
+    def get_all_extHostDicts(self):
+        lst = []
+        for extH in self.all_extHosts.values():
+            lst.append(extH)
+        return lst
 
     def get_all_targets(self):
         lst = []
@@ -220,13 +250,14 @@ class P4staCore(rpyc.Service):
             lst.append(loadgen)
         return lst
 
-    def get_target_cfg(self, target_name=""):
+    def get_target_cfg(self, target_name="", version=""):
+        # version not required in get_target_cfg as it just loads the json file
         try:
             if target_name == "":
-                target = self.get_stamper_target_obj(
-                    P4STA_utils.read_current_cfg()["selected_target"])
+                t_name = P4STA_utils.read_current_cfg()["selected_target"]
             else:
-                target = self.get_stamper_target_obj(target_name)
+                t_name = target_name
+            target = self.get_stamper_target_obj(t_name, version)
             with open(os.path.join(target.realPath, "target_config.json"),
                       "r") as f:
                 return json.load(f)
@@ -956,8 +987,7 @@ class P4staCore(rpyc.Service):
                                  "config_" + str(
                                      P4staCore.measurement_id) + ".json"))
 
-        multi = self.get_target_cfg()['stamping_capabilities'][
-            'timestamp-multi']
+        multi = self.get_target_cfg()['stamping_capabilities']['timestamp-multi']
         tsmax = self.get_target_cfg()['stamping_capabilities']['timestamp-max']
         errors = ()
         if running:
@@ -1042,6 +1072,31 @@ class P4staCore(rpyc.Service):
 
     def fetch_interface(self, ssh_user, ssh_ip, iface, namespace=""):
         return P4STA_utils.fetch_interface(ssh_user, ssh_ip, iface, namespace)
+    
+    def fetch_target(self, target_name, p4sta_version=""):
+        target_cfg = self.get_target_cfg(target_name=target_name, version=p4sta_version)
+        
+        # create list of supported ext hosts of this target
+        supported_ext_hosts = []
+        for ext_host in self.get_all_extHostDicts():
+            for individual in target_cfg["inputs"]["input_individual"]:
+                if individual["target_key"] == "p4sta_version":
+                    for version in individual["values"]:
+                        if version in ext_host["compatible_p4sta_versions"]:
+                            if p4sta_version != "":
+                                if ext_host["name"] not in supported_ext_hosts:
+                                    if p4sta_version in ext_host["compatible_p4sta_versions"]:
+                                        supported_ext_hosts.append(ext_host["name"])
+                            else:
+                                if ext_host["name"] not in supported_ext_hosts:
+                                    supported_ext_hosts.append(ext_host["name"])
+                    break
+        
+        target_cfg["supported_ext_hosts"] = supported_ext_hosts
+        print("support ext hosts: " + str(supported_ext_hosts))
+
+        return target_cfg
+        
 
     def set_interface(self, ssh_user, ssh_ip, iface, iface_ip, namespace=""):
         if namespace == "":

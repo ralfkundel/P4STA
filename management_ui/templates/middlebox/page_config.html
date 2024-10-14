@@ -273,6 +273,68 @@
 		outgoing_stamp_changed();
 	}
 
+	function retrieveIFextHost(){
+		const sleep = (milliseconds) => {
+		  return new Promise(resolve => setTimeout(resolve, milliseconds))
+		}
+
+		ssh_ip = document.getElementById('ext_host_ssh').value;
+		user = document.getElementById('ext_host_user').value;
+		iface = document.getElementById('ext_host_if').value;
+		
+
+		var el = document.getElementsByName("csrfmiddlewaretoken");
+		csrf_value = el[0].getAttribute("value");	
+
+		$.ajax({
+		      type: "POST",
+		      url: "/job_fetch_iface/",
+		      data: {
+				'csrfmiddlewaretoken': csrf_value,
+				'ssh_ip': ssh_ip,
+				'user': user,
+				'iface': iface,
+				'namespace': ""
+		      },
+		      success: function (response) {
+			if(response.up_state == "up"){
+				document.getElementById('ext_host_if').className = "form-control is-valid";
+				document.getElementById('ext_host_if_up').className = "valid-feedback";
+				document.getElementById('ext_host_if_up').innerHTML = "Status: UP";
+
+			} else if (response.up_state == "down"){
+				document.getElementById('ext_host_if').className = "form-control is-invalid";
+				document.getElementById('ext_host_if_up').className = "invalid-feedback";
+				if (response.iface_found){
+					document.getElementById('ext_host_if_up').innerHTML = "Status: DOWN, Press 'set IP' to UP";
+				} else {
+					document.getElementById('ext_host_if_up').innerHTML = "Iface not found";
+				}
+			}
+
+			if(response.ip != ""){
+				document.getElementById('ext_host_ip').value = response.ip + response.prefix;
+			} else {
+				old_ip = document.getElementById('ext_host_ip').value;
+				document.getElementById('ext_host_ip').value = "##error##";
+				sleep(2000).then(() => {
+					document.getElementById('ext_host_ip').value = old_ip;
+				})
+			}
+
+			if(response.mac != ""){	
+				document.getElementById('ext_host_mac').value = response.mac;	
+			} else {
+				old_mac = document.getElementById('ext_host_mac').value;
+				document.getElementById('ext_host_mac').value = "##error##";
+				sleep(2000).then(() => {
+					document.getElementById('ext_host_mac').value = old_mac;
+				})
+			}
+		      }
+   		});
+	}
+
 	function retrieveIF(type, id){
 		const sleep = (milliseconds) => {
 		  return new Promise(resolve => setTimeout(resolve, milliseconds))
@@ -281,7 +343,7 @@
 		ssh_ip = document.getElementById(type+'_'+id+'_ssh').value;
 		user = document.getElementById(type+'_'+id+'_user').value;
 		iface = document.getElementById(type+'_'+id+'_iface').value;
-
+		
 		if (document.getElementById(type+'_'+id+'_namespace') !== null){
 			namespace = document.getElementById(type+'_'+id+'_namespace').value;
 		} else {
@@ -347,13 +409,19 @@
 
 	function timeout_clear(type, id){
 		setTimeout(function (){
-			document.getElementById(type+"_"+id+"_ip").className = "form-control ip_addr";
-			document.getElementById(type+"_"+id+"_ip_set").className = "";
-			document.getElementById(type+"_"+id+"_ip_set").innerHTML = "";
-			if(document.getElementById(type+"_"+id+"_namespace") != null){
-				document.getElementById(type+"_"+id+"_namespace").className = "form-control";
-				document.getElementById(type+"_"+id+"_namespace_up").className = "";
-				document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "";
+			if(type==="ext_host"){
+				document.getElementById("ext_host_ip").className = "form-control ip_addr";
+				document.getElementById("ext_host_ip_set").className = "";
+				document.getElementById("ext_host_ip_set").innerHTML = "";
+			} else {
+				document.getElementById(type+"_"+id+"_ip").className = "form-control ip_addr";
+				document.getElementById(type+"_"+id+"_ip_set").className = "";
+				document.getElementById(type+"_"+id+"_ip_set").innerHTML = "";
+				if(document.getElementById(type+"_"+id+"_namespace") != null){
+					document.getElementById(type+"_"+id+"_namespace").className = "form-control";
+					document.getElementById(type+"_"+id+"_namespace_up").className = "";
+					document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "";
+				}
 			}
 		}, 5000);
 	}
@@ -418,7 +486,47 @@
 				timeout_clear(type, id);
 		      },
    		});
+	}
 
+	function setIPextHost(){
+		ssh_ip = document.getElementById('ext_host_ssh').value;
+		user = document.getElementById('ext_host_user').value;
+		iface = document.getElementById('ext_host_if').value;
+		iface_ip = document.getElementById('ext_host_ip').value;
+
+		var el = document.getElementsByName("csrfmiddlewaretoken");
+		csrf_value = el[0].getAttribute("value");
+		$.ajax({
+		      type: "POST",
+		      url: "/job_set_iface/",
+		      data: {
+				'csrfmiddlewaretoken': csrf_value,
+				'ssh_ip': ssh_ip,
+				'user': user,
+				'iface': iface,
+				'iface_ip': iface_ip,
+				'namespace': ""
+		      },
+		      success: function (response) {
+				if (response.error){
+					document.getElementById("ext_host_ip").className = "form-control is-invalid";
+					document.getElementById("ext_host_ip_set").className = "invalid-feedback";
+					document.getElementById("ext_host_ip_set").innerHTML = "IP set unsuccessfully";
+				} else {
+					document.getElementById("ext_host_ip").className = "form-control is-valid";
+					document.getElementById("ext_host_ip_set").className = "valid-feedback";
+					document.getElementById("ext_host_ip_set").innerHTML = "IP set successfully";
+				}
+				timeout_clear(type, id);
+				retrieveIF(type, id);
+		      },
+		      error: function (response) {
+				document.getElementById("ext_host_ip").className = "form-control is-invalid";
+				document.getElementById("ext_host_ip_set").className = "invalid-feedback";
+				document.getElementById("ext_host_ip_set").innerHTML = "IP set unsuccessfully";
+				timeout_clear("ext_host", 0);
+		      },
+   		});
 	}
 	
 	window.onload = function() {
@@ -638,6 +746,121 @@
 		div = document.getElementById(id + "_div");
 		div.innerHTML = '<button type="button" style="margin:auto; display:block; font-size: 18pt" class="btn btn-default btn-sm" onclick="add_namespace_input(\'' + id + '\')"><i class="fa fa-plus"></i></button>';
 	}
+
+	function target_changed(){
+		var target = document.getElementById("target").value;
+		console.log("Target changed: " + target)
+
+		var el = document.getElementsByName("csrfmiddlewaretoken");
+		csrf_value = el[0].getAttribute("value");	
+		$.ajax({
+		      type: "POST",
+		      url: "/job_fetch_target/",
+		      data: {
+				'csrfmiddlewaretoken': csrf_value,
+				'target': target
+		      },
+		      success: function (response) {
+				if("target" in response){
+					// ensure no error at server side
+					if("target" in response.target){
+						console.log("fetched target: " +response.target.target);
+						var check = "inputs" in response.target && "input_individual" in response.target.inputs;
+						if(check){
+							console.log(response.target.inputs.input_individual)
+							response.target.inputs.input_individual.forEach(inp => {
+								if("target_key" in inp){
+									// we found the available p4sta versions for this target
+									if(inp.target_key === "p4sta_version"){ //"p4sta_version" is set as target key in some target_config.json
+										// now modify select field to the targets versions
+										var select = document.getElementById("p4sta_version");
+										if ("innerHTML" in select && "values" in inp){
+											// remove <option>..</option> in select
+											select.innerHTML = "";
+											// add <option>..</option> in select from fetched target
+											// first default option
+											var option = document.createElement("option");
+												option.value = inp.default_value;
+												option.innerHTML = inp.default_value;
+												select.appendChild(option);
+											// than all from list except default
+											inp.values.forEach(val => {
+												if(val !== inp.default_value){
+													var option = document.createElement("option");
+													option.value = val;
+													option.innerHTML = val;
+													select.appendChild(option);
+												}
+											});
+										}
+									}
+								}
+							});
+						}
+						if("supported_ext_hosts" in response.target) {
+							console.log(response.target.supported_ext_hosts)
+							p4sta_version_changed() //response.target.supported_ext_hosts
+						}
+					}
+				}
+			  }
+			  });
+	}
+
+	function p4sta_version_changed(supported_ext_hosts=null){
+		console.log("p4sta_version_changed");
+		var cur_selected_p4sta_version = null;
+		cur_selected_p4sta_version = document.getElementById("p4sta_version")
+		console.log("cur_selected_p4sta_version: " + cur_selected_p4sta_version)
+
+		var target = document.getElementById("target").value;
+		
+		if(supported_ext_hosts==null){
+			console.log("supported_ext_hosts is null, fetching ...")
+			var el = document.getElementsByName("csrfmiddlewaretoken");
+			csrf_value = el[0].getAttribute("value");
+			if(cur_selected_p4sta_version !== null){
+				ver = cur_selected_p4sta_version.value;
+			} else {
+				ver = null;
+			}
+			console.log("p4sta version is: " + ver)
+			$.ajax({
+				type: "POST",
+				url: "/job_fetch_target/",
+				data: {
+					'csrfmiddlewaretoken': csrf_value,
+					'target': target,
+					'p4sta_version': ver
+				},
+				success: function (response) {
+					console.log("success")
+					console.log(response)
+					if("target" in response){
+						if("supported_ext_hosts" in response.target) {
+							supported_ext_hosts = response.target.supported_ext_hosts;
+							console.log("supported_ext_hosts are " + supported_ext_hosts)
+
+							var select = document.getElementById("selected_extHost");
+							if ("innerHTML" in select){
+								// remove <option>..</option> in select
+								select.innerHTML = "";
+								// add <option>..</option> for all supported ext hosts
+								supported_ext_hosts.forEach(host => {
+									var option = document.createElement("option");
+									option.value = host;
+									option.innerHTML = host;
+									select.appendChild(option);
+								});
+							}
+						}
+					}
+				}
+			});
+		}
+
+	}
+	
 </script>
 
 <!-- Layer 1 warning modal -->
@@ -771,7 +994,7 @@
 						</small>
 					</td>
 					<td width="500em">
-							<select class="form-control" id="target" name="target" value="{{target}}">
+							<select class="form-control" id="target" name="target" value="{{target}}" onchange="target_changed()">
 								<option value="{{selected_target}}" selected="selected">{{selected_target}}</option>
 								{% for target in targets_without_selected %}
 								<option value="{{target}}">{{target}}</option>
@@ -827,7 +1050,7 @@
 						<td width="500em">
 						{% with current=cfg|getkeyvalue:entry.target_key %}
 						{% if entry.type == "drop-down" %}
-							<select class="form-control" id="{{entry.target_key}}" name="{{entry.target_key}}">
+							<select class="form-control" id="{{entry.target_key}}" name="{{entry.target_key}}" onchange="{{entry.onchange_func}}">
 							<option value="{{current}}">{{current}}</option>
 							{% for val in entry.values %}
 								{% if current != val %}
@@ -836,7 +1059,7 @@
 							{% endfor %}
 							</select>
 						{% elif entry.type == "input" %}
-							<input id="{{entry.target_key}}" type="text" class="form-control" name="{{entry.target_key}}" value="{{current}}" />
+							<input id="{{entry.target_key}}" type="text" class="form-control" name="{{entry.target_key}}" value="{{current}}" onchange="{{entry.onchange_func}}" />
 						{% endif %}
 						{% endwith %}
 						</td></tr>
@@ -905,7 +1128,7 @@
 			<th>Loadgen MAC(e.g. ca:fe:..)</th>
 			<th>Loadgen IP(e.g. 10.0.0.1)</th>
 			<!---<th>Namespace</th>--->
-			<th data-toggle="tooltip" data-placement="top" title="Set IP to given (namespace) interface. Use /netmask if necessary. SSH user, SSH ip and loadgen interface are needed and visudo must allow sudo for ifconfig!!"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Set IP/Namespace</th>
+			<th data-toggle="tooltip" data-placement="top" title="Set IP to given (namespace) interface. Use /netmask if necessary. SSH user, SSH ip and loadgen interface are needed and visudo must allow sudo for ifconfig!"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Set IP/Namespace</th>
 			<th data-toggle="tooltip" data-placement="top" title="Stamper front-panel port"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Stamper {% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
 			{% for entry in target_cfg.inputs.input_table %}
 			{% if not entry.restrict or entry.restrict == "loadgen" %}
@@ -1061,6 +1284,11 @@
 					<th>SSH IP</th>
 					<th>SSH Username</th>
 					<th data-toggle="tooltip" data-placement="top" title="Name of network interface connected to stamper, e.g. eth0"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Interface (e.g. eth0)</th>
+					<th data-toggle="tooltip" data-placement="top" title="Retrieve MAC and IP from host. SSH user, SSH ip and interface name are needed!"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Fetch config</th>
+			<th>Loadgen MAC(e.g. ca:fe:..)</th>
+			<th>Loadgen IP(e.g. 10.0.0.1)</th>
+			<!---<th>Namespace</th>--->
+			<th data-toggle="tooltip" data-placement="top" title="Set IP to given interface. Use /netmask if necessary. SSH user, SSH ip and interface name are needed and visudo must allow sudo for ifconfig!"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Set IP</th>
 					<th data-toggle="tooltip" data-placement="top" title="Choose Stamper front-panel port, e.g. 1/0 or bf_pci0"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Stamper {% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
 					{% for entry in target_cfg.inputs.input_table %}
 						{% if not entry.restrict or entry.restrict == "ext_host" %}
@@ -1074,7 +1302,11 @@
 					<td data-toggle="tooltip" data-placement="top" title="Receives packets with timestamps duplicated in stamper"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>External Host:</td>
 					<td><input id="ext_host_ssh" type="text" class="form-control ip_addr" name="ext_host_ssh" value="{{ext_host_ssh}}" /></td>
 					<td><input id="ext_host_user" type="text" class="form-control ssh_usr" name="ext_host_user" value="{{ ext_host_user }}" /></td>
-					<td><input id="ext_host_if" type="text" class="form-control iface_inp" name="ext_host_if" value="{{ext_host_if}}" /></td>
+					<td><input id="ext_host_if" type="text" class="form-control iface_inp" name="ext_host_if" value="{{ext_host_if}}" /><div id="ext_host_if_up"></div></td>
+					<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveIFextHost();"><i class="fa fa-search"></button></td>
+					<td style="min-width: 160px"><input id="ext_host_mac" type="text" class="form-control mac_addr" name="ext_host_mac" value="{{ext_host_mac}}" /></td>
+					<td><input id="ext_host_ip" type="text" class="form-control ip_addr" name="ext_host_ip" value="{{ext_host_ip}}" /><div id="ext_host_ip_set"></div></td>
+					<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="setIPextHost();"><i class="fa fa-wrench"></button></td>
 					<td>
 						<div class="input-group mb-3">
 							<input id="ext_host_real" type="text" class="form-control real_port_inp" aria-describedby="addon" name="ext_host_real" value="{{ ext_host_real }}" />
@@ -1115,6 +1347,10 @@
 					<td>Stamper Device (for SSH):</td>
 					<td><input id="stamper_ssh" type="text" class="form-control ip_addr" name="stamper_ssh" value="{{stamper_ssh}}"/></td>
 					<td><input id="stamper_user" type="text" class="form-control ssh_usr" name="stamper_user" value="{{stamper_user}}"/></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td></td>
 					<td></td>
 					<td></td>
 					{% for entry in target_cfg.inputs.input_table %}

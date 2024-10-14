@@ -34,7 +34,7 @@ class ExtHostImpl(AbstractExtHost):
             "ext_host_user"] + "/p4sta/externalHost/dpdkExtHost/; touch " \
                                "receiver_stop; sleep 0.5; rm receiver_stop; " \
                                "sudo build/receiver 0"
-        if self.cfg["selected_target"] == "bmv2":  # if mininet
+        if self.cfg["selected_target"] == "bmv2" or "tofino_model":  # if mininet
             # load vfio module
             cmd = "sudo rmmod vfio-pci; sudo rmmod vfio_iommu_type1; " \
                   "sudo rmmod vfio; sudo modprobe vfio-pci; " + cmd
@@ -184,7 +184,7 @@ class ExtHostImpl(AbstractExtHost):
                 answer = P4STA_utils.execute_ssh(
                     cfg["ext_host_user"], cfg["ext_host_ssh"],
                     "[ -d '/home/" + cfg["ext_host_user"] +
-                    "/p4sta/externalHost/dpdkExtHost/dpdk-19.11/build' ] "
+                    "/p4sta/externalHost/dpdkExtHost/dpdk-24.07/build' ] "
                     "&& echo '1'")
                 print(answer)
                 if answer[0] == "1":

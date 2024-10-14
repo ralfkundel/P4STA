@@ -54,9 +54,15 @@ function job_install() {
     sleep 1
 
     # prepare PTF tests and debug tools
-    # for mininet use old PTF version as ubuntu18.04
-    sudo docker exec -t $dockerid_mininet_py bash -c 'apt update; apt -y install nano htop python3-scapy python3-setuptools python3-pip; pip3 install thrift; git clone https://github.com/fridolinsiegmund/ptf.git; cd ptf; git checkout 0b2b289427ef400d8d2f9aa6774a19b2f15217b4; python3 setup.py install'
-    sudo docker exec -t $dockerid_tofino bash -c 'apt update; DEBIAN_FRONTEND=noninteractive apt -y install nano htop python3-scapy python3-setuptools python3-pip openssh-server iputils-ping psmisc; sudo /etc/init.d/ssh start; python3 -m pip install --upgrade pip; pip3 install grpcio protobuf thrift google-api-core google-api-python-client scapy tabulate; git clone https://github.com/fridolinsiegmund/ptf.git; cd ptf; python3 -m pip install .'
+    # for mininet use old PTF version as ubuntu18.04 => fixed
+    # removed from mininet exec: apt install python3-scapy python3-setuptools python3-pip; pip3 install thrift
+    echo "Installing Mininet container ..."
+    # sudo docker exec -t $dockerid_mininet_py bash -c 'apt update; apt -y install python3.8 python3.8-dev python3-distutils nano htop wget; wget https://bootstrap.pypa.io/get-pip.py; python3.8 get-pip.py; echo "INSTALLED pip for Python3.8"; python3.8 -m pip install setuptools scapy thrift cffi; git clone https://github.com/fridolinsiegmund/ptf.git; cd ptf; git checkout 1b0e3e2946ef158954e2ddd527463ba2e47feec4; python3.8 setup.py install' #removed git checkout
+    sudo docker exec -t $dockerid_mininet_py bash -c 'apt update; apt -y install python3 python3-dev python3-distutils nano htop wget; wget https://bootstrap.pypa.io/get-pip.py; python3 get-pip.py; echo "INSTALLED pip for Python3"; python3 -m pip install setuptools scapy thrift cffi; git clone https://github.com/fridolinsiegmund/ptf.git; cd ptf; git checkout aac32a84b8944eaa7d46078bcbea7bc733c1e151; python3 -m pip install .' #removed git checkout
+    echo "Installing Mininet container FINISHED"
+    echo "Installing Tofino container ..."
+    sudo docker exec -t $dockerid_tofino bash -c 'apt update; DEBIAN_FRONTEND=noninteractive apt -y install nano htop python3-setuptools python3-pip openssh-server iputils-ping psmisc; sudo /etc/init.d/ssh start; python3 -m pip install --upgrade pip; python3 -m pip install grpcio protobuf thrift google-api-core google-api-python-client scapy tabulate; git clone https://github.com/fridolinsiegmund/ptf.git; cd ptf; git checkout aac32a84b8944eaa7d46078bcbea7bc733c1e151; python3 -m pip install .'
+    echo "Installing Tofino container FINISHED"
     mkdir -p log
 
     # install p4sta core/webserver
@@ -64,8 +70,8 @@ function job_install() {
 
     # copy core ssh key to mininet/tofino docker
     pubkey_core=$(sudo docker exec -t $dockerid_p4sta_core cat /root/.ssh/id_rsa.pub)
-    sudo docker exec -t -e PUB="$pubkey_core" $dockerid_mininet_py bash -c '[ ! -d \"/root/.ssh\" ] && mkdir /root/.ssh; cd /root/.ssh; touch authorized_keys; echo $PUB>>authorized_keys'
-    sudo docker exec -t -e PUB="$pubkey_core" $dockerid_tofino bash -c '[ ! -d \"/root/.ssh\" ] && mkdir /root/.ssh; cd /root/.ssh; touch authorized_keys; echo $PUB>>authorized_keys'
+    sudo docker exec -t -e PUB="$pubkey_core" $dockerid_mininet_py bash -c '[ ! -d \"/root/.ssh\" ] && mkdir -p /root/.ssh; cd /root/.ssh; touch authorized_keys; echo $PUB>>authorized_keys'
+    sudo docker exec -t -e PUB="$pubkey_core" $dockerid_tofino bash -c '[ ! -d \"/root/.ssh\" ] && mkdir -p /root/.ssh; cd /root/.ssh; touch authorized_keys; echo $PUB>>authorized_keys'
     nohup sudo docker exec -d -t $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox; export P4STA_VIRTUALENV="pastaenv_core_docker"; (printf "2\n" | ./run.sh) > log/p4sta.out 2> log/p4sta.err < /dev/null '
     sleep 5
 
@@ -112,32 +118,84 @@ function job_ptf_tofino(){
     sleep 2
 
     #Copy/Update newest P4, ext host and PTF Code files (for debugging/development) in container
-    sudo docker cp stamper_targets/Wedge100B65/PLEASE_COPY/tofino_stamper_v1_2_0.p4 $dockerid_tofino:/home/root/p4sta/stamper/tofino1/tofino_stamper_v1_2_0.p4
-    sudo docker cp stamper_targets/Wedge100B65/PLEASE_COPY/header_tofino_stamper_v1_2_0.p4 $dockerid_tofino:/home/root/p4sta/stamper/tofino1/header_tofino_stamper_v1_2_0.p4
-    sudo docker cp extHost/pythonExtHost/pythonRawSocketExtHost.py $dockerid_tofino:/home/root/p4sta/externalHost/python/pythonRawSocketExtHost.py 
+    sudo docker cp stamper_targets/Wedge100B65/p4_files/v1.2.1/tofino_stamper_v1_2_1.p4 $dockerid_tofino:/home/root/p4sta/stamper/tofino1/tofino_stamper_v1_2_1.p4
+    sudo docker cp stamper_targets/Wedge100B65/p4_files/v1.2.1/header_tofino_stamper_v1_2_1.p4 $dockerid_tofino:/home/root/p4sta/stamper/tofino1/header_tofino_stamper_v1_2_1.p4
+    #sudo docker cp extHost/pythonExtHost/pythonRawSocketExtHost.py $dockerid_tofino:/home/root/p4sta/externalHost/python/pythonRawSocketExtHost.py
+    sudo docker cp extHost/goExtHostUdp/goUdpSocketExtHost.go $dockerid_tofino:/home/root/p4sta/externalHost/go/goUdpSocketExtHost.go
+    sudo docker cp extHost/goExtHostUdp/extHostHTTPServer.go $dockerid_tofino:/home/root/p4sta/externalHost/go/extHostHTTPServer.go 
     sudo docker cp tests/ptf/. $dockerid_tofino:/opt/p4-timestamping-middlebox/tests/ptf/
 
     #DIRTY HACK
-    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/^#define MAC_STAMPING/\\/\\/#define MAC_STAMPING/g" tofino_stamper_v1_2_0.p4'
-    #ENABLE Data Plane Support for GTP and PPPoE
-    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/\\/\\/#define GTP_ENCAP/#define GTP_ENCAP/g" tofino_stamper_v1_2_0.p4'
-    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/\\/\\/#define PPPOE_ENCAP/#define PPPOE_ENCAP/g" tofino_stamper_v1_2_0.p4'
+    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/^#define MAC_STAMPING/\\/\\/#define MAC_STAMPING/g" tofino_stamper_v1_2_1.p4'
 
-    sudo docker exec -t $dockerid_tofino bash -c 'export SDE_INSTALL=/opt/bf-sde-9.13.0/install; cd /home/root/p4sta/stamper/tofino1; mkdir -p compile; $SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_2_0.p4'
+    sudo docker exec -t $dockerid_tofino bash -c 'export SDE_INSTALL=/opt/bf-sde-9.13.0/install; cd /home/root/p4sta/stamper/tofino1; mkdir -p compile; $SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_2_1.p4'
 
     # to get the tofino-model log, use the following line instead of the one two below
-    #sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.13.0/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_0.conf -p tofino_stamper_v1_2_0 > /opt/p4-timestamping-middlebox/log/tof_model.log 2>&1' #-q
+    #sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.13.0/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_1.conf -p tofino_stamper_v1_2_1 > /opt/p4-timestamping-middlebox/log/tof_model.log 2>&1' #-q
     # alternative to line above:
-    sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.13.0/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_0.conf -p tofino_stamper_v1_2_0 -q'
+    sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.13.0/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_1.conf -p tofino_stamper_v1_2_1 -q'
     echo "started tofino_model, wait 30 seconds ..."
     sleep 30
-    sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install export PATH=$PATH:$SDE_INSTALL/bin; /opt/bf-sde-9.13.0/run_switchd.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_0.conf > /opt/p4-timestamping-middlebox/log/tof_startup.log 2>&1 '
+    sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install export PATH=$PATH:$SDE_INSTALL/bin; /opt/bf-sde-9.13.0/run_switchd.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_1.conf > /opt/p4-timestamping-middlebox/log/tof_startup.log 2>&1 '
     sleep 30
     echo "started run_switchd, wait 30 seconds ..."
     sudo docker exec -t $dockerid_tofino bash -c 'cd /opt/p4-timestamping-middlebox/; ptf --log-file log/ptf_tofino.log --test-dir ./tests/ptf/tofino --pypath $PWD --interface 0@veth1 --interface 1@veth3 --interface 2@veth5 --interface 3@veth7 --interface 4@veth9 --interface 5@veth11 --interface 6@veth13'
+    
     sudo docker exec -t $dockerid_tofino bash -c 'pkill bf_switchd; pkill tofino-model'
 }
 
+function job_ptf_tofino_encap(){
+    dockerid_tofino=$(cat bash_vars/dockerid_tofino) 
+    sudo docker exec -t $dockerid_tofino bash -c 'pkill bf_switchd; pkill tofino-model' || true
+    sleep 2
+
+    #Copy/Update newest P4, ext host and PTF Code files (for debugging/development) in container
+    sudo docker cp stamper_targets/Wedge100B65/p4_files/v1.2.1/tofino_stamper_v1_2_1.p4 $dockerid_tofino:/home/root/p4sta/stamper/tofino1/tofino_stamper_v1_2_1.p4
+    sudo docker cp stamper_targets/Wedge100B65/p4_files/v1.2.1/header_tofino_stamper_v1_2_1.p4 $dockerid_tofino:/home/root/p4sta/stamper/tofino1/header_tofino_stamper_v1_2_1.p4
+    #sudo docker cp extHost/pythonExtHost/pythonRawSocketExtHost.py $dockerid_tofino:/home/root/p4sta/externalHost/python/pythonRawSocketExtHost.py
+    sudo docker cp extHost/goExtHostUdp/goUdpSocketExtHost.go $dockerid_tofino:/home/root/p4sta/externalHost/go/goUdpSocketExtHost.go
+    sudo docker cp extHost/goExtHostUdp/extHostHTTPServer.go $dockerid_tofino:/home/root/p4sta/externalHost/go/extHostHTTPServer.go
+
+    # sudo docker exec -t $dockerid_tofino bash -c '/home/root/p4sta/externalHost/go/check_install_go.sh' => should be already installed
+
+
+    sudo docker cp tests/ptf/. $dockerid_tofino:/opt/p4-timestamping-middlebox/tests/ptf/
+
+    #DIRTY HACK
+    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/^#define MAC_STAMPING/\\/\\/#define MAC_STAMPING/g" tofino_stamper_v1_2_1.p4'
+
+    sudo docker exec -t $dockerid_tofino bash -c 'export SDE_INSTALL=/opt/bf-sde-9.13.0/install; cd /home/root/p4sta/stamper/tofino1; mkdir -p compile; $SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_2_1.p4 -D PPPOE_ENCAP'
+
+    # to get the tofino-model log, use the following line instead of the one two below
+    #sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.13.0/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_1.conf -p tofino_stamper_v1_2_1 > /opt/p4-timestamping-middlebox/log/tof_model.log 2>&1' #-q
+    # alternative to line above:
+    sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.13.0/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_1.conf -p tofino_stamper_v1_2_1 -q'
+    echo "started tofino_model, wait 30 seconds ..."
+    sleep 30
+    sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install export PATH=$PATH:$SDE_INSTALL/bin; /opt/bf-sde-9.13.0/run_switchd.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_1.conf > /opt/p4-timestamping-middlebox/log/tof_startup.log 2>&1 '
+    echo "started run_switchd, wait 30 seconds ..."
+    sleep 30
+    # PPPoE run first
+    sudo docker exec -t $dockerid_tofino bash -c 'cd /opt/p4-timestamping-middlebox/; ptf --test-params="pppoe=True;gtpu=False" --log-file log/ptf_tofino_pppoe_encap.log --test-dir ./tests/ptf/tofino_encap --pypath $PWD --interface 0@veth1 --interface 1@veth3 --interface 2@veth5 --interface 3@veth7 --interface 4@veth9 --interface 5@veth11 --interface 6@veth13'
+
+    # reload P4 file and set GTP-U and recompile
+    sudo docker exec -t $dockerid_tofino bash -c 'pkill bf_switchd; pkill tofino-model'
+    sudo docker cp stamper_targets/Wedge100B65/p4_files/v1.2.1/tofino_stamper_v1_2_1.p4 $dockerid_tofino:/home/root/p4sta/stamper/tofino1/tofino_stamper_v1_2_1.p4
+    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/^#define MAC_STAMPING/\\/\\/#define MAC_STAMPING/g" tofino_stamper_v1_2_1.p4'
+    sudo docker exec -t $dockerid_tofino bash -c 'export SDE_INSTALL=/opt/bf-sde-9.13.0/install; cd /home/root/p4sta/stamper/tofino1; mkdir -p compile; $SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_2_1.p4 -D GTP_ENCAP'
+    sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.13.0/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_1.conf -p tofino_stamper_v1_2_1 -q'
+    echo "started tofino-model, wait 30 seconds ..."
+    sleep 30
+    sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install export PATH=$PATH:$SDE_INSTALL/bin; /opt/bf-sde-9.13.0/run_switchd.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_1.conf > /opt/p4-timestamping-middlebox/log/tof_startup.log 2>&1 '
+    echo "started run_switchd, wait 30 seconds ..."
+    sleep 30
+
+    sudo docker exec -t $dockerid_tofino bash -c 'cd /opt/p4-timestamping-middlebox/; ptf --test-params="pppoe=False;gtpu=True" --log-file log/ptf_tofino_gtpu_encap.log --test-dir ./tests/ptf/tofino_encap --pypath $PWD --interface 0@veth1 --interface 1@veth3 --interface 2@veth5 --interface 3@veth7 --interface 4@veth9 --interface 5@veth11 --interface 6@veth13'
+    
+    sudo docker exec -t $dockerid_tofino bash -c 'pkill bf_switchd; pkill tofino-model'
+}
+
+# Sometimes this job doesn't like to be executed out of order and throws errors for stamper_results etc.
 function job_test_core(){
     dockerid_p4sta_core=$(cat bash_vars/dockerid_p4sta_core)
     dockerid_mininet_py=$(cat bash_vars/dockerid_mininet_py)
@@ -163,7 +221,7 @@ function job_test_django_bmv2(){
     sudo docker exec -t $dockerid_p4sta_core rm -rf /opt/p4-timestamping-middlebox/data
     mkdir -p data
     nohup sudo docker exec -d -t $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox; export P4STA_VIRTUALENV="pastaenv_core_docker"; (printf "2\n" | ./run.sh) > log/p4sta.out 2> log/p4sta.err < /dev/null'
-    sleep 5
+    sleep 10
     ssh_ip_mininet=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_mininet_py)
     ssh_ip_management=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_p4sta_core)
     ssh_ip_bf_sde=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_tofino)
@@ -188,22 +246,20 @@ function job_test_django_tofino(){
     # now prepare BF_SDE container by starting tofino model again, assigning namespaces to veths and create routes
     
     #HACK: Disable MAC Timestamping for CI, as the tofino model has no MACs
-    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/^#define MAC_STAMPING/\\/\\/#define MAC_STAMPING/g" tofino_stamper_v1_2_0.p4'
-    #DISABLE Data Plane Support for GTP and PPPoE (if enabled by ptf)
-    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/^#define GTP_ENCAP/\\/\\/#define GTP_ENCAP/g" tofino_stamper_v1_2_0.p4'
-    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/^#define PPPOE_ENCAP/\\/\\/#define PPPOE_ENCAP/g" tofino_stamper_v1_2_0.p4'
-
-    sudo docker exec -t $dockerid_tofino bash -c 'export SDE_INSTALL=/opt/bf-sde-9.13.0/install; cd /home/root/p4sta/stamper/tofino1; mkdir -p compile; $SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_2_0.p4'
+    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/^#define MAC_STAMPING/\\/\\/#define MAC_STAMPING/g" tofino_stamper_v1_2_1.p4'
     
-    sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install; export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.13.0/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_0.conf -p tofino_stamper_v1_2_0 -q'
+    sudo docker exec -t $dockerid_tofino bash -c 'export SDE_INSTALL=/opt/bf-sde-9.13.0/install; cd /home/root/p4sta/stamper/tofino1; mkdir -p compile; $SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_2_1.p4'
+    
+    sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install; export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.13.0/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_1.conf -p tofino_stamper_v1_2_1 -q'
     sleep 2
-    sudo docker exec -t $dockerid_tofino bash -c 'sysctl -w net.ipv4.ip_forward=1; ip netns add nsveth3; ip link set veth3 netns nsveth3; ip netns add nsveth5; ip link set veth5 netns nsveth5; ip netns add dut; ip link set veth7 netns dut; ip link set veth9 netns dut; ip netns exec dut ifconfig veth7 10.0.1.1/24; ip netns exec dut ifconfig veth7 up; ip netns exec dut ifconfig veth9 10.0.2.1/24; ip netns exec dut ifconfig veth9 up; ip netns exec nsveth3 ifconfig veth3 hw ether 22:22:22:22:22:22; ip netns exec nsveth3 ifconfig veth3 10.0.1.3/24; ip netns exec nsveth3 ifconfig veth3 up; ip netns exec nsveth3 ip route add 10.0.2.0/24 via 10.0.1.1 dev veth3; ip netns exec nsveth5 ifconfig veth5 hw ether 22:22:22:33:33:33; ip netns exec nsveth5 ifconfig veth5 10.0.2.4/24; ip netns exec nsveth5 ifconfig veth5 up; ip netns exec nsveth5 ip route add 10.0.1.0/24 via 10.0.2.1 dev veth5; ip netns exec nsveth3 ethtool --offload veth3 rx off tx off; ip netns exec nsveth5 ethtool --offload veth5 rx off tx off; ip netns exec dut ethtool --offload veth7 rx off tx off; ip netns exec dut ethtool --offload veth9 rx off tx off '
+    sudo docker exec -t $dockerid_tofino bash -c 'sysctl -w net.ipv4.ip_forward=1; ip netns add nsveth3; ip link set veth3 netns nsveth3; ip netns add nsveth5; ip link set veth5 netns nsveth5; ip netns add dut; ip link set veth7 netns dut; ip link set veth9 netns dut; ip netns exec dut ifconfig veth7 10.0.1.1/24; ip netns exec dut ifconfig veth7 up; ip netns exec dut ifconfig veth9 10.0.2.1/24; ip netns exec dut ifconfig veth9 up; ip netns exec nsveth3 ifconfig veth3 hw ether 22:22:22:22:22:22; ip netns exec nsveth3 ifconfig veth3 10.0.1.3/24; ip netns exec nsveth3 ifconfig veth3 up; ip netns exec nsveth3 ip route add 10.0.2.0/24 via 10.0.1.1 dev veth3; ip netns exec nsveth5 ifconfig veth5 hw ether 22:22:22:33:33:33; ip netns exec nsveth5 ifconfig veth5 10.0.2.4/24; ip netns exec nsveth5 ifconfig veth5 up; ip addr add 10.11.12.99/24 dev veth11; ip link set dev veth11 address e2:46:14:e3:0b:7c; ip netns exec nsveth5 ip route add 10.0.1.0/24 via 10.0.2.1 dev veth5; ip netns exec nsveth3 ethtool --offload veth3 rx off tx off; ip netns exec nsveth5 ethtool --offload veth5 rx off tx off; ip netns exec dut ethtool --offload veth7 rx off tx off; ip netns exec dut ethtool --offload veth9 rx off tx off '
     
     sudo docker exec -t -e ssh_ip_mininet="$ssh_ip_mininet" -e ssh_ip_management="$ssh_ip_management" -e ssh_ip_bf_sde="$ssh_ip_bf_sde"  $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox; source pastaenv_core_docker/bin/activate; python3 -b tests/test_django.py --ip_mininet $ssh_ip_mininet --ip_management $ssh_ip_management --ip_bf_sde $ssh_ip_bf_sde --target tofino -v; deactivate;'
     sudo docker exec -t $dockerid_tofino bash -c 'pkill bf_switchd; pkill tofino-model'
 }
 
-function job_dpdk_install(){
+# install for bmv2 target, but dpdk ext host needs tofino in v1.2.1 => but still basic testing possible
+function job_dpdk_install_bmv2(){
     dockerid_p4sta_core=$(cat bash_vars/dockerid_p4sta_core)
     dockerid_mininet_py=$(cat bash_vars/dockerid_mininet_py)
     sudo docker exec -t $dockerid_p4sta_core bash -c "pkill python3" || true
@@ -215,26 +271,80 @@ function job_dpdk_install(){
     ssh_ip_mininet=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_mininet_py)
     ssh_ip_management=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_p4sta_core)
     sudo docker exec -t -e ssh_ip_mininet="$ssh_ip_mininet" -e ssh_ip_management="$ssh_ip_management" $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox; source pastaenv_core_docker/bin/activate; 
-python3 -b tests/test_setup_device.py --ip_mininet $ssh_ip_mininet --ip_management $ssh_ip_management --ip_bf_sde not-needed --target dpdk_host_only -v; deactivate'
+python3 -b tests/test_setup_device.py --ip_mininet $ssh_ip_mininet --ip_management $ssh_ip_management --ip_bf_sde not-needed --target dpdk_bmv2 -v; deactivate'
     sudo docker exec -t -e IP_DST="$ssh_ip_mininet" $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox; ./autogen_scripts/install_server.sh'
     sudo docker exec -t $dockerid_mininet_py bash -c 'cd /home/root/p4sta/externalHost/dpdkExtHost; test -f build/receiver'
 }
 
+# for tofino target
+function job_dpdk_install_tofino(){
+    dockerid_p4sta_core=$(cat bash_vars/dockerid_p4sta_core)
+    dockerid_mininet_py=$(cat bash_vars/dockerid_mininet_py)
+    dockerid_tofino=$(cat bash_vars/dockerid_tofino)
+    sudo docker exec -t $dockerid_p4sta_core bash -c "pkill python3" || true
+    sleep 1
+
+    # start p4sta core before starting dpdk install
+    nohup sudo docker exec -d -t $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox; export P4STA_VIRTUALENV="pastaenv_core_docker"; (printf "2\n" | ./run.sh) > log/p4sta.out 2> log/p4sta.err < /dev/null'
+    sleep 5
+    ssh_ip_mininet=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_mininet_py) #not required, installs in tofino container
+    ssh_ip_management=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_p4sta_core)
+    ssh_ip_bf_sde=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_tofino)
+    sudo docker exec -t -e ssh_ip_mininet="$ssh_ip_mininet" -e ssh_ip_management="$ssh_ip_management" -e ssh_ip_bf_sde="$ssh_ip_bf_sde" $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox; source pastaenv_core_docker/bin/activate; 
+python3 -b tests/test_setup_device.py --ip_mininet $ssh_ip_mininet --ip_management $ssh_ip_management --ip_bf_sde $ssh_ip_bf_sde --target dpdk_tofino -v; deactivate'
+    sudo docker exec -t -e IP_DST="$ssh_ip_bf_sde" $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox; ./autogen_scripts/install_server.sh'
+    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/externalHost/dpdkExtHost; test -f build/receiver'
+}
+
+# test core with bmv2
 function job_test_core_dpdk(){
     dockerid_p4sta_core=$(cat bash_vars/dockerid_p4sta_core)
     dockerid_mininet_py=$(cat bash_vars/dockerid_mininet_py)
+    dockerid_tofino=$(cat bash_vars/dockerid_tofino)
     sudo docker exec -t $dockerid_p4sta_core bash -c "pkill python3" || true
     sudo docker cp tests/config_dpdk.json $dockerid_mininet_py:/opt/p4-timestamping-middlebox/data/config.json 
+
     sleep 2
 
     nohup sudo docker exec -d -t $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox; export P4STA_VIRTUALENV="pastaenv_core_docker"; (printf "2\n" | ./run.sh) > log/p4sta.out 2> log/p4sta.err < /dev/null'
     sleep 5
     ssh_ip_mininet=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_mininet_py)
+    ssh_ip_tofino=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_tofino)
     ssh_ip_management=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_p4sta_core)
-    sudo docker exec -t -e IP_DST="$ssh_ip_mininet" $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox/; source pastaenv_core_docker/bin/activate; python3 -B tests/test_core.py --ip_mininet $IP_DST -v || exit 1; deactivate'
-
+    sudo docker exec -t -e IP_DST="$ssh_ip_mininet" $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox/; source pastaenv_core_docker/bin/activate; python3 -B tests/test_core.py --ip_mininet $IP_DST --dpdkisTrue -v || exit 1; deactivate'
 
     sudo docker cp tests/config_pythExtHost.json $dockerid_mininet_py:/opt/p4-timestamping-middlebox/data/config.json 
+}
+
+# test gui with tofino model
+function job_test_django_tofino_dpdk(){
+    dockerid_p4sta_core=$(cat bash_vars/dockerid_p4sta_core)
+    dockerid_mininet_py=$(cat bash_vars/dockerid_mininet_py)
+    dockerid_tofino=$(cat bash_vars/dockerid_tofino)
+    sudo docker exec -t $dockerid_tofino bash -c 'pkill bf_switchd; pkill tofino-model' || true
+    sudo docker exec -t $dockerid_p4sta_core bash -c "pkill python3" || true
+    sleep 2
+
+    sudo docker exec -t $dockerid_p4sta_core rm -rf /opt/p4-timestamping-middlebox/data
+    mkdir -p data
+    nohup sudo docker exec -d -t $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox; export P4STA_VIRTUALENV="pastaenv_core_docker"; (printf "2\n" | ./run.sh) > log/p4sta.out 2> log/p4sta.err < /dev/null'
+    sleep 5
+    ssh_ip_mininet=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_mininet_py)
+    ssh_ip_management=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_p4sta_core)
+    ssh_ip_bf_sde=$(sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $dockerid_tofino)
+    # now prepare BF_SDE container by starting tofino model again, assigning namespaces to veths and create routes
+    
+    #HACK: Disable MAC Timestamping for CI, as the tofino model has no MACs
+    sudo docker exec -t $dockerid_tofino bash -c 'cd /home/root/p4sta/stamper/tofino1; sed -i -e "s/^#define MAC_STAMPING/\\/\\/#define MAC_STAMPING/g" tofino_stamper_v1_2_1.p4'
+    
+    sudo docker exec -t $dockerid_tofino bash -c 'export SDE_INSTALL=/opt/bf-sde-9.13.0/install; cd /home/root/p4sta/stamper/tofino1; mkdir -p compile; $SDE_INSTALL/bin/bf-p4c -v -o $PWD/compile/ tofino_stamper_v1_2_1.p4'
+    
+    sudo docker exec -d -t $dockerid_tofino bash -c 'export SDE=/opt/bf-sde-9.13.0 export SDE_INSTALL=/opt/bf-sde-9.13.0/install; export PATH=$PATH:$SDE_INSTALL/bin; $SDE_INSTALL/bin/veth_setup.sh; /opt/bf-sde-9.13.0/run_tofino_model.sh -c /home/root/p4sta/stamper/tofino1/compile/tofino_stamper_v1_2_1.conf -p tofino_stamper_v1_2_1 -q'
+    sleep 2
+    sudo docker exec -t $dockerid_tofino bash -c 'sysctl -w net.ipv4.ip_forward=1; ip netns add nsveth3; ip link set veth3 netns nsveth3; ip netns add nsveth5; ip link set veth5 netns nsveth5; ip netns add dut; ip link set veth7 netns dut; ip link set veth9 netns dut; ip netns exec dut ifconfig veth7 10.0.1.1/24; ip netns exec dut ifconfig veth7 up; ip netns exec dut ifconfig veth9 10.0.2.1/24; ip netns exec dut ifconfig veth9 up; ip netns exec nsveth3 ifconfig veth3 hw ether 22:22:22:22:22:22; ip netns exec nsveth3 ifconfig veth3 10.0.1.3/24; ip netns exec nsveth3 ifconfig veth3 up; ip netns exec nsveth3 ip route add 10.0.2.0/24 via 10.0.1.1 dev veth3; ip netns exec nsveth5 ifconfig veth5 hw ether 22:22:22:33:33:33; ip netns exec nsveth5 ifconfig veth5 10.0.2.4/24; ip netns exec nsveth5 ifconfig veth5 up; ip addr add 10.11.12.99/24 dev veth11; ip link set dev veth11 address e2:46:14:e3:0b:7c; ip netns exec nsveth5 ip route add 10.0.1.0/24 via 10.0.2.1 dev veth5; ip netns exec nsveth3 ethtool --offload veth3 rx off tx off; ip netns exec nsveth5 ethtool --offload veth5 rx off tx off; ip netns exec dut ethtool --offload veth7 rx off tx off; ip netns exec dut ethtool --offload veth9 rx off tx off '
+    
+    sudo docker exec -t -e ssh_ip_mininet="$ssh_ip_mininet" -e ssh_ip_management="$ssh_ip_management" -e ssh_ip_bf_sde="$ssh_ip_bf_sde"  $dockerid_p4sta_core bash -c 'cd /opt/p4-timestamping-middlebox; source pastaenv_core_docker/bin/activate; python3 -b tests/test_django.py --ip_mininet $ssh_ip_mininet --ip_management $ssh_ip_management --ip_bf_sde $ssh_ip_bf_sde --target tofino --dpdkisTrue -v; deactivate;'
+    sudo docker exec -t $dockerid_tofino bash -c 'pkill bf_switchd; pkill tofino-model'
 }
 
 function job_cleanup(){

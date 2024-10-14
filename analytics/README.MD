@@ -32,8 +32,6 @@ You need the following directory structure:
 	|--results(directory with csv files)  
   
 The graphs will be saved to analytics.  
-  
-If you have both python2 and python3, use "python3" instead of "python" and "pip3" instead of "pip"
 
 You need to install matplotlib. "python -m pip install -U matplotlib"
 

@@ -28,6 +28,8 @@ def parse_args():
     parser.add_argument("--ip_management", dest="ip_management", required=True)
     parser.add_argument("--ip_bf_sde", dest="ip_bf_sde", required=True)
     parser.add_argument("--target", dest="target", required=True)
+    parser.add_argument("--dpdkisTrue",dest="dpdk", action='store_true', required=False)
+    parser.set_defaults(dpdk=False)
     ns, args = parser.parse_known_args(namespace=unittest)
     return ns, sys.argv[:1] + args
 
@@ -41,6 +43,7 @@ if __name__ == '__main__':
     ip_management = args.ip_management
     ip_bf_sde = args.ip_bf_sde
     target = args.target
+    dpdk = args.dpdk
 
 
 def http_post(page="", send_json={}):
@@ -89,6 +92,10 @@ def get_page(page, ajax=False):
 
 BMV2_DIR = "/root/behavioral-model"
 SSH_USER = "root"
+if dpdk:
+    SELECTED_EXT_HOST = "DpdkExtHost"
+else:
+    SELECTED_EXT_HOST = "GoExtHostUdp"
 
 
 class TestP4staDjango(unittest.TestCase):
@@ -96,7 +103,7 @@ class TestP4staDjango(unittest.TestCase):
     @unittest.skipIf(target == "tofino", "Not necessary for target " + target)
     def test_POST_and_GET_configuration(self):
         # first call of main page gets forwarded to /setup_devices
-        # because global var "first_run" = True
+        # because global var "first_run" = True (depending on order of tests -> just to be sure)
         set_cfg = {"selected_extHost": "PythonExtHost",
                    "stamper_ssh_ip": "1.2.3.4",
                    "ext_host_user": "test2",
@@ -132,6 +139,8 @@ class TestP4staDjango(unittest.TestCase):
                    "ext_host_real": ["5"],
                    "ext_host_ssh": ["10.99.66.99"],
                    "ext_host_user": [SSH_USER], "forwarding_mode": ["2"],
+                   "ext_host_ip": "", # key required for POST to work but not required for bmv2
+                   "ext_host_mac": "",# key required for POST to work but not required for bmv2
                    "multicast": ["1"], "num_loadgen_groups": ["2"],
                    "num_grp_1": ["1"], "num_grp_2": ["2"],
                    "stamper_ssh": [ip_mininet],
@@ -500,6 +509,8 @@ class TestP4staDjango(unittest.TestCase):
                    "ext_host_if": ["extH-eth1"], "ext_host_real": ["5"],
                    "ext_host_ssh": ["10.99.66.99"],
                    "ext_host_user": [SSH_USER], "forwarding_mode": ["2"],
+                   "ext_host_ip": ["10.11.12.99"],
+                   "ext_host_mac": ["e2:46:14:e3:0b:7c"],
                    "multicast": ["1"], "num_grp_2": ["0"], "num_grp_1": ["2"],
                    "stamper_ssh": [ip_mininet],
                    "stamper_user": [SSH_USER],
@@ -639,6 +650,7 @@ class TestP4staDjango(unittest.TestCase):
         self.assertEqual(r.status_code, 200,
                          msg="Wrong status code: " + str(r.status_code))
 
+        # ifaces are configured in ci_tests.sh before
         set_cfg = {"add_to_grp_2": ["0"], "add_to_grp_1": ["0"],
                    "btn_submit": [""], "s2_1_an": ["default"],
                    "s2_1_fec": ["NONE"], "s2_1_loadgen_iface": ["veth5"],
@@ -662,11 +674,13 @@ class TestP4staDjango(unittest.TestCase):
                    "ext_host_real": ["2/1"], "ext_host_shape": [""],
                    "ext_host_speed": ["10G"], "ext_host_ssh": [ip_bf_sde],
                    "ext_host_user": [SSH_USER],
+                   "ext_host_ip": ["10.11.12.99"],
+                   "ext_host_mac": ["e2:46:14:e3:0b:7c"],
                    "forwarding_mode": ["2"], "multicast": ["1"],
                    "num_grp_2": ["1"], "num_grp_1": ["1"],
                    "num_loadgen_groups": ["2"],
                    "stamper_ssh": [ip_bf_sde], "stamper_user": [SSH_USER],
-                   "program": ["tofino_stamper_v1_2_0"],
+                   "program": ["tofino_stamper_v1_2_1"],
                    "s1_1_an": ["default"], "s1_1_fec": ["NONE"],
                    "s1_1_loadgen_iface": ["veth3"],
                    "s1_1_loadgen_ip": ["10.0.1.3"],
@@ -676,7 +690,7 @@ class TestP4staDjango(unittest.TestCase):
                    "s1_1_ssh_ip": [ip_bf_sde], "s1_1_ssh_user": [SSH_USER],
                    "sde": ["/opt/bf-sde-9.13.0"],
                    "selected_loadgen": ["iperf3"],
-                   "selected_extHost": ["PythonExtHost"],
+                   "selected_extHost": [SELECTED_EXT_HOST],
                    "stamp_tcp": ["checked"], "stamp_udp": ["checked"],
                    "target": ["tofino_model"]}
         # then define all fields

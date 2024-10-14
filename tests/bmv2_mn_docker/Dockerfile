@@ -1,11 +1,11 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 
 USER root
 WORKDIR /root
 
 COPY ENTRYPOINT.sh /
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     curl \
     iproute2 \
     iputils-ping \
@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     x11-xserver-utils \
     xterm \
     ethtool \
+    htop \
  && rm -rf /var/lib/apt/lists/* \
  && chmod +x /ENTRYPOINT.sh
 
@@ -25,7 +26,7 @@ RUN apt-get update && apt-get install -y python3 sudo inetutils-ping openssh-ser
 
 RUN git clone https://github.com/p4lang/behavioral-model.git; ls; echo $PWD
 
-RUN cd behavioral-model && ./install_deps.sh && ./autogen.sh && ./configure --disable-logging-macros && make && make install
+RUN cd behavioral-model && ./install_deps_ubuntu_22.04.sh && ./autogen.sh && ./configure --disable-logging-macros && make -j`nproc` && make install
 
 EXPOSE 6633 6653 6640
 
