@@ -65,11 +65,11 @@ def stamper_status_wrapper(request, html_file):
 
 # starts instance of p4 device software for handling the live table entries
 def start_stamper_software(request):
-    if request.is_ajax():
+    if P4STA_utils.is_ajax(request):
         try:
             # some stamper targets may take long time to start
             start_stamper = rpyc.timed(
-                globals.core_conn.root.start_stamper_software, 80)
+                globals.core_conn.root.start_stamper_software, 180)
             answer = start_stamper()
             answer.wait()
             if answer.value is not None:
@@ -77,6 +77,10 @@ def start_stamper_software(request):
 
             time.sleep(1)
             return render(request, "middlebox/empty.html")
+        except TimeoutError:
+            return render(
+                request, "middlebox/timeout.html",
+                {"inside_ajax": True, "error": ("Start stamper reached timeout for connection to P4sta Core. You can try reloading the page later.")})
         except Exception as e:
             return render(
                 request, "middlebox/timeout.html",
@@ -97,7 +101,7 @@ def get_stamper_startup_log(request):
 
 # pushes p4 table entries and port settings onto p4 device
 def deploy(request):
-    if not request.is_ajax():
+    if not P4STA_utils.is_ajax(request):
         return
     try:
         deploy = rpyc.timed(globals.core_conn.root.deploy, 40)
@@ -118,7 +122,7 @@ def deploy(request):
 
 # stops instance of p4 device software for handling the live table entries
 def stop_stamper_software(request):
-    if request.is_ajax():
+    if P4STA_utils.is_ajax(request):
         try:
             globals.core_conn.root.stop_stamper_software()
             time.sleep(1)
@@ -131,7 +135,7 @@ def stop_stamper_software(request):
 
 # reboots packet generator server and client
 def reboot(request):
-    if request.is_ajax():
+    if P4STA_utils.is_ajax(request):
         try:
             globals.core_conn.root.reboot()
             return render(request, "middlebox/output_reboot.html")
@@ -143,7 +147,7 @@ def reboot(request):
 
 # executes ethtool -r at packet generators to refresh link status
 def refresh_links(request):
-    if request.is_ajax():
+    if P4STA_utils.is_ajax(request):
         try:
             globals.core_conn.root.refresh_links()
             return render(request, "middlebox/output_refresh.html")

@@ -23,6 +23,8 @@
   "ext_host_real": "5",
   "ext_host_ssh": "10.99.66.99",
   "ext_host_user": "root",
+  "ext_host_ip": "",
+  "ext_host_mac": "",
   "forwarding_mode": "2",
   "loadgen_groups": [
     {

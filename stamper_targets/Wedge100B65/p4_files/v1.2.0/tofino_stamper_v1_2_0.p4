@@ -1,5 +1,10 @@
 #include <core.p4>
+
+#if __TARGET_TOFINO__ == 2
+#include <t2na.p4>
+#else
 #include <tna.p4>
+#endif
 
 #define MAC_STAMPING
 
@@ -28,7 +33,7 @@ parser TofinoIngressParser(
     }
 
     state parse_port_metadata {
-        pkt.advance(64);
+        pkt.advance(PORT_METADATA_SIZE);
         transition accept;
     }
 }
@@ -96,7 +101,7 @@ parser SwitchIngressParser(packet_in packet, out headers_t hdr, out my_metadata_
 
 	state parse_outer_udpGtpu {
 		packet.extract(hdr.outer_udp);
-		hdr.outer_udp.checksum = 0;
+		hdr.outer_udp.checksum = 0; //also moved to apply block, only works on tofino model here
 		packet.extract(hdr.gtpu);
 		transition select(hdr.gtpu.ex_flag) {
 			1w0: parse_ipv4;
@@ -522,6 +527,7 @@ control SwitchIngress(
 					hdr.outer_udp.len = hdr.outer_udp.len + 16w0x10;
 					hdr.gtpu.msglen = hdr.gtpu.msglen + 16w0x10;
 				}
+				hdr.outer_udp.checksum = 0;
 			}
 			#endif
 			t_duplicate_to_dut.apply();

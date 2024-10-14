@@ -63,6 +63,7 @@ fi
 
 printf "Setting executeable bits for management server scripts...\n"
 chmod +x gui.sh cli.sh run.sh
+chmod +x core/scripts/spawn_install_server_bash.sh
 
 if [ -z "$P4STA_VIRTUALENV" ]
 then
@@ -75,14 +76,14 @@ then
 		sleep 1
 		read -p "Do you wish to install the dependencies on this machine? Y/N: " yn
 		case $yn in
-		    [Yy]* ) add_sudo_rights $(which pkill); sudo apt update; sudo apt -y install python3-pip virtualenv net-tools shellinabox; sudo rm -rf $P4STA_VIRTUALENV/; create_env; pip3 install --upgrade pip; python3 -m pip install -r requirements.txt ;  deactivate; echo "finished pip3 on p4sta core"; break;; 
+		    [Yy]* ) add_sudo_rights $(which pkill); sudo apt update; sudo apt -y install python3-pip virtualenv net-tools shellinabox; sudo rm -rf $P4STA_VIRTUALENV/; create_env; python3 -m pip install --upgrade pip; python3 -m pip install -r requirements.txt ;  deactivate; echo "finished installing python3 pip modules on p4sta core"; break;; 
 		    [Nn]* ) break;;
 		    * ) echo "Please answer yes or no.";;
 		esac
 	done
 else
       add_sudo_rights $(which pkill);
-      sudo apt update; sudo apt -y install python3-pip virtualenv net-tools;  sudo rm -rf $P4STA_VIRTUALENV/; create_env; pip3 install -r requirements.txt ;  deactivate; echo "finished pip3 on p4sta core";
+      sudo apt update; sudo apt -y install python3-pip virtualenv net-tools;  sudo rm -rf $P4STA_VIRTUALENV/; create_env; python3 -m pip install -r requirements.txt ;  deactivate; echo "finished installing python3 pip modules on p4sta core";
 fi
 
 mkdir -p results

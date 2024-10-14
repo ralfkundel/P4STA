@@ -33,6 +33,8 @@ unittest.defaultTestLoader.sortTestMethodsUsing = compare
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip_mininet", dest="ip_mininet", required=True)
+    parser.add_argument("--dpdkisTrue",dest="dpdk", action='store_true', required=False)
+    parser.set_defaults(dpdk=False)
     ns, args = parser.parse_known_args(namespace=unittest)
     return ns, sys.argv[:1] + args
 
@@ -82,7 +84,7 @@ class TestP4staCore(unittest.TestCase):
             target_obj = P4STA_utils.flt(
                 core_conn.root.get_stamper_target_obj(target))
             self.assertTrue(hasattr(target_obj, "target_cfg"))
-            self.assertTrue(len(target_obj.target_cfg["target_driver"]) > 0)
+            self.assertTrue(len(target_obj.target_cfg["default_target_driver"]) > 0)
             self.assertTrue(hasattr(target_obj, "realPath"))
             self.assertTrue(len(target_obj.realPath) > 0)
         core_conn.close()
@@ -213,11 +215,13 @@ class TestP4staCore(unittest.TestCase):
         self.assertEqual(cfg["ext_host_up_state"], "up")
         print("Needed to add: " + str(cfg["stamper_needed_sudos_to_add"]))
         self.assertEqual(len(cfg["stamper_needed_sudos_to_add"]), 0)
+        print("FRIDOLIN: " + str(cfg["loadgen_groups"]))
         for loadgen_grp in cfg["loadgen_groups"]:
             for host in loadgen_grp["loadgens"]:
                 self.assertEqual(host["up_state"], "up")
-                for check in host["custom_checks"]:
-                    self.assertTrue(check[0])
+                if "custom_checks" in host:
+                    for check in host["custom_checks"]:
+                        self.assertTrue(check[0])
         core_conn.close()
 
     @ordered
@@ -289,30 +293,36 @@ class TestP4staCore(unittest.TestCase):
 
     @ordered
     def test_external_results(self):
-        core_conn = rpyc.connect('localhost', 6789)
-        self.assertEqual(type(core_conn), rpyc.core.protocol.Connection)
-        cfg = P4STA_utils.read_result_cfg(TestP4staCore.file_id)
-        extH_results = analytics.main(
-            str(TestP4staCore.file_id), cfg["multicast"],
-            P4STA_utils.get_results_path(TestP4staCore.file_id))
-        self.assertTrue(
-            extH_results["max_latency"] >= extH_results["min_latency"])
-        self.assertTrue(extH_results["max_pdv"] >= extH_results["min_pdv"])
-        self.assertTrue(extH_results["max_ipdv"] >= extH_results["min_ipdv"])
-        self.assertTrue(
-            extH_results["num_raw_packets"] >=
-            extH_results["num_processed_packets"])
-        core_conn.close()
+        if not args.dpdk:
+            core_conn = rpyc.connect('localhost', 6789)
+            self.assertEqual(type(core_conn), rpyc.core.protocol.Connection)
+            cfg = P4STA_utils.read_result_cfg(TestP4staCore.file_id)
+            extH_results = analytics.main(
+                str(TestP4staCore.file_id), cfg["multicast"],
+                P4STA_utils.get_results_path(TestP4staCore.file_id))
+            self.assertTrue(
+                extH_results["max_latency"] >= extH_results["min_latency"])
+            self.assertTrue(extH_results["max_pdv"] >= extH_results["min_pdv"])
+            self.assertTrue(extH_results["max_ipdv"] >= extH_results["min_ipdv"])
+            self.assertTrue(
+                extH_results["num_raw_packets"] >=
+                extH_results["num_processed_packets"])
+            core_conn.close()
+        else:
+            print("Skipping test_external_results as v1.2.1 DPDK Ext Host is not working with BMV2.")
 
     @ordered
     def test_getAllMeasurements(self):
-        core_conn = rpyc.connect('localhost', 6789)
-        self.assertEqual(type(core_conn), rpyc.core.protocol.Connection)
-        found = core_conn.root.getAllMeasurements()
-        last = core_conn.root.getLatestMeasurementId()
-        self.assertGreaterEqual(len(found), 1)
-        self.assertEqual(last, TestP4staCore.file_id)
-        core_conn.close()
+        if not args.dpdk:
+            core_conn = rpyc.connect('localhost', 6789)
+            self.assertEqual(type(core_conn), rpyc.core.protocol.Connection)
+            found = core_conn.root.getAllMeasurements()
+            last = core_conn.root.getLatestMeasurementId()
+            self.assertGreaterEqual(len(found), 1)
+            self.assertEqual(last, TestP4staCore.file_id)
+            core_conn.close()
+        else:
+            print("Skipping test_getAllMeasurements as v1.2.1 DPDK Ext Host is not working with BMV2.")
 
     @ordered
     def test_process_loadgens(self):

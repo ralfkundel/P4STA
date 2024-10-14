@@ -14,7 +14,7 @@
 # limitations under the License.
 scp $4/data/config.json $2@$3:/home/$2/p4sta/
 scp $4/stamper_targets/bmv2/scripts/netgen.py $2@$3:/home/$2/p4sta/stamper/bmv2/scripts/
-ssh -tt -o StrictHostKeyChecking=no $2@$3 "chmod +x /home/$2/p4sta/stamper/bmv2/scripts/netgen.py; sudo kill \$(pidof target_bmv2_mininet_module); sudo mn -c; sleep"
+ssh -tt -o StrictHostKeyChecking=no $2@$3 "chmod +x /home/$2/p4sta/stamper/bmv2/scripts/netgen.py; sudo kill \$(pidof target_bmv2_mininet_module); sudo kill \$(pidof simple_switch); sudo mn -c; sleep"
 ssh -tt -o StrictHostKeyChecking=no $2@$3 "sudo $1" &
 sleep 5 
 

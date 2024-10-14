@@ -23,7 +23,6 @@ import P4STA_utils
 class AbstractTarget:
     def __init__(self, target_cfg):
         self.target_cfg = target_cfg
-        self.speed_list = ["1G", "10G", "25G", "40G"]
 
     def setRealPath(self, path):
         self.realPath = path

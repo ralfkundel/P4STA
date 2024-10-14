@@ -34,33 +34,40 @@ from management_ui import globals
 
 def setup_devices(request):
     if request.method == "POST":
+        p4sta_version = ""
         print(request.POST)
         setup_devices_cfg = {}
         if request.POST.get("enable_stamper") == "on":
             setup_devices_cfg["stamper_user"] = request.POST["stamper_user"]
             setup_devices_cfg["stamper_ssh_ip"] = request.POST["stamper_ip"]
-            setup_devices_cfg["selected_stamper"] = request.POST[
-                "selected_stamper"]
-            target_cfg = globals.core_conn.root.get_target_cfg(
-                setup_devices_cfg["selected_stamper"])
+            setup_devices_cfg["selected_stamper"] = request.POST["selected_stamper"]
+            target_cfg = globals.core_conn.root.get_target_cfg(setup_devices_cfg["selected_stamper"])
             setup_devices_cfg["target_specific_dict"] = {}
-            if "config" in target_cfg \
-                    and "stamper_specific" in target_cfg["config"]:
+            if "config" in target_cfg and "stamper_specific" in target_cfg["config"]:
                 for cfg in target_cfg["config"]["stamper_specific"]:
-                    if cfg["target_key"] in request.POST:
-                        setup_devices_cfg["target_specific_dict"][
-                            cfg["target_key"]] = request.POST[
-                            cfg["target_key"]]
+                    if cfg["type"] == "input" and cfg["target_key"] in request.POST:
+                        setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = request.POST[cfg["target_key"]]
+                    if cfg["type"] == "info":
+                        print(cfg)
+                        setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = cfg["target_value"]
+                    if cfg["type"] == "drop-down":
+                        print("drop-down in setup_devices")
+                        print(cfg)
+                        # special case for p4sta_version
+                        if cfg["target_key"] == "p4sta_version":
+                            if "p4sta_version" in request.POST:
+                                for version in cfg["values"]:
+                                    if version == request.POST["p4sta_version"]:
+                                        p4sta_version = request.POST["p4sta_version"]
+                        setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = request.POST[cfg["target_key"]]
 
-        if request.POST.get(
-                "enable_ext_host") == "on" and "ext_host_user" in request.POST:
+
+        if request.POST.get("enable_ext_host") == "on" and "ext_host_user" in request.POST:
             setup_devices_cfg["ext_host_user"] = request.POST["ext_host_user"]
             setup_devices_cfg["ext_host_ssh_ip"] = request.POST["ext_host_ip"]
-            setup_devices_cfg["selected_extHost"] = request.POST[
-                "selected_extHost"]
+            setup_devices_cfg["selected_extHost"] = request.POST["selected_extHost"]
 
-        setup_devices_cfg["selected_loadgen"] = request.POST[
-            "selected_loadgen"]
+        setup_devices_cfg["selected_loadgen"] = request.POST["selected_loadgen"]
         setup_devices_cfg["loadgens"] = []
         for i in range(1, 99):
             if ("loadgen_user_" + str(i)) in request.POST:
@@ -76,7 +83,7 @@ def setup_devices(request):
         print(setup_devices_cfg)
         # only create install script if button is clicked
         if "create_setup_script_button" in request.POST:
-            globals.core_conn.root.write_install_script(setup_devices_cfg)
+            globals.core_conn.root.write_install_script(setup_devices_cfg, p4sta_version)
 
             # now write config.json with new data
             if request.POST.get("enable_stamper") == "on":
@@ -119,7 +126,9 @@ def setup_devices(request):
                     id_c = id_c + 1
 
                 if globals.core_conn.root.check_first_run():
+                    # only overwrite when first run
                     P4STA_utils.write_config(cfg)
+
             globals.core_conn.root.first_run_finished()
             return HttpResponseRedirect("/run_setup_script/")
 
@@ -130,8 +139,7 @@ def setup_devices(request):
     else:  # request the page
         print("### Setup Devices #####")
         params = {}
-        params["stampers"] = P4STA_utils.flt(
-            globals.core_conn.root.get_all_targets())
+        params["stampers"] = P4STA_utils.flt(globals.core_conn.root.get_all_targets())
         params["stampers"].sort(key=lambda y: y.lower())
         params["extHosts"] = P4STA_utils.flt(
             globals.core_conn.root.get_all_extHost())
@@ -153,6 +161,11 @@ def setup_devices(request):
             all_target_cfg[stamper] = P4STA_utils.flt(
                 globals.core_conn.root.get_stamper_target_obj(
                     target_name=stamper).target_cfg)
+
+        if not globals.core_conn.root.check_first_run():
+            params["current_cfg"] = P4STA_utils.read_current_cfg()
+        
+
         params["all_target_cfg"] = json.dumps(all_target_cfg)
         return render(request, "middlebox/setup_page.html", {**params})
 

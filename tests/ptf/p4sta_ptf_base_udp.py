@@ -5,6 +5,7 @@ from scapy.all import Ether, IP, UDP, Raw, RandString
 import ptf
 import ptf.testutils as testutils
 
+from ext_host_header_scapy import Exthost
 
 class Group2ToDut2(BaseTest):
     def setUp(self):
@@ -94,10 +95,18 @@ class Dut1ToGroup1(BaseTest):
             src="10.0.2.4", dst="10.0.1.3") / UDP(
             sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
 
-        exp_pkt_ext_host = Ether(
-            dst="ff:ff:ff:ff:ff:ff", src="aa:aa:aa:aa:ff:01") / IP(
-            src="10.0.2.4", dst="10.0.1.3") / UDP(
-            sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
+        # exp_pkt_ext_host = Ether(
+        #     dst="ff:ff:ff:ff:ff:ff", src="aa:aa:aa:aa:ff:01") / IP(
+        #     src="10.0.2.4", dst="10.0.1.3") / UDP(
+        #     sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
+        
+        exp_pkt_ext_host = (
+            Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:01")
+            / IP(src="10.0.2.4", dst="10.11.12.99", len=46) # len 46 as set in P4
+            / UDP(sport=41111, dport=41111, chksum=0, len=26)
+            / Exthost(len=len(pkt)) 
+            / Raw(load=with_tstamps)
+        )
 
         send_packet(self, 3, pkt)
 
@@ -110,8 +119,8 @@ class Dut1ToGroup1(BaseTest):
         # check duplicated packet at ext host
         m2 = Mask(exp_pkt_ext_host)
         m2.set_do_not_care_scapy(UDP, "chksum")
-        # timestamp2 is 6 byte long, starts at bit 512 (starting from Eth Hdr)
-        m2.set_do_not_care(352 + (8 * 8), 48)
+        # timestamp2 is 6 byte long, starts at bit 416 (starting from Eth Hdr) + 16 ext host header
+        m2.set_do_not_care(352+16 + (8 * 8), 48)
         verify_packet(self, m2, port_id=5)
 
         verify_no_other_packets(self)
@@ -201,15 +210,32 @@ class Dut2ToGroup2(BaseTest):
             src="10.0.1.3", dst="10.0.2.5") / UDP(
             sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
 
-        exp_pkt_ext_host_1 = Ether(
-            dst="ff:ff:ff:ff:ff:ff", src="aa:aa:aa:aa:ff:02") / IP(
-            src="10.0.1.3", dst="10.0.2.4") / UDP(
-            sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
+        # exp_pkt_ext_host_1 = Ether(
+        #     dst="ff:ff:ff:ff:ff:ff", src="aa:aa:aa:aa:ff:02") / IP(
+        #     src="10.0.1.3", dst="10.0.2.4") / UDP(
+        #     sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
+        
+        exp_pkt_ext_host_1 = (
+            Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:02")
+            / IP(src="10.0.1.3", dst="10.11.12.99", len=46) # len 46 as set in P4
+            / UDP(sport=41111, dport=41111, chksum=0, len=26)
+            / Exthost(len=len(pkt1)) 
+            / Raw(load=with_tstamps)
+        )
 
-        exp_pkt_ext_host_2 = Ether(
-            dst="ff:ff:ff:ff:ff:ff", src="aa:aa:aa:aa:ff:02") / IP(
-            src="10.0.1.3", dst="10.0.2.5") / UDP(
-            sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
+        # exp_pkt_ext_host_2 = Ether(
+        #     dst="ff:ff:ff:ff:ff:ff", src="aa:aa:aa:aa:ff:02") / IP(
+        #     src="10.0.1.3", dst="10.0.2.5") / UDP(
+        #     sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
+        
+        if not self.l1:
+            exp_pkt_ext_host_2 = (
+                Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:02")
+                / IP(src="10.0.1.3", dst="10.11.12.99", len=46) # len 46 as set in P4
+                / UDP(sport=41111, dport=41111, chksum=0, len=26)
+                / Exthost(len=len(pkt2)) 
+                / Raw(load=with_tstamps)
+            )
 
         send_packet(self, 4, pkt1)
 
@@ -221,8 +247,8 @@ class Dut2ToGroup2(BaseTest):
 
         m = Mask(exp_pkt_ext_host_1)
         m.set_do_not_care_scapy(UDP, "chksum")
-        # timestamp2 is 6 byte long, starts at bit 512 (starting from Eth Hdr)
-        m.set_do_not_care(352 + (8 * 8), 48)
+        # timestamp2 is 6 byte long, starts at bit 512 (starting from Eth Hdr) + 16 ext host hdr
+        m.set_do_not_care(352+16 + (8 * 8), 48)
         verify_packet(self, m, port_id=5)
 
         verify_no_other_packets(self)
@@ -238,8 +264,8 @@ class Dut2ToGroup2(BaseTest):
 
             m = Mask(exp_pkt_ext_host_2)
             m.set_do_not_care_scapy(UDP, "chksum")
-            # timestamp2 is 6 byte long, starts bit 512 (starting from Eth Hdr)
-            m.set_do_not_care(352 + (8 * 8), 48)
+            # timestamp2 is 6 byte long, starts bit 512 (starting from Eth Hdr) + 16 ext host hdr
+            m.set_do_not_care(352+16 + (8 * 8), 48)
             verify_packet(self, m, port_id=5)
 
             verify_no_other_packets(self)
@@ -346,15 +372,31 @@ class Only1DUTDut1ToGroup1(BaseTest):
             src="10.0.1.3", dst="10.0.1.4") / UDP(
             sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
 
-        exp_pkt_ext_host = Ether(
-            dst="ff:ff:ff:ff:ff:ff", src="22:22:22:22:22:23") / IP(
-            src="10.0.1.4", dst="10.0.1.3") / UDP(
-            sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
+        # exp_pkt_ext_host = Ether(
+        #     dst="ff:ff:ff:ff:ff:ff", src="22:22:22:22:22:23") / IP(
+        #     src="10.0.1.4", dst="10.0.1.3") / UDP(
+        #     sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
 
-        exp_pkt_ext_host2 = Ether(
-            dst="ff:ff:ff:ff:ff:ff", src="22:22:22:22:22:22") / IP(
-            src="10.0.1.3", dst="10.0.1.4") / UDP(
-            sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
+        exp_pkt_ext_host = (
+            Ether(dst="55:14:df:9f:03:af", src="22:22:22:22:22:23")
+            / IP(src="10.0.1.4", dst="10.11.12.99", len=46) # len 46 as set in P4
+            / UDP(sport=41111, dport=41111, chksum=0, len=26)
+            / Exthost(len=len(pkt)) 
+            / Raw(load=with_tstamps)
+        )
+
+        # exp_pkt_ext_host2 = Ether(
+        #     dst="ff:ff:ff:ff:ff:ff", src="22:22:22:22:22:22") / IP(
+        #     src="10.0.1.3", dst="10.0.1.4") / UDP(
+        #     sport=0xeeff, dport=50000) / Raw(load=with_tstamps)
+
+        exp_pkt_ext_host2 = (
+            Ether(dst="55:14:df:9f:03:af", src="22:22:22:22:22:22")
+            / IP(src="10.0.1.3", dst="10.11.12.99", len=46) # len 46 as set in P4
+            / UDP(sport=41111, dport=41111, chksum=0, len=26)
+            / Exthost(len=len(pkt2)) 
+            / Raw(load=with_tstamps)
+        )
 
         send_packet(self, 3, pkt)
 
@@ -367,8 +409,8 @@ class Only1DUTDut1ToGroup1(BaseTest):
         # check duplicated packet at ext host
         m2 = Mask(exp_pkt_ext_host)
         m2.set_do_not_care_scapy(UDP, "chksum")
-        # timestamp2 is 6 byte long, starts at bit 512 (starting from Eth Hdr)
-        m2.set_do_not_care(352 + (8 * 8), 48)
+        # timestamp2 is 6 byte long, starts at bit 512 (starting from Eth Hdr) + 16 ext host hdr
+        m2.set_do_not_care(352 + 16 + (8 * 8), 48)
         verify_packet(self, m2, port_id=5)
 
         if not self.l1:
@@ -382,8 +424,8 @@ class Only1DUTDut1ToGroup1(BaseTest):
             # check duplicated packet at ext host
             m4 = Mask(exp_pkt_ext_host2)
             m4.set_do_not_care_scapy(UDP, "chksum")
-            # timestamp2 is 6 byte long, starts bit 512 (starting from Eth Hdr)
-            m4.set_do_not_care(352 + (8 * 8), 48)
+            # timestamp2 is 6 byte long, starts bit 512 (starting from Eth Hdr) + 16 ext host hdr
+            m4.set_do_not_care(352 + 16 + (8 * 8), 48)
             verify_packet(self, m4, port_id=5)
 
         verify_no_other_packets(self)

@@ -1,0 +1,7 @@
+{
+    "version": "1.2.1",
+    "compatible_targets": [
+        "tofino1",
+        "tofino2"
+    ]
+}

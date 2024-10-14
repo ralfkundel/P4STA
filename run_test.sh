@@ -43,6 +43,14 @@ then
     exit 0
 fi
 
+if [[ "$1" == "test_ptf_tofino_encap" ]]
+then
+    set -e
+    job_ptf_tofino_encap
+    printf "${GREEN} [SUCCESS] Succeeded test_ptf_tofino_encap \n${NC}"
+    exit 0
+fi
+
 if [[ "$1" == "test_core" ]]
 then
     set -e
@@ -70,7 +78,8 @@ fi
 if [[ "$1" == "dpdk_install" ]]
 then
     set -e
-    job_dpdk_install
+    job_dpdk_install_tofino
+    job_dpdk_install_bmv2
     printf "${GREEN} [SUCCESS] Succeeded dpdk_install \n${NC}"
     exit 0
 fi
@@ -80,6 +89,14 @@ then
     set -e
     job_test_core_dpdk
     printf "${GREEN} [SUCCESS] Succeeded test_core_dpdk \n${NC}"
+    exit 0
+fi
+
+if [[ "$1" == "test_ui_tofino_dpdk" ]]
+then
+    set -e
+    job_test_django_tofino_dpdk
+    printf "${GREEN} [SUCCESS] Succeeded test_ui_tofino_dpdk \n${NC}"
     exit 0
 fi
 
@@ -103,16 +120,21 @@ then
     printf "${GREEN} [SUCCESS] Succeeded test_ptf_bmv2 \n${NC}"
     job_ptf_tofino
     printf "${GREEN} [SUCCESS] Succeeded test_ptf_tofino \n${NC}"
+    job_ptf_tofino_encap
+    printf "${GREEN} [SUCCESS] Succeeded test_ptf_tofino_encap \n${NC}"
     job_test_core
     printf "${GREEN} [SUCCESS] Succeeded test_core \n${NC}"
     job_test_django_bmv2
     printf "${GREEN} [SUCCESS] Succeeded test_ui \n${NC}"
     job_test_django_tofino
     printf "${GREEN} [SUCCESS] Succeeded test_ui_tofino \n${NC}"
-    job_dpdk_install
+    job_dpdk_install_tofino
+    job_dpdk_install_bmv2
     printf "${GREEN} [SUCCESS] Succeeded dpdk_install \n${NC}"
     job_test_core_dpdk
-    printf "${GREEN} [SUCCESS] Succeeded test_core_dpdk \n${NC}"    
+    printf "${GREEN} [SUCCESS] Succeeded test_core_dpdk \n${NC}"
+    job_test_django_tofino_dpdk
+    printf "${GREEN} [SUCCESS] Succeeded test_ui_tofino_dpdk \n${NC}"
     job_cleanup
     printf "${GREEN} [SUCCESS] Succeeded in all Test Jobs \n${NC}"
     exit 0

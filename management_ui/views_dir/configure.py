@@ -49,6 +49,29 @@ def fetch_iface(request):
                          "up_state": up_state, "iface_found": iface_found})
 
 
+def fetch_target(request):
+    if not request.method == "POST":
+        return
+    try:
+        target = str(request.POST["target"])
+        print("fetching target " + target)
+        
+        # filter ext hosts for p4sta version if available
+        if "p4sta_version" in request.POST:
+            p4sta_version = request.POST["p4sta_version"]
+            target_cfg = globals.core_conn.root.fetch_target(target, p4sta_version)
+        else:
+            target_cfg = globals.core_conn.root.fetch_target(target)
+
+        results = P4STA_utils.flt(target_cfg)
+
+        return JsonResponse({"target": results})
+    except:
+        print(traceback.format_exc())
+        return JsonResponse({"target": str(traceback.format_exc())})
+    
+
+
 def set_iface(request):
     if request.method == "POST":
         set_iface = globals.core_conn.root.set_interface(
@@ -257,6 +280,8 @@ def updateCfg(request):
         cfg["ext_host_user"] = str(request.POST["ext_host_user"])
         cfg["stamper_user"] = str(request.POST["stamper_user"])
         cfg["ext_host_if"] = str(request.POST["ext_host_if"])
+        cfg["ext_host_ip"] = str(request.POST["ext_host_ip"]).split(" ")[0].split("/")[0]
+        cfg["ext_host_mac"] = str(request.POST["ext_host_mac"])
         cfg["program"] = str(request.POST["program"])
         cfg["forwarding_mode"] = str(request.POST["forwarding_mode"])
 
@@ -338,7 +363,8 @@ def configure_page(request):
     cfg["loadgens_without_selected"] = P4STA_utils.flt(
         loadgens_without_selected)
 
-    exthosts_without_selected = globals.core_conn.root.get_all_extHost()
+    # exthosts_without_selected = globals.core_conn.root.get_all_extHost()
+    exthosts_without_selected = globals.core_conn.root.fetch_target(cfg["selected_target"], cfg["p4sta_version"])["supported_ext_hosts"]
     if cfg["selected_extHost"] in exthosts_without_selected:
         exthosts_without_selected.remove(cfg["selected_extHost"])
     cfg["exthosts_without_selected"] = P4STA_utils.flt(

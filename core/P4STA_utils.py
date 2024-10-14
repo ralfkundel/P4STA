@@ -77,6 +77,11 @@ def execute_ssh(user, ip_address, arg):
     return res.decode().split("\n")
 
 
+# replaces request.is_ajax() from Django < v3.1
+def is_ajax(request):
+    return request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+
+
 # Logging
 
 

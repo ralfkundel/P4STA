@@ -201,7 +201,7 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                 flag = "-u -b 100G --length " + str(
                     mss)  # 100G option allows to use maximum speed
             else:
-                flag = "-u " + limit_str + "--length " + str(mss)
+                flag = "-u " + limit_str + " --length " + str(mss)
         print("iperf flags: " + flag)
 
         # case where only one group and one DUT port is used

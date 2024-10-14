@@ -48,6 +48,7 @@ sys.path.append(dir_path)
 try:
     import bfruntime_pb2
 except ImportError:
+    print(traceback.format_exc())
     print_error("bfruntime_pb2 MODULE NOT FOUND. Sure you followed the install"
                 " instructions? Please stop and restart p4sta after the"
                 " initial installation of the Tofino driver.")
@@ -64,7 +65,7 @@ class TofinoInterface:
     used_client_ids = []
 
     def __init__(self, grpc_addr, device_id, client_id=randint(1, 100),
-                 is_master=False):
+                 is_master=False, print_errors=True):
         def f_stream_receive_thr(strm):
             try:
                 for inp in strm:
@@ -89,6 +90,8 @@ class TofinoInterface:
         self.non_p4_config = dict()
         self.in_queue = queue.Queue()
         self.out_queue = queue.Queue()
+        self.connection_established = False
+        self.print_errors = print_errors
         opt_size = 1024 ** 3
 
         if grpc_addr.find(":") == -1:
@@ -121,9 +124,14 @@ class TofinoInterface:
             if self.in_queue.get(timeout=3).subscribe.status.code == 0:
                 print("Subscription was successful.")
                 TofinoInterface.used_client_ids.append(client_id)
+                self.connection_established = True
+            else:
+                self.connection_established = False
         except Exception:
-            print_error("Subscribing failed!")
-            print(traceback.format_exc())
+            if self.print_errors:
+                print_error("Subscribing failed!")
+                print(traceback.format_exc())
+            self.connection_established = False
 
     def bind_p4_name(self, p4_program):
         self.p4_program = p4_program
@@ -199,16 +207,18 @@ class TofinoInterface:
                 if table["name"] == table_name:
                     return table["id"]
             if i == 0:
-                print_error(
-                    "Table " + table_name + " not found for given p4 program: "
-                    + self.p4_program +
-                    " try to substitute name with suitable from json.",
-                    yellow=True)
+                if self.print_errors:
+                    print_error(
+                        "Table " + table_name + " not found for given p4 program: "
+                        + self.p4_program +
+                        " try to substitute name with suitable from json.",
+                        yellow=True)
                 table_name = self._get_full_name(table_name)
             else:
-                print_error(
-                    "Table " + table_name + " not found for given p4 program: "
-                    + self.p4_program)
+                if self.print_errors:
+                    print_error(
+                        "Table " + table_name + " not found for given p4 program: "
+                        + self.p4_program)
         return None
 
     def get_key_id(self, key_name, table_name):
@@ -465,7 +475,8 @@ class TofinoInterface:
             self.grpc_stub.Write(request)
             print("Deleted Table " + table_name)
         except Exception:
-            print_error(traceback.format_exc())
+            if self.print_errors:
+                print_error(traceback.format_exc())
 
     def clear_all_tables(self, ignore_tables_list=[]):
         ignore_tables_list.append("$")
@@ -478,7 +489,8 @@ class TofinoInterface:
                 try:
                     self.delete_table(table["name"])
                 except Exception:
-                    print_error(traceback.format_exc())
+                    if self.print_errors:
+                        print_error(traceback.format_exc())
 
     # hosts = [{"p4_port": xxx, "speed": 10G, "fec": "NONE",
     # "an": "default"}, {..}, ..]
@@ -575,7 +587,8 @@ class TofinoInterface:
                                              ["$PORT_ENABLE", True]],
                                       action="")
             except Exception:
-                print_error(traceback.format_exc())
+                if self.print_errors:
+                    print_error(traceback.format_exc())
 
     def delete_ports(self):
         self.delete_table("$PORT")
