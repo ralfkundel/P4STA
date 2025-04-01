@@ -22,9 +22,15 @@ https://docs.djangoproject.com/en/2.1/howto/deployment/wsgi/
 # limitations under the License.
 
 import os
-
+from django.conf import settings
+from django.contrib.staticfiles.handlers import StaticFilesHandler
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'management_ui.settings')
 
-application = get_wsgi_application()
+# application = get_wsgi_application()
+
+if settings.DEBUG:
+    application = StaticFilesHandler(get_wsgi_application())
+else:
+    application = get_wsgi_application()

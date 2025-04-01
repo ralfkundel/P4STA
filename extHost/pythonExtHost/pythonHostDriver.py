@@ -22,9 +22,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
 class ExtHostImpl(AbstractExtHost):
-    def __init__(self, host_cfg):
-        super().__init__(host_cfg)
-        print("init Python Ext Host")
+    def __init__(self, host_cfg, logger):
+        super().__init__(host_cfg, "python", logger)
 
     def start_external(self, file_id, multi=1, tsmax=(2 ** 32 - 1)):
         self.cfg = P4STA_utils.read_current_cfg()
@@ -66,11 +65,11 @@ class ExtHostImpl(AbstractExtHost):
                "/p4sta/externalHost/python/check_extH_status.sh;" \
                " rm -f /home/" + self.cfg["ext_host_user"] + \
                "/p4sta/externalHost/python/pythonRawSocketExtHost.log"
-        print(args)
+        self.logger.debug(args)
         res = P4STA_utils.execute_ssh(self.cfg["ext_host_user"],
                                       self.cfg["ext_host_ssh"], args)
 
-        print("start python extHost")
+        self.logger.info("start python extHost")
         enable_gtpu = ""
         if ("enable_gtp" in self.host_cfg and self.host_cfg["enable_gtp"] == True):
             enable_gtpu = " --gtp"
@@ -81,8 +80,8 @@ class ExtHostImpl(AbstractExtHost):
                " --interface " + self.cfg["ext_host_if"] + " --multi " + str(multi) + " --tsmax " + str(tsmax) + enable_gtpu + enable_pppoe
         args = "cd /home/" + self.cfg["ext_host_user"] + \
                "/p4sta/externalHost/python/; nohup " + call + \
-               " > foo.out 2> foo.err < /dev/null &"
-        print(args)
+               " > log.out 2> log.err < /dev/null &"
+        self.logger.debug(args)
         res = P4STA_utils.execute_ssh(self.cfg["ext_host_user"],
                                       self.cfg["ext_host_ssh"], args)
 

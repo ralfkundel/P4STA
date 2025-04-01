@@ -1,6 +1,6 @@
 {% autoescape off %}
 /*
-# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+# Copyright 2025-present Fridolin Siegmund, Ralf Kundel
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,146 +16,125 @@
 */
 {% load management_ui %}
 
-// toggle play button
-play = true;
-window.onload = function() { 
-	document.getElementById("pause_port_animation").addEventListener("click", function(){
-		if (document.getElementById("port_animation_icon").className === "fas fa-pause-circle"){
-			document.getElementById("port_animation_icon").className = "fas fa-play-circle";
-		} else if (document.getElementById("port_animation_icon").className === "fas fa-play-circle"){
-			document.getElementById("port_animation_icon").className = "fas fa-pause-circle";
-		}
-		play = !play;
-	});
-} 
 
-function execute_drawing(output, loadgen_groups, duts, flows){
-    var rect_dimensions = {width: 180, height: 300, x: 300, y: 180};
-    // Make an instance of two and place it on the page.
-	var params = { width: 700, height: 500 };
-	output.innerHTML = "";
-    var two = new Two(params).appendTo(output);
+function draw_stamper(output, cfg){
 
-    // two has convenience methods to create shapes.
-    var rect = two.makeRectangle(rect_dimensions.x, rect_dimensions.y, rect_dimensions.width, rect_dimensions.height);
-    rect.stroke = 'black'
-    rect.linewidth = 3;
+	var spacer_div = document.createElement("DIV");
+	spacer_div.style.height = "20px";
 
-    var all_hosts = {}
+	var stamper_div = document.createElement("DIV");
+	stamper_div.style.width = "300px";
 
-    for(var t=0; t<loadgen_groups.length; t++){
-        start_y = (rect_dimensions.height/loadgen_groups.length)*t
-        end_y = (rect_dimensions.height/loadgen_groups.length)*(t+1)
-        var text_y = start_y + (end_y - start_y)/2 - loadgen_groups[t].length*10 + 10 + 30 //+ 10 in case only one element in list; + 30 is offset from top
-        for(var i=0; i<loadgen_groups[t].length; i++){
-            var text = new Two.Text(loadgen_groups[t][i].ip + " | " + loadgen_groups[t][i].iface, 0, text_y);
-			text.alignment = "left";
-			text.size = 18;
-			if(loadgen_groups[t][i].use_group !== "checked"){
-				text.opacity = 0.5;
-			}
-            two.add(text)
-            var text = new Two.Text(loadgen_groups[t][i].port, 195, text_y);
-			text.alignment = "right";
-			text.size = 18;
-            two.add(text);
-            two.makeLine(rect_dimensions.x-100, text_y, rect_dimensions.x-90, text_y);
-            all_hosts[loadgen_groups[t][i].ip] = {x: rect_dimensions.x-90, y: text_y};
+	var req_height = cfg.loadgen_groups.length * 100 + 44 + 30; // 30 buffer
+	stamper_div.style.height = req_height + "px"; //"500px";
+	stamper_div.style.border = "3px solid rgb(0, 0, 0)";
 
-            text_y = text_y + 30;
-        }
-    }
-    
-    for(var x=0; x<duts.length; x++){
-        start_y = (rect_dimensions.height/duts.length)*x;
-        end_y = (rect_dimensions.height/duts.length)*(x+1);
-        var text_y = start_y + (end_y - start_y)/2 + 30 // + 30 is offset from top
+	stamper_div.id = "stamper_div"
 
-        two.makeLine(rect_dimensions.x+100, text_y, rect_dimensions.x+90, text_y);
-        all_hosts[duts[x].name] = {x: rect_dimensions.x+90, y: text_y};
+	stamper_div.innerHTML = "<p>P4STA Stamper</p><div style='height: 20px'></div>"
 
-        var text = new Two.Text(duts[x].port + " | " + duts[x].name, 405, text_y);
-		text.alignment = "left";
-		text.size = 18;
-        two.add(text);
-    }
+	output.appendChild(stamper_div);
 
-	var colors = ["darkmagenta", "darkred", "darkblue", "darkslategrey", "darkgreen", "darkmagenta", "darkred", "darkblue", "darkslategrey", "darkgreen"];
 
-	var i = 0;
-	var arrows = [];
-    flows.forEach(flow => {
-        arrow1 = two.makeArrow(all_hosts[flow.from1].x, all_hosts[flow.from1].y, all_hosts[flow.to1].x-2, all_hosts[flow.to1].y+5);
-		arrow1.stroke = colors[i];
-		arrow1.opacity = 0.8;
-        if (flow.stamp){
-            arrow1.linewidth = 4;
-        }
-		arrows.push(arrow1);
-        i++;
-    });
+	output.appendChild(spacer_div);
 
-    two.makeLine(rect_dimensions.x, 330, rect_dimensions.x, 340);
-	text = two.makeText("external host", rect_dimensions.x, 350);
-	text.size = 18;
 
-	//two.update();
-	// 60 frames per second
-	two.bind('update', function(frameCount) {
-		if(frameCount%60===0 && frameCount%120!==0 && play){
-			//arrows.forEach(arrow => {arrow.opacity=0});
-			two.remove(arrows);
-			arrows.length = 0;
-			var i = 0;
-			flows.forEach(flow => {
-				var x_to = all_hosts[flow.from1].x + ((all_hosts[flow.to1].x-2 - all_hosts[flow.from1].x)/2);
-				var y_to = all_hosts[flow.from1].y + ((all_hosts[flow.to1].y+5 - all_hosts[flow.from1].y)/2);
+	var title_left = document.createElement("DIV")
+	title_left.innerHTML = '<b style="color: black;">Load Generator Ports</b>'
+	//stamper_div.style.height = req_height-100) + "px"; //"500px";
+	//stamper_div.style.border = "3px solid rgb(0, 0, 0)";
+	//  border: 3px solid rgb(8, 164, 104);
+	title_left.style.cssText = "background: rgba(8, 164, 104, 0.12); transform: translate(-110%, -100%); width: 270px; height: " + (req_height-40).toString() + "px;"
 
-				arrow1 = two.makeArrow(all_hosts[flow.from1].x, all_hosts[flow.from1].y, x_to, y_to);
-				arrow1.stroke = colors[i];
-				arrow1.opacity = 0.8;
-				if (flow.stamp){
-					arrow1.linewidth = 4;
-				}
 
-				arrows.push(arrow1);
-				i++;
-			});
-		} else if (frameCount%120===0 && play) {
-			two.remove(arrows);
-			arrows.length = 0;
-			//arrows.forEach(arrow => {arrow.opacity=0});//two.remove(arrow)
-			var i = 0;
-			flows.forEach(flow => {
-				arrow1 = two.makeArrow(all_hosts[flow.from1].x, all_hosts[flow.from1].y, all_hosts[flow.to1].x-2, all_hosts[flow.to1].y+5);
-				arrow1.stroke = colors[i];
-				arrow1.opacity = 0.8;
-				if (flow.stamp){
-					arrow1.linewidth = 4;
-				}
-				arrows.push(arrow1);
-				i++;
-			});
-		}
-	}).play();
+	output.appendChild(title_left);
+
+
+	var title_right = document.createElement("DIV")
+	title_right.innerHTML = '<b style="color: black;">Device Under Test Ports</b>'
+	title_right.style.cssText = "background: rgba(164, 8, 8, 0.12); transform: translate(110%, -200%); width: 270px; height: " + (req_height-40).toString() + "px;"
+
+	output.appendChild(title_right)
+
+
+
+	return stamper_div
 }
 
-function get_loadgen_ip_by_group_index(indx){
-	all_loadgen_groups = [];
-	{% for loadgen_grp in loadgen_groups %}
-	{% if loadgen_grp.use_group == "checked" %}
-	all_loadgen_groups.push({{loadgen_grp}});
-	{% endif %}
-	{% endfor %}
-	var all_ips = [];
-	for(var i=0; i<all_loadgen_groups.length; i++){
-		if(all_loadgen_groups[i]["group"] == indx){
-			for(var z=0; z<all_loadgen_groups[i]["loadgens"].length; z++){
-				all_ips.push(all_loadgen_groups[i]["loadgens"][z]["loadgen_ip"])
+function fill_stamper_div(div, cfg){
+
+	var px_height = 90 //360 / cfg.loadgen_groups.length;
+
+	var indx = 0
+	cfg.loadgen_groups.forEach(lgen_grp => {
+		var div_grp = document.createElement("DIV")
+		div_grp.style.height = px_height + "px";
+		div_grp.style.margin = "10px"
+		div_grp.style.border = "3px solid rgba(67, 65, 65, 0.84)";
+		//div_grp.style.transform = "translate(-50%,-50%)"
+		div.appendChild(div_grp)
+
+		//div_grp.appendChild(document.createElement("HR"))
+
+		var title_div = document.createElement("DIV")
+		title_div.innerHTML = "<b>&rarr; Group " + lgen_grp.group + " &rarr;</b>"
+		div_grp.appendChild(title_div)
+
+		port_left_div = document.createElement("DIV")
+		port_left_div.classList.add("leftPort"); // class defined in P4STA_style.css
+		div_grp.appendChild(port_left_div)
+
+		port_right_div = document.createElement("DIV")
+		port_right_div.classList.add("rightPort"); // class defined in P4STA_style.css
+		div_grp.appendChild(port_right_div)
+
+
+
+		// DUT ports
+		// loadgen groups and dut list should always have the same length in cfg
+		if(indx < cfg.dut_ports.length){
+			var dut = cfg.dut_ports[indx]
+			right_label_div = document.createElement("DIV")
+
+			var add = ""
+			if(dut.speed !== ""){
+				add = " (" + dut.speed + ")"
 			}
+			right_label_div.innerHTML = "DUT " + dut.id + " Port " + dut.real_port + add
+
+			y_transform = -120
+			right_label_div.style.cssText = "transform: translate(110%, " + y_transform.toString() + "%);"
+
+			div_grp.appendChild(right_label_div)
+
 		}
-	}
-	return all_ips;
+		
+		// loadgen ports
+		left_label_div = document.createElement("DIV")
+		y_transform = -220
+		if (lgen_grp.loadgens.length >= 2){
+			y_transform = -140 + (lgen_grp.loadgens.length * 10)
+		}
+		left_label_div.style.cssText = "transform: translate(-110%, " + y_transform.toString() + "%);"
+		output_str = ""
+		lgen_grp.loadgens.forEach(lgen => {
+			var add = ""
+			if(lgen.speed !== ""){
+				add = " (" + lgen.speed + ")"
+			}
+			output_str += lgen_grp.group + "." + lgen.id + " Port " + lgen.real_port + add + "<br/>"
+		})
+		left_label_div.innerHTML = output_str
+		div_grp.appendChild(left_label_div)
+
+		//div_grp.appendChild(document.createElement("HR"))
+
+		indx += 1
+		
+	});
+
+
+
 }
 
 
@@ -164,74 +143,13 @@ var flows = [];
 var loadgen_groups;
 var duts;
 function draw(output, changed=false){
-	var t_loadgen_groups = [{% for loadgen_grp in loadgen_groups %}[],{%endfor%}]
+	var cfg = JSON.parse('{{cfg_json}}')
 
-	{% for loadgen_grp in loadgen_groups %}
-	{% with parent_loop=forloop.counter0%}
-	{% for host in loadgen_grp.loadgens %}
-		use_port_inp = document.getElementById("dut_{{loadgen_grp.group}}_use_port")
-		var use_group_live = "{{loadgen_grp.use_group}}";
-		if(use_port_inp !== null){
-			if(use_port_inp.checked){
-				use_group_live = "checked";
-			} else {
-				use_group_live = "unchecked";
-			}
-		}
-		t_loadgen_groups[{{parent_loop}}].push({"ip": "{{host.loadgen_ip}}", "iface": "{{host.loadgen_iface}}", "port": "{{host.real_port}}", "use_group": use_group_live});
-	{% endfor %}
-	{% endwith %}
-	{% endfor %}
-
-	loadgen_groups = t_loadgen_groups;
-
-	var t_duts = []
-	{% for dut in dut_ports %}
-	t_duts.push({"name": "DUT {{dut.id}}", "port": "{{dut.real_port}}"});
-	{% endfor %}
-
-	duts = t_duts;
-
-	if (!changed){
-		var t_flows = []
-		
-		{% for loadgen_grp in loadgen_groups %}
-		{% with parent_loop=forloop.counter0%}
-		{% for host in loadgen_grp.loadgens %}
-			{% with dut=dut_ports|getbyindex:parent_loop %}
-			{% if dut.use_port == "checked" %}
-				{% if dut.stamp_outgoing == "checked" %}
-
-					t_flows.push({"stamp": true, "from1": "{{host.loadgen_ip}}", "to1": "DUT {{dut.id}}"});
-
-				{% else %}
-
-					t_flows.push({"stamp": false, "from1": "{{host.loadgen_ip}}", "to1": "DUT {{dut.id}}"});
-
-				{% endif %}
-			{% endif %}
-			{% endwith %}
+	output.innerHTML = "";
 	
-		{% endfor %}
-		{% endwith %}
-		{% endfor %}
+	var stamper_div = draw_stamper(output, cfg);
 
-		flows = t_flows;
-	} else {
-		flows.forEach(flow => {
-			flow.stamp = false;
-		});
-		{% for dut in dut_ports %}
-		if (document.getElementById("dut_{{dut.id}}_outgoing_stamp").checked){
-			flows.forEach(flow => {
-				if(flow.to1 === "DUT {{dut.id}}"){
-					flow.stamp = true;
-				}
-			});
-		}
-		{% endfor %}
-	}
-	execute_drawing(output, t_loadgen_groups, t_duts, flows);
+	fill_stamper_div(stamper_div, cfg)
 }
 
 

@@ -19,8 +19,9 @@ import P4STA_utils
 
 
 class AbstractLoadgenerator:
-    def __init__(self, loadgen_cfg):
+    def __init__(self, loadgen_cfg, logger):
         self.loadgen_cfg = loadgen_cfg
+        self.logger = logger
 
     def get_name(self):
         return "[Loadgenerator Template]"
@@ -30,7 +31,7 @@ class AbstractLoadgenerator:
 
     def run_loadgens(self, file_id, duration, l4_selected, packt_size_mtu,
                      results_path, loadgen_rate_limit, loadgen_flows,
-                     loadgen_server_groups):
+                     loadgen_server_groups, loadgen_cfg):
         return ["Sure you selected a load generator?"], "", True, "", "", \
                "", 0, 0, self.empty_plot()
 
@@ -67,8 +68,12 @@ class AbstractLoadgenerator:
 
     def get_server_install_script(self, list_of_server):
         lst = []
+        if "name" in self.loadgen_cfg:
+            name = self.loadgen_cfg["name"]
+        else:
+            name = "N/A"
         lst.append('echo "====================================="')
-        lst.append('echo "not implemented for this Load generator"')
+        lst.append('echo "No install script required for load generator ' + name + '"')
         lst.append('echo "====================================="')
         return lst
 
@@ -112,8 +117,8 @@ class AbstractLoadgenerator:
             res["sudo_rights"], list_of_path_possibilities = \
                 P4STA_utils.check_sudo(
                     host['ssh_user'], host['ssh_ip'], dynamic_mode=True)
-            print("Loadgen sudo path possibilities:")
-            print(list_of_path_possibilities)
+            self.logger.debug("Loadgen sudo path possibilities:")
+            self.logger.debug(list_of_path_possibilities)
             res["needed_sudos_to_add"] = P4STA_utils.check_needed_sudos(
                 {"sudo_rights": res["sudo_rights"]},
                 self.loadgen_cfg["status_check"]["needed_sudos_to_add"],

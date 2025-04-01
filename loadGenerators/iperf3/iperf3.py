@@ -30,8 +30,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
 class LoadGeneratorImpl(AbstractLoadgenerator):
-    def __init__(self, loadgen_cfg):
-        super().__init__(loadgen_cfg)
+    def __init__(self, loadgen_cfg, logger):
+        super().__init__(loadgen_cfg, logger)
         self.directory = os.path.dirname(os.path.realpath(__file__))
 
     def get_name(self):
@@ -39,7 +39,7 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
 
     def run_loadgens(self, file_id, duration, l4_selected, packet_size_mtu,
                      results_path, loadgen_rate_limit, loadgen_flows,
-                     loadgen_server_groups):
+                     loadgen_server_groups, loadgen_cfg):
         self.cfg = P4STA_utils.read_current_cfg()
         loadgen_flows = int(loadgen_flows)
 
@@ -82,10 +82,10 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                                             "ssh_ip"] + " not open.")
                     else:
                         print_str += "[ok]"
-                        print(print_str)
+                        self.logger.debug(print_str)
                 else:
                     print_str += "[ok]"
-                    print(print_str)
+                    self.logger.debug(print_str)
 
             ns_option_end = ""
             if ns_option != "":
@@ -108,9 +108,8 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
 
             port = int(start_port)
             for fl in range(flows):
-                print("iperf3 server flow " + str(fl) + " start at " + str(
-                    ssh_ip) + " port " + str(port) + " with NS option " + str(
-                    ns_option))
+                self.logger.info("iperf3 server flow " + str(fl) + " start at " + str(
+                    ssh_ip) + " port " + str(port) + " with NS option " + str(ns_option))
                 server_dict["open_iperf_ports"].append(port)
                 thread = threading.Thread(target=start_server, args=(
                     ssh_user, ssh_ip, port, ns_option))
@@ -121,11 +120,8 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
             for server in servers:
                 # no need to define namespace because
                 # sudo pkill kills all processes running on host
-                print(
-                    "Trying to stop all iPerf3 instances at server " + server[
-                        "ssh_ip"])
-                P4STA_utils.execute_ssh(server["ssh_user"], server["ssh_ip"],
-                                        "sudo pkill iperf3")
+                self.logger.info("Trying to stop all iPerf3 instances at server " + server["ssh_ip"])
+                P4STA_utils.execute_ssh(server["ssh_user"], server["ssh_ip"], "sudo pkill iperf3")
 
         # iperf -c threads at one (!) host
         def start_clients(ssh_user, ssh_ip, dst_ip, start_port, flows,
@@ -136,14 +132,14 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                     dst_ip) + " -T s" + str(json_id) + " -p " + str(
                     port) + " " + flag + " -J --logfile s" + str(
                     json_id) + ".json -t " + str(duration)
-                print(exec)
+                self.logger.debug(exec)
                 P4STA_utils.execute_ssh(ssh_user, ssh_ip, exec)
 
             threads = []
             port = int(start_port)
             json_id = int(start_json_id)
             for fl in range(flows):
-                print("iperf3 client " + str(fl) + " start at " + str(
+                self.logger.info("iperf3 client " + str(fl) + " start at " + str(
                     ssh_ip) + " connect to " + str(dst_ip) + " port " + str(
                     port) + " with NS option " + str(ns_option))
                 thread = threading.Thread(target=start_client, args=(
@@ -176,8 +172,6 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                     iperf_client_groups.append(loadgen_grp)
 
         num_clients = sum([len(x["loadgens"]) for x in iperf_client_groups])
-        print("num_clients")
-        print(num_clients)
 
         if loadgen_rate_limit > 0 and num_clients > 0:
             limit_per_host_in_bit_s = int(
@@ -202,7 +196,7 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                     mss)  # 100G option allows to use maximum speed
             else:
                 flag = "-u " + limit_str + " --length " + str(mss)
-        print("iperf flags: " + flag)
+        self.logger.debug("iperf flags: " + flag)
 
         # case where only one group and one DUT port is used
         if len(iperf_client_groups) == 0 and len(iperf_server_groups) == 1:
@@ -216,8 +210,8 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                 client["id"] = counter
                 counter += 1
             num_clients = 1
-            print("num_clients updated because only one loadgen group is used")
-            print(num_clients)
+            self.logger.debug("num_clients updated because only one loadgen group is used")
+            self.logger.debug(num_clients)
 
         # case where all groups are servers
         elif len(iperf_client_groups) == 0 and len(iperf_server_groups) == len(
@@ -260,10 +254,10 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                     start_port = start_port + loadgen_flows
         thread_join(check_threads)
 
-        print("iperf server groups")
-        print(iperf_server_groups)
-        print("iperf client groups")
-        print(iperf_client_groups)
+        self.logger.debug("iperf server groups")
+        self.logger.debug(iperf_server_groups)
+        self.logger.debug("iperf client groups")
+        self.logger.debug(iperf_client_groups)
 
         threads = list()
         json_id = 1
@@ -303,7 +297,7 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                                             in server["open_iperf_ports"]:
                                         server["open_iperf_ports"].remove(
                                             start_port + i)
-                                print("select port range starting at " + str(
+                                self.logger.debug("select port range starting at " + str(
                                     start_port) + " to connect from " + client[
                                           "loadgen_ip"] + " to " + server[
                                           "loadgen_ip"])
@@ -324,7 +318,7 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                                 if do_break:
                                     break
                             else:
-                                print(
+                                self.logger.debug(
                                     "No available port found in server dict: "
                                     + str(server) + " from server group id "
                                     + str(server_group["group"]))
@@ -340,7 +334,7 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                         "ssh_ip"] + ":s" + str(
                         json_id + f) + ".json " + results_path + "/iperf3_s" \
                           + str(json_id + f) + "_" + str(file_id) + ".json"
-                    print(exc)
+                    self.logger.debug(exc)
                     subprocess.run(exc, shell=True)
                 json_id = json_id + client["num_started_flows"]
 
@@ -373,8 +367,6 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
         total_intervals = 0
         l4_type = ""
         for js in jsons:
-            print("joined path")
-            print(os.path.join(results_path, js))
             l4_type, json_dict = self.read_iperf_json(
                 os.path.join(results_path, js), file_id)
             jsons_dicts.append(json_dict)
@@ -498,7 +490,7 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
 
             output = [""]
         else:
-            print("A iPerf3 instance measured 0 bits. Abort processing.")
+            self.logger.warning("A iPerf3 instance measured 0 bits. Abort processing.")
             total_bits = total_byte = -1
             average_jitter_ms = total_packets = total_lost = -1
             total_retransmits = "error"
@@ -532,8 +524,18 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
         interval_rtt = []
         intervall_pl = []  # pl=packetloss
 
-        with open(file_path, "r") as s_json:
-            s = json.load(s_json)
+        json_str = ""
+        try:
+            with open(file_path, "r") as s_json:
+                json_str = s_json.read()
+                # set back to beginning of file
+                s_json.seek(0)
+                s = json.load(s_json)
+        except json.decoder.JSONDecodeError:
+            err_str = traceback.format_exc()
+            err_str += "\nDebug information:\nfile_path = " + str(file_path)
+            err_str += "\nfile_path content = " + str(json_str)
+            raise Exception(err_str)
 
         l4_type = s["start"]["test_start"]["protocol"].lower()
         if l4_type == "tcp":
@@ -555,7 +557,7 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                         intervall_pl.append(i["streams"][0]["retransmits"])
                 error = ""
             except Exception:
-                print(traceback.format_exc())
+                self.logger.error(traceback.format_exc())
                 try:
                     error = s["error"]
                 except Exception:
@@ -595,7 +597,7 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
 
                 error = ""
             except Exception:
-                print(traceback.format_exc())
+                self.logger.error(traceback.format_exc())
                 s_bits = s_byte = 0
                 interval_mbits = intervall_pl = [0]
                 try:
@@ -677,10 +679,8 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
         return lst
 
     def loadgen_status_overview(self, host, results, index):
-        super(LoadGeneratorImpl, self).loadgen_status_overview(host, results,
-                                                               index)
-        answer = P4STA_utils.execute_ssh(host["ssh_user"], host["ssh_ip"],
-                                         "iperf3 -v")
+        super(LoadGeneratorImpl, self).loadgen_status_overview(host, results, index)
+        answer = P4STA_utils.execute_ssh(host["ssh_user"], host["ssh_ip"], "iperf3 -v")
         version = ""
         try:
             for line in answer:

@@ -18,11 +18,13 @@ sys.path.append("stamper_targets/Wedge100B65/")
 sys.path.append("core/")
 try:
     from cfg import cfg
-    import tofino1_65p_stamper_v1_2_1
+    # import tofino1_65p_stamper_v1_2_1 as stamper
+    import tofino1_65p_stamper_v1_3_0 as stamper
     import p4sta_ptf_base_tcp
     import p4sta_ptf_base_udp
     import p4sta_ptf_encap_tcp
     import p4sta_ptf_encap_udp
+    import test_logger
     from ext_host_header_scapy import Exthost
 except Exception as e:
     print(e)
@@ -32,7 +34,8 @@ for i in range(17):
     target_cfg["p4_ports"].append(str(i))
 target_cfg["p4_ports"].append("64")
 
-target_tofino = tofino1_65p_stamper_v1_2_1.TargetImpl(target_cfg)
+logger = test_logger.create_logger("#ptf_tofino")
+target_tofino = stamper.TargetImpl(target_cfg, logger)
 
 cfg = {
     "available_loadgens": [
@@ -135,7 +138,7 @@ cfg = {
     "multicast": "1",
     "stamper_ssh": "0.0.0.0",
     "stamper_user": "root",
-    "program": "tofino_stamper_v1_2_1",
+    "program": "tofino_stamper_v1_3_0",
     "sde": "/opt/bf-sde-9.13.0",
     "selected_extHost": "GoExtHostUdp",
     "selected_loadgen": "iperf3",
@@ -398,7 +401,7 @@ class TOF_L2_Dut2ToGroup2_TCP_multicast_thresh_5(p4sta_ptf_base_tcp.
         
         exp_pkt_ext_host_1 = (
             Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:02")
-            / IP(src="10.0.1.3", dst="10.11.12.99", len=46) # len 46 as set in P4
+            / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, .100 src set by stamper
             / UDP(sport=41111, dport=41111, chksum=0, len=26)
             / Exthost(len=len(pkt1)) 
             / Raw(load=b"\x0f\x10\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\xbb\xbb\xbb\xbb\xbb\xbb")

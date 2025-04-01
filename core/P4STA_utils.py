@@ -71,8 +71,15 @@ def write_config(cfg, file_name="config.json"):
 
 
 def execute_ssh(user, ip_address, arg):
-    input = ["ssh", "-o ConnectTimeout=5", "-o BatchMode=yes",
-             "-o StrictHostKeyChecking=no", user + "@" + ip_address, arg]
+    if isinstance(arg, list):
+        input = ["ssh", "-o ConnectTimeout=5", "-o BatchMode=yes",
+             "-o StrictHostKeyChecking=no", user + "@" + ip_address]
+        input.extend(arg)
+    else:
+        input = ["ssh", "-o ConnectTimeout=5", "-o BatchMode=yes",
+                "-o StrictHostKeyChecking=no", user + "@" + ip_address, arg]
+    # print("EXECUTE_SSH:")
+    # print(input)
     res = subprocess.run(input, stdout=subprocess.PIPE).stdout
     return res.decode().split("\n")
 
@@ -83,8 +90,7 @@ def is_ajax(request):
 
 
 # Logging
-
-
+# Deprecated => replaced by logger.error but for legacy reasons still in code base
 def log_error(error):
     print_msg = "\033[1;31m"
     print_msg += "-------------------- P4STA ERROR -------------------- \n"

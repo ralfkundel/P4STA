@@ -5,24 +5,30 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+	"time"
 )
 
 var seqno uint64
+var server *http.Server
 
-type message struct {
+type read_results_message struct {
 	Id             uint64   `json:"id"`
 	PacketCounter  uint64   `json:"packetcounter"`
 	Timestamp1List []uint64 `json:"timestamp1list"`
 	Timestamp2List []uint64 `json:"timestamp2list"`
 }
 
-func callHandler(w http.ResponseWriter, r *http.Request) {
+type run_state_message struct {
+	RunState  string    `json:"current_run_state"`
+	StartTime time.Time `json:"start_time"`
+}
+
+func readResultsHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		var m *message = &message{
+		var m *read_results_message = &read_results_message{
 			Id:             seqno,
 			PacketCounter:  packet_counter,
 			Timestamp1List: timestamp1_list,
@@ -44,22 +50,42 @@ func callHandler(w http.ResponseWriter, r *http.Request) {
 	// 	m1 = p
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprintf(w, "I can't do that.")
+	}
+}
+
+func runStateHandler(w http.ResponseWriter, r *http.Request) {
+
+	switch r.Method {
+	case "GET":
+		var m *run_state_message = &run_state_message{
+			RunState:  current_run_state,
+			StartTime: start_time,
+		}
+
+		j, _ := json.Marshal(m)
+		w.Write(j)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
 func start_api() {
-	log.Println("Start HTTP Server at Port 8080")
+	fmt.Println("Start HTTP Server at Port 8888")
+
+	server = &http.Server{
+		Addr: ":8888",
+	}
 
 	seqno = 0
-	http.HandleFunc("/state", callHandler)
+	http.HandleFunc("/results", readResultsHandler)
+	http.HandleFunc("/run_state", runStateHandler)
 
-	log.Println("Start HTTP API")
-	http.ListenAndServe("0.0.0.0:8888", nil)
+	fmt.Println("Start HTTP API")
+	server.ListenAndServe()
 
-	log.Println("End HTTP Server")
+	fmt.Println("End HTTP Server")
 }
 
 func stop_api() {
-	// http.Shutdown()
+	server.Close()
 }

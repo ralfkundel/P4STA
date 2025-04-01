@@ -1194,8 +1194,7 @@ class DisplayResultsPasta(Cmd):
         cfg = P4STA_utils.read_result_cfg(self.selected_run_id)
         extH_results = analytics.main(str(self.selected_run_id),
                                       cfg["multicast"],
-                                      P4STA_utils.get_results_path(
-                                          self.selected_run_id))
+                                      P4STA_utils.get_results_path(self.selected_run_id))
 
         print("\n\nShowing results from external host for id: " +
               self.selected_run_id + " from " + time.strftime(

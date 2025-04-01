@@ -14,6 +14,7 @@
 import datetime
 import importlib
 import json
+import multiprocessing
 import os
 import rpyc
 import shutil
@@ -26,7 +27,9 @@ from pathlib import Path
 from tabulate import tabulate
 
 import P4STA_utils
+import P4STA_logger
 
+import pdb
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 project_path = dir_path[0:dir_path.find("/core")]
@@ -46,6 +49,13 @@ class P4staCore(rpyc.Service):
     all_loadGenerators = {}
     measurement_id = -1  # will be set when external host is started
     method_return = None
+    logger = P4STA_logger.create_logger("#core")
+
+    # special var for tofino stamper and loadgen to share grpc connection
+    tofino_grpc_obj = None
+
+    # current state of stop_external_background thread
+    stop_ext_bckgrd_thread = None
 
     def get_project_path(self):
         return project_path
@@ -53,7 +63,7 @@ class P4staCore(rpyc.Service):
     def __init__(self):
         global first_run
         first_run = False
-        print("init p4sta core")
+        self.logger.info("Initialize P4STA core ...")
         P4STA_utils.set_project_path(project_path)
 
         # Find installed Targets
@@ -94,21 +104,35 @@ class P4staCore(rpyc.Service):
                     cfg = json.load(f)
                     cfg["real_path"] = os.path.join(fullpath, dir)
                     self.all_loadGenerators.update({cfg["name"]: cfg})
-        print(self.all_loadGenerators)
+        self.logger.debug("Available load generators: " + str(self.all_loadGenerators))
 
         self.check_first_run()
+
+
+        # def tofino_grpc_obj_debug_thr(core):
+        #     print("init tofino_grpc_obj_debug_thr")
+        #     old = core.tofino_grpc_obj
+        #     new = None
+        #     while True:
+        #         time.sleep(0.1)
+        #         new = core.tofino_grpc_obj
+        #         if new != old:
+        #             print("P4staCore.tofino_grpc_obj changed to " + str(new))
+        #             old = new
+
+        # import threading
+        # x = threading.Thread(target=tofino_grpc_obj_debug_thr, args=(self, ))
+        # x.start()
 
     def check_first_run(self):
         global first_run
 
         if P4STA_utils.read_current_cfg() is None:
-            print("config.json not found. Creating new one from empty "
-                  "bmv2 template.")
-            path = self.get_template_cfg_path("bmv2")
+            self.logger.debug("config.json not found. Creating new one from empty Wedge100B65 template.")
+            path = self.get_template_cfg_path("Wedge100B65")
             if not os.path.exists(os.path.join(project_path, "data")):
                 # create data directory if not exist
-                os.makedirs(os.path.join(project_path,
-                                         "data"))
+                os.makedirs(os.path.join(project_path, "data"))
             with open(path, "r") as f:
                 cfg = json.load(f)
                 P4STA_utils.write_config(cfg)
@@ -123,7 +147,6 @@ class P4staCore(rpyc.Service):
     def write_install_script(self, first_time_cfg, p4sta_version=""):
         install_script = []
         if "stamper_user" in first_time_cfg:
-            print("##DEBUG: first_time_cfg: " + str(first_time_cfg))
             stamper_name = first_time_cfg["selected_stamper"]
             stamper_target = self.get_stamper_target_obj(stamper_name, p4sta_version)
             if "target_specific_dict" in first_time_cfg:
@@ -155,17 +178,25 @@ class P4staCore(rpyc.Service):
 
     # returns an instance of current selected target config object
     # if version is not defined, version from current config is used
-    def get_stamper_target_obj(self, target_name, version=""):
+    def get_stamper_target_obj(self, target_name="", version=""):
         target_description = self.all_targets[target_name]
 
         fail = False
         try:
             if version == "":
                 cfg = P4STA_utils.read_current_cfg()
-                if "p4sta_version" in cfg:
+                if cfg != None and "p4sta_version" in cfg:
                     version = cfg["p4sta_version"]
                 else:
                     fail = True
+            
+            if target_name == "":
+                cfg = P4STA_utils.read_current_cfg()
+                if "selected_target" in cfg:
+                    target_name = cfg["selected_target"]
+                else:
+                    fail = True
+
 
             if "available_target_drivers" in target_description:
                 for driver in target_description["available_target_drivers"]:
@@ -175,7 +206,7 @@ class P4staCore(rpyc.Service):
                 else:
                     fail = True
         except:
-            P4STA_utils.log_error(traceback.format_exc())
+            self.logger.error(traceback.format_exc())
             fail = True
 
         # use default driver if available drivers is not found in target config file
@@ -188,7 +219,7 @@ class P4staCore(rpyc.Service):
                                                       path_to_driver)
         foo = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(foo)
-        get_stamper_obj = foo.TargetImpl(target_description)
+        get_stamper_obj = foo.TargetImpl(target_description, self.logger)
         get_stamper_obj.setRealPath(target_description["real_path"])
 
         return get_stamper_obj
@@ -202,7 +233,7 @@ class P4staCore(rpyc.Service):
                                                       path_to_driver)
         foo = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(foo)
-        get_ext_host_obj = foo.ExtHostImpl(host_description)
+        get_ext_host_obj = foo.ExtHostImpl(host_description, self.logger)
         get_ext_host_obj.setRealPath(host_description["real_path"])
 
         return get_ext_host_obj
@@ -213,15 +244,24 @@ class P4staCore(rpyc.Service):
 
     # returns an instance of current selected load generator object
     def get_loadgen_obj(self, name):
+        # loadgen_description: content of loadGenerator_config.json
         loadgen_description = self.all_loadGenerators[name]
+
+        self.logger.debug("loadgen_description = " + str(loadgen_description))
+
+        # include stamper config for loadgen 
+        loadgen_description["current_stamper_cfg"] = self.get_target_cfg()
+
+        # include stamper object for loadgen
+        # loadgen_description["current_stamper_obj"] = self.get_stamper_target_obj()
+
         path_to_driver = (os.path.join(loadgen_description["real_path"],
                                        loadgen_description["driver"]))
 
-        spec = importlib.util.spec_from_file_location("LoadGeneratorImpl",
-                                                      path_to_driver)
+        spec = importlib.util.spec_from_file_location("LoadGeneratorImpl", path_to_driver)
         foo = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(foo)
-        loadgen_obj = foo.LoadGeneratorImpl(loadgen_description)
+        loadgen_obj = foo.LoadGeneratorImpl(loadgen_description, self.logger)
         loadgen_obj.setRealPath(loadgen_description["real_path"])
 
         return loadgen_obj
@@ -262,8 +302,7 @@ class P4staCore(rpyc.Service):
                       "r") as f:
                 return json.load(f)
         except Exception:
-            P4STA_utils.log_error(
-                "CORE Exception in get_target_cfg: " + traceback.format_exc())
+            self.logger.error("CORE Exception in get_target_cfg: " + traceback.format_exc())
             return {}
 
     def get_available_cfg_files(self):
@@ -302,24 +341,36 @@ class P4staCore(rpyc.Service):
 
             return final
         except Exception:
-            print("EXCEPTION get_available_cfg_files")
-            print(traceback.format_exc())
+            self.logger.error(traceback.format_exc())
             return lst
 
-    def read_result_cfg(self, run_id):
+    def read_result_cfg(self, run_id, silent=False):
         path = os.path.join(project_path, "results", str(run_id),
                             "config_" + str(run_id) + ".json")
-        return self.open_cfg_file(path)
+        return self.open_cfg_file(path, silent)
+    
+    def get_custom_name_by_id(self, measurement_id, silent=False):
+        measurement_id = str(measurement_id)
+        try:
+            if measurement_id != None and measurement_id.isdigit() and int(measurement_id) > 0:
+                cfg = self.read_result_cfg(measurement_id, silent)
+                if "custom_name" in cfg:
+                    return cfg["custom_name"]
+        except:
+            pass
+        return ""
+
 
     def get_template_cfg_path(self, stamper_target_name):
         target = self.get_stamper_target_obj(stamper_target_name)
         path = target.getFullTemplatePath()
         return path
 
-    def open_cfg_file(self, path):
+    def open_cfg_file(self, path, silent=False):
         my_file = Path(path)
         if not my_file.is_file():
-            print("open_cfg_file: " + path + "; not found.")
+            if not silent:
+                self.logger.warning("open_cfg_file: " + path + "; not found.")
             return None
         with open(path, "r") as f:
             cfg = json.load(f)
@@ -329,7 +380,7 @@ class P4staCore(rpyc.Service):
         try:
             shutil.rmtree(P4STA_utils.get_results_path(file_id))
         except Exception as e:
-            print(e)
+            self.logger.error(traceback.format_exc())
 
     def getAllMeasurements(self):
         found = []
@@ -339,11 +390,10 @@ class P4staCore(rpyc.Service):
                 path_to_res_folder = os.path.join(folder, f)
                 if os.path.isdir(path_to_res_folder):
                     for file in os.listdir(path_to_res_folder):
-                        if "timestamp1" in file:
+                        if "stamper_" in file:
                             found.append(f)
         except FileNotFoundError:
-            print(
-                "Directory 'results' not found. No older datasets available.")
+            self.logger.warning("Directory 'results' not found. No older datasets available.")
         found.sort(reverse=True)
         return found
 
@@ -356,16 +406,41 @@ class P4staCore(rpyc.Service):
 
     def start_loadgens(self, duration, l4_selected="tcp",
                        packet_size_mtu="1500", loadgen_rate_limit=0,
-                       loadgen_flows=3, loadgen_server_groups=[1]):
+                       loadgen_flows=3, loadgen_server_groups=[1], loadgen_cfg={}, custom_name=""):
         cfg = P4STA_utils.read_current_cfg()
         loadgen = self.get_loadgen_obj(cfg["selected_loadgen"])
 
-        loadgen.run_loadgens(str(P4staCore.measurement_id), duration,
+        if type(custom_name) == str:
+            cfg["custom_name"] = custom_name
+        else:
+            cfg["custom_name"] = ""
+        P4STA_utils.write_config(cfg)
+        self.copy_cfg_to_results()
+
+        # self.tofino_grpc_obj can always be None
+        if self.tofino_grpc_obj != None:
+            # check if connection is established or broken
+            if "tables" in self.tofino_grpc_obj.bfruntime_info:
+                loadgen_cfg["tofino_grpc_obj"] = self.tofino_grpc_obj
+            else:
+                try:
+                    # Remove broken grpc object
+                    loadgen_cfg["tofino_grpc_obj"] = None
+                    self.tofino_grpc_obj.teardown()
+                    self.tofino_grpc_obj = None
+                except:
+                    self.logger.error(traceback.format_exc())
+
+        ret = loadgen.run_loadgens(str(P4staCore.measurement_id), duration,
                              l4_selected, packet_size_mtu,
                              self.get_current_results_path(),
                              loadgen_rate_limit, loadgen_flows,
-                             loadgen_server_groups)
-
+                             loadgen_server_groups,
+                             loadgen_cfg)
+        
+        if ret != None and "tofino_grpc_obj" in ret:
+            self.tofino_grpc_obj = ret["tofino_grpc_obj"]
+        
         return P4staCore.measurement_id
 
     # after loadgen test
@@ -379,9 +454,9 @@ class P4staCore(rpyc.Service):
             total_byte, custom_attr, to_plot = results
 
         if not error:
-            print(to_plot)
+            self.logger.debug(to_plot)
             for key, value in to_plot.items():
-                print("key: " + key + "  value: " + str(value))
+                self.logger.debug("key: " + key + "  value: " + str(value))
                 analytics.plot_graph(value["value_list_input"],
                                      value["index_list"], value["titel"],
                                      value["x_label"],
@@ -413,17 +488,40 @@ class P4staCore(rpyc.Service):
 
         return output, total_bits, error, total_retransmits, \
             total_byte, custom_attr, to_plot
+    
+    def update_port_mapping(self, target=None, tofino_grpc_obj=None):
+        try:
+            cfg = P4STA_utils.read_current_cfg()
+            if target == None:
+                target = self.get_stamper_target_obj(cfg["selected_target"])
+            if hasattr(target, 'update_portmapping') and callable(target.update_portmapping):
+                self.logger.warning("tofino_grpc_obj => " + str(tofino_grpc_obj))
+                if tofino_grpc_obj != None and "p4sta_version" in cfg and cfg["p4sta_version"] not in ["", "1.0.0", "1.2.0", "1.2.1"]:
+                    cfg = target.update_portmapping(cfg, tofino_grpc_obj)
+                else:
+                    cfg = target.update_portmapping(cfg)
+                P4STA_utils.write_config(cfg)
+                return cfg
+            else:
+                self.logger.debug("Target does not support update_portmapping(). Do nothing.")
+                return cfg
+        except:
+            self.logger.error(traceback.format_exc())
 
     def deploy(self):
         cfg = P4STA_utils.read_current_cfg()
         target = self.get_stamper_target_obj(cfg["selected_target"])
-        print(target)
-        cfg = target.update_portmapping(cfg)
-        P4STA_utils.write_config(cfg)
-        error = target.deploy(cfg)
-        print(error)
+
+        mapped_cfg = self.update_port_mapping(target, self.tofino_grpc_obj)
+
+        # ensure p4sta v1.3.0 or newer
+        if  "p4sta_version" in cfg and cfg["p4sta_version"] not in ["", "1.0.0", "1.2.0", "1.2.1"]:
+            self.logger.debug("reuse tofino_grpc_obj")
+            error = target.deploy(mapped_cfg, self.tofino_grpc_obj)
+        else:
+            error = target.deploy(mapped_cfg)
         if error is not None and error != "":
-            P4STA_utils.log_error(error)
+            self.logger.error(error)
         return error
 
     def ping(self):
@@ -465,15 +563,26 @@ class P4staCore(rpyc.Service):
         return output
 
     def read_stamperice(self):
-        target = self.get_stamper_target_obj(
-            P4STA_utils.read_current_cfg()["selected_target"])
-        cfg = target.read_stamperice(P4STA_utils.read_current_cfg())
+        # after loadgen run is finished always set tofino specific grpc to None
+        target = self.get_stamper_target_obj(P4STA_utils.read_current_cfg()["selected_target"])
+        if self.tofino_grpc_obj != None:
+            cfg = target.read_stamperice(P4STA_utils.read_current_cfg(), self.tofino_grpc_obj)
+        else:
+            # non-tofino case
+            cfg = target.read_stamperice(P4STA_utils.read_current_cfg())
 
+        self.logger.info("Writing stamper results json to " + str(self.get_current_results_path()))
+        try:
+            os.makedirs(self.get_current_results_path())
+        except FileExistsError:
+            # directory already exists
+            pass
         with open(os.path.join(self.get_current_results_path(),
                                "stamper_" + str(
                                        P4staCore.measurement_id) + ".json"),
-                  "w") as write_json:
+                  "w+") as write_json:
             json.dump(cfg, write_json, indent=2, sort_keys=True)
+        self.logger.debug("Finished writing json.")
 
         if cfg["delta_counter"] == 0:
             average = 0
@@ -548,7 +657,7 @@ class P4staCore(rpyc.Service):
                         num_egress_packets) + " Packets (" + str(
                         packetloss_percent) + "%)" + "\n")
             except Exception:
-                print(traceback.format_exc())
+                self.logger.error(traceback.format_exc())
                 f.write("\n Exception:")
                 f.write("\n" + str(traceback.format_exc()))
 
@@ -649,7 +758,7 @@ class P4staCore(rpyc.Service):
                                          selected_dut["real_port"]])
 
                 except Exception as e:
-                    print(traceback.format_exc())
+                    self.logger.error(traceback.format_exc())
                     table.append(["Error: " + str(e)])
                 # creates table with the help of tabulate module
                 f.write(tabulate(table, tablefmt="fancy_grid"))
@@ -688,7 +797,7 @@ class P4staCore(rpyc.Service):
                     file_id) + ".json", "r") as file:
                 sw = json.load(file)
         except Exception as e:
-            P4STA_utils.log_error("CORE Exception: " + traceback.format_exc())
+            self.logger.error("CORE Exception: " + traceback.format_exc())
             return {"error": traceback.format_exc()}
         if sw["delta_counter"] != 0:
             average = sw["total_deltas"] / sw["delta_counter"]
@@ -776,7 +885,7 @@ class P4staCore(rpyc.Service):
                                 port["num_egress_stamped_bytes"])
                     # if target has stamped counter not implemented yet
                     except KeyError:
-                        print(traceback.format_exc())
+                        self.logger.warning("Stamped counter not implemented in target?" + traceback.format_exc())
                     port["throughput_gbyte_ingress"] = adjust_byte_unit(
                         port["num_ingress_bytes"])
                     port["throughput_gbyte_egress"] = adjust_byte_unit(
@@ -972,20 +1081,31 @@ class P4staCore(rpyc.Service):
 
     def get_current_results_path(self):
         return P4STA_utils.get_results_path(P4staCore.measurement_id)
-
-    def start_external(self):
-        file_id = str(P4staCore.measurement_id)
-        cfg = P4STA_utils.read_current_cfg()
-        target = self.get_stamper_target_obj(cfg["selected_target"])
-        lines_pm, running, dev_status = target.stamper_status(
-            P4STA_utils.read_current_cfg())
-        # backup current config (e.g. ports, speed) to results directory
+    
+    def copy_cfg_to_results(self):
+        # backup current config (e.g. ports, speed) to results directory of *CURRENT* run
         if not os.path.exists(self.get_current_results_path()):
             os.makedirs(self.get_current_results_path())
         shutil.copy(project_path + "/data/config.json",
                     os.path.join(self.get_current_results_path(),
                                  "config_" + str(
                                      P4staCore.measurement_id) + ".json"))
+
+    def start_external(self):
+        file_id = str(P4staCore.measurement_id)
+        cfg = P4STA_utils.read_current_cfg()
+        target = self.get_stamper_target_obj(cfg["selected_target"])
+        lines_pm, running, dev_status = target.stamper_status(cfg)
+        
+        # later overwritten when run loadgens is executed (for custom run name)
+        self.copy_cfg_to_results()
+        # # backup current config (e.g. ports, speed) to results directory
+        # if not os.path.exists(self.get_current_results_path()):
+        #     os.makedirs(self.get_current_results_path())
+        # shutil.copy(project_path + "/data/config.json",
+        #             os.path.join(self.get_current_results_path(),
+        #                          "config_" + str(
+        #                              P4staCore.measurement_id) + ".json"))
 
         multi = self.get_target_cfg()['stamping_capabilities']['timestamp-multi']
         tsmax = self.get_target_cfg()['stamping_capabilities']['timestamp-max']
@@ -995,30 +1115,60 @@ class P4staCore(rpyc.Service):
                                                                    multi=multi,
                                                                    tsmax=tsmax)
         if errors != ():
-            P4STA_utils.log_error(errors)
+            self.logger.error(errors)
         return running, errors
 
+    # classic approach with blocking UI
     def stop_external(self):
+        self.read_stamperice()
         try:
             if int(P4staCore.measurement_id) == -1:
                 raise Exception
 
-            stoppable = self.get_current_extHost_obj().stop_external(
-                P4staCore.measurement_id)
+            stoppable = self.get_current_extHost_obj().stop_external(P4staCore.measurement_id)
         except Exception:
             stoppable = False
 
-        self.read_stamperice()
-
         return stoppable
+    
+    # dynamic approach by retrieving results in background for non-blocking UI, current state can be retrieved with get_state_stop_external_background
+    def stop_external_background(self):
+        def stp_xtnrl(slf):
+            try:
+                slf.read_stamperice()
+                if int(P4staCore.measurement_id) == -1:
+                    raise Exception("Measurement ID is -1.")
+                stoppable = slf.get_current_extHost_obj().stop_external(P4staCore.measurement_id)
+            except Exception:
+                stoppable = False
+
+            slf.stop_ext_bckgrd_thread = stoppable
+            
+        if self.stop_ext_bckgrd_thread == None or self.stop_ext_bckgrd_thread == True or self.stop_ext_bckgrd_thread == False:
+            # x = multiprocessing.Process(target=stp_xtnrl, args=(self,))
+            x = threading.Thread(target=stp_xtnrl, args=(self,))
+            x.start()
+            self.stop_ext_bckgrd_thread = x
+
+    def get_state_stop_external_background(self):
+        return self.stop_ext_bckgrd_thread
+    
+    def kill_external_background_process(self):
+        if self.stop_ext_bckgrd_thread != None or self.stop_ext_bckgrd_thread != True or self.stop_ext_bckgrd_thread != False:
+            self.logger.warning("Killing not implemented for threads")
+            self.stop_ext_bckgrd_thread = None
+
+    def stop_without_external(self):
+        self.read_stamperice()
+        return True
 
     # displays results from external host from return of analytics module
     def external_results(self, measurement_id):
         cfg = self.read_result_cfg(str(measurement_id))
 
         extH_results = analytics.main(str(measurement_id), cfg["multicast"],
-                                      P4STA_utils.get_results_path(
-                                          measurement_id))
+                                      P4STA_utils.get_results_path(measurement_id),
+                                      self.logger)
         f = open(P4STA_utils.get_results_path(
             measurement_id) + "/output_external_host_" + str(
             measurement_id) + ".txt", "w+")
@@ -1093,7 +1243,6 @@ class P4staCore(rpyc.Service):
                     break
         
         target_cfg["supported_ext_hosts"] = supported_ext_hosts
-        print("support ext hosts: " + str(supported_ext_hosts))
 
         return target_cfg
         
@@ -1188,7 +1337,7 @@ class P4staCore(rpyc.Service):
             if results[i] is not None:
                 cfg = {**cfg, **results[i]}
             else:
-                print("### results[" + str(i) + "] = NONE ###")
+                self.logger.warning("### results[" + str(i) + "] = NONE ###")
 
         ind = 2
         for loadgen_group in cfg["loadgen_groups"]:
@@ -1210,10 +1359,66 @@ class P4staCore(rpyc.Service):
 
         return cfg
 
+    def get_live_metrics(self):
+        cfg = P4STA_utils.read_current_cfg()
+        target = self.get_stamper_target_obj(cfg["selected_target"])
+
+        try:
+            self.logger.debug("Get live metrics ..")
+            metrics = target.get_live_metrics(cfg, tofino_grpc_obj=self.tofino_grpc_obj)
+            self.logger.debug(metrics)
+            # can be empty list here also, e.g. if target implements function but to old SDE gRPC API in tofino case
+        except:
+            # not all stamper targets support live metrics
+            self.logger.error(traceback.format_exc())
+            metrics = []
+
+        # fallback set alle ports to 0 instead of empty list
+        try:
+            if metrics == []:
+                dut_ports = [dut_p["p4_port"] for dut_p in cfg["dut_ports"]]
+                for port in dut_ports:
+                    p_res = {}
+                    p_res["port"] = port
+                    p_res["tx_rate"] = 0
+                    p_res["rx_rate"] = 0
+                    p_res["tx_pps"] = 0
+                    p_res["rx_pps"] = 0
+                    p_res["tx_avg_packet_size"] = 0
+                    p_res["rx_avg_packet_size"] = 0
+                    metrics.append(p_res)
+        except:
+            self.logger.error(traceback.format_exc())
+            metrics = []
+
+        return metrics
+
+    def get_ext_host_live_status(self):
+        ret_dict = {}
+        ext_host_obj = self.get_current_extHost_obj()
+
+        # retrieve current logs is threaded
+        log_list, error_list = ext_host_obj.retrieve_current_logs()
+        ret_dict = {"log_list": log_list, "error_list": error_list}
+        
+        if "provides_status_api" in ext_host_obj.host_cfg:
+            if ext_host_obj.host_cfg["provides_status_api"]:
+                if callable(getattr(ext_host_obj, "ext_host_live_status", None)):
+                    try:
+                        ret_dict.update(ext_host_obj.ext_host_live_status())
+                    except Exception as e:
+                        self.logger.error(traceback.format_exc())
+       
+        self.logger.debug("get_ext_host_live_status: " + str(ret_dict))
+        return ret_dict
+
 
 if __name__ == '__main__':
+    core = P4staCore()
     s = rpyc.utils.server.ThreadedServer(
-        P4staCore(), port=6789, protocol_config={'allow_all_attrs': True,
-                                                 'allow_public_attrs': True,
-                                                 'sync_request_timeout': 10})
+        core,
+        hostname="127.0.0.1",
+        port=6789,
+        protocol_config={'allow_all_attrs': True, 'allow_public_attrs': True, 'sync_request_timeout': 10},
+    )
     s.start()

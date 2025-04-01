@@ -34,8 +34,8 @@ project_path = dir_path[0:dir_path.find("/stamper_targets")]
 
 class TargetImpl(AbstractTarget):
 
-    def __init__(self, target_cfg):
-        super().__init__(target_cfg)
+    def __init__(self, target_cfg, logger):
+        super().__init__(target_cfg, logger)
 
     def deploy_stamper_thrift(self, cfg):
         all_dut_dst_p4_ports = self.get_all_dut_dst_p4_ports(cfg)

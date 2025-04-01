@@ -1,10 +1,12 @@
 {
    "target":"EdgecoreDCS810",
+   "tofino_generation": "2",
    "cfg_template":"tofino2_dcs810_cfg_template.json",
-   "default_target_driver":"tofino2_stamper.py",
+   "default_target_driver":"tofino2_stamper_1-3-0.py",
    "available_target_drivers": [
-      {"version": "1.2.0", "target_driver": "tofino2_stamper.py"},
-      {"version": "1.2.1", "target_driver": "tofino2_stamper.py"}
+      {"version": "1.2.0", "target_driver": "tofino2_stamper_1-2-0.py"},
+      {"version": "1.2.1", "target_driver": "tofino2_stamper_1-2-1.py"},
+      {"version": "1.3.0", "target_driver": "tofino2_stamper_1-3-0.py"}
    ],
    "stamping_capabilities":{
       "tcp":true,
@@ -12,6 +14,12 @@
       "timestamp-multi":1,
       "timestamp-max":281474976710655
    },
+   "packet_generator_ports": [
+      "6",
+      "134",
+      "262",
+      "390"
+   ],
    "config":{
       "stamper_specific":[
          {
@@ -20,7 +28,7 @@
             "target_key":"sde",
             "description":"Path of SDE directory, e.g. /opt/bf-sde-.."
          },
-          {
+         {
             "title":"p4c flags",
             "type":"info",
             "target_key":"p4c-flags",
@@ -31,11 +39,12 @@
             "type":"drop-down",
             "values":[
                "1.2.0",
-               "1.2.1"
+               "1.2.1",
+               "1.3.0"
             ],
-            "default_value":"1.2.1",
+            "default_value":"1.3.0",
             "target_key":"p4sta_version",
-            "description":"P4sta Version to use, e.g. 1.2.1 or 1.2.0"
+            "description":"P4sta Version to use, e.g. 1.2.1 or 1.3.0"
          },
          {
             "title":"P4 Compile Flag",
@@ -58,12 +67,13 @@
             "type":"drop-down",
             "values":[
                "1.2.0",
-               "1.2.1"
+               "1.2.1",
+               "1.3.0"
             ],
-            "default_value":"1.2.1",
+            "default_value":"1.3.0",
             "target_key":"p4sta_version",
             "onchange_func": "p4sta_version_changed()",
-            "description":"P4sta Version to use, e.g. 1.2.1 or 1.2.0"
+            "description":"P4sta Version to use, e.g. 1.2.1 or 1.3.0"
          },
          {
             "title":"Name of P4 program",

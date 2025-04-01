@@ -35,7 +35,6 @@ from management_ui import globals
 def setup_devices(request):
     if request.method == "POST":
         p4sta_version = ""
-        print(request.POST)
         setup_devices_cfg = {}
         if request.POST.get("enable_stamper") == "on":
             setup_devices_cfg["stamper_user"] = request.POST["stamper_user"]
@@ -48,11 +47,8 @@ def setup_devices(request):
                     if cfg["type"] == "input" and cfg["target_key"] in request.POST:
                         setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = request.POST[cfg["target_key"]]
                     if cfg["type"] == "info":
-                        print(cfg)
                         setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = cfg["target_value"]
                     if cfg["type"] == "drop-down":
-                        print("drop-down in setup_devices")
-                        print(cfg)
                         # special case for p4sta_version
                         if cfg["target_key"] == "p4sta_version":
                             if "p4sta_version" in request.POST:
@@ -77,10 +73,8 @@ def setup_devices(request):
                                 "loadgen_ip_" + str(i)]}
                 setup_devices_cfg["loadgens"].append(loadgen)
 
-        print("===================================================")
-        print("=== Setup Device Config from management UI:  ======")
-        print("===================================================")
-        print(setup_devices_cfg)
+        globals.logger.debug("=== Setup Device Config from management UI:  ======")
+        globals.logger.debug(setup_devices_cfg)
         # only create install script if button is clicked
         if "create_setup_script_button" in request.POST:
             globals.core_conn.root.write_install_script(setup_devices_cfg, p4sta_version)
@@ -137,7 +131,6 @@ def setup_devices(request):
         return HttpResponseRedirect("/")
 
     else:  # request the page
-        print("### Setup Devices #####")
         params = {}
         params["stampers"] = P4STA_utils.flt(globals.core_conn.root.get_all_targets())
         params["stampers"].sort(key=lambda y: y.lower())
@@ -171,7 +164,6 @@ def setup_devices(request):
 
 
 def skip_setup_redirect_to_config(request):
-    print("First run finished (skip setup): skip_setup_redirect_to_config")
     globals.core_conn.root.first_run_finished()
     return HttpResponseRedirect("/")
 
@@ -192,7 +184,7 @@ def stop_shellinabox_redirect_to_config(request):
         subprocess.Popen(['/bin/bash', '-c', cmd])
 
     bash_command("sudo pkill shellinaboxd;")
-    print("stop_shellinabox_redirect_to_config")
+    globals.logger.debug("stop_shellinabox_redirect_to_config")
     return HttpResponseRedirect("/")
 
 

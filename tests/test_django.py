@@ -680,7 +680,7 @@ class TestP4staDjango(unittest.TestCase):
                    "num_grp_2": ["1"], "num_grp_1": ["1"],
                    "num_loadgen_groups": ["2"],
                    "stamper_ssh": [ip_bf_sde], "stamper_user": [SSH_USER],
-                   "program": ["tofino_stamper_v1_2_1"],
+                   "program": ["tofino_stamper_v1_3_0"],
                    "s1_1_an": ["default"], "s1_1_fec": ["NONE"],
                    "s1_1_loadgen_iface": ["veth3"],
                    "s1_1_loadgen_ip": ["10.0.1.3"],

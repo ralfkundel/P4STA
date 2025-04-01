@@ -17,13 +17,14 @@
 
 import os
 import P4STA_utils
+import threading
 
 
 class AbstractExtHost:
-    def __init__(self, host_cfg):
+    def __init__(self, host_cfg, dir_on_exec_host, logger):
         self.host_cfg = host_cfg
-        print("init abstract ext Host:")
-        print(host_cfg)
+        self.dir_on_exec_host = dir_on_exec_host
+        self.logger = logger
 
     def setRealPath(self, path):
         self.realPath = path
@@ -57,8 +58,8 @@ class AbstractExtHost:
                 P4STA_utils.check_sudo(
                     cfg["ext_host_user"], cfg["ext_host_ssh"],
                     dynamic_mode=True)
-            print("Ext Host sudo path possibilities:")
-            print(list_of_path_possibilities)
+            self.logger.debug("Ext Host sudo path possibilities:")
+            self.logger.debug(list_of_path_possibilities)
             res["list_of_path_possibilities"] = list_of_path_possibilities
             iface_status = check_iface(
                 cfg["ext_host_user"], cfg["ext_host_ssh"], cfg["ext_host_if"])
@@ -69,3 +70,37 @@ class AbstractExtHost:
 
             # store in results list (no return possible for a thread)
             results[index] = res
+
+    # for all ext host the same (if log and error stored in log.out and log.err)
+    def retrieve_current_logs(self):
+        cfg = P4STA_utils.read_current_cfg()
+        args_log = 'echo Last modified: $(stat -c "%y" /home/' + cfg["ext_host_user"] + '/p4sta/externalHost/' + self.dir_on_exec_host + '/log.out); ' + 'cat /home/' + cfg["ext_host_user"] + '/p4sta/externalHost/' + self.dir_on_exec_host + '/log.out'
+        args_err = 'echo Last modified: $(stat -c "%y" /home/' + cfg["ext_host_user"] + '/p4sta/externalHost/' + self.dir_on_exec_host + '/log.err); ' + 'cat /home/' + cfg["ext_host_user"] + '/p4sta/externalHost/' + self.dir_on_exec_host + '/log.err'
+        
+        results = [None, None]
+        def ssh_thread(args, res_indx):
+            results[res_indx] = P4STA_utils.execute_ssh(cfg["ext_host_user"], cfg["ext_host_ssh"], args)
+
+        # threading reduces the time from 0.8s to 0.4s
+        t1 = threading.Thread(target = ssh_thread, args=(args_log, 0,))
+        t2 = threading.Thread(target = ssh_thread, args=(args_err, 1,))
+
+        t1.start()
+        t2.start()
+
+        t2.join()
+        t1.join()
+
+        res_log = results[0]
+        res_err = results[1]
+
+        # res = list of strings without \n
+        # res_log = P4STA_utils.execute_ssh(cfg["ext_host_user"], cfg["ext_host_ssh"], args_log)
+        # res_err = P4STA_utils.execute_ssh(cfg["ext_host_user"], cfg["ext_host_ssh"], args_err)
+
+        # remove empty strings
+        return (
+            [x for x in res_log if x != ""],
+            [x for x in res_err if x != ""]
+            )
+        

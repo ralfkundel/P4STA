@@ -22,6 +22,7 @@ import threading
 import traceback
 
 
+
 def print_error(error, yellow=False):
     if yellow:
         print_msg = "\033[1;33m"
@@ -62,16 +63,24 @@ except ImportError:
 
 
 class TofinoInterface:
+    # no effect when TofinoInterface obj is instanciated for each call
     used_client_ids = []
 
-    def __init__(self, grpc_addr, device_id, client_id=randint(1, 100),
+    def __init__(self, grpc_addr, device_id, logger, client_id=randint(1, 100),
                  is_master=False, print_errors=True):
+        
+        self.logger = logger
+
         def f_stream_receive_thr(strm):
             try:
                 for inp in strm:
                     self.in_queue.put(inp)
-            except grpc.RpcError:
-                print(traceback.format_exc())
+            except grpc.RpcError as rpc_error:
+                if rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
+                    self.logger.error("Tofino gRPC server unavailable")
+                else:
+                    self.logger.error(traceback.format_exc())
+                
 
         def stream_iter():
             while True:
@@ -82,7 +91,7 @@ class TofinoInterface:
 
         while client_id in TofinoInterface.used_client_ids:
             client_id = randint(1, 100)
-        print("Selected client id: " + str(client_id))
+        self.logger.debug("Selected client id: " + str(client_id))
         self.device_id = device_id
         self.client_id = client_id
         self.p4_program = ""
@@ -91,6 +100,7 @@ class TofinoInterface:
         self.in_queue = queue.Queue()
         self.out_queue = queue.Queue()
         self.connection_established = False
+        self.p4_connected = False
         self.print_errors = print_errors
         opt_size = 1024 ** 3
 
@@ -122,15 +132,14 @@ class TofinoInterface:
         self.out_queue.put(stream_request)
         try:
             if self.in_queue.get(timeout=3).subscribe.status.code == 0:
-                print("Subscription was successful.")
+                self.logger.info("Subscription to Tofino gRPC server was successful.")
                 TofinoInterface.used_client_ids.append(client_id)
                 self.connection_established = True
             else:
                 self.connection_established = False
         except Exception:
             if self.print_errors:
-                print_error("Subscribing failed!")
-                print(traceback.format_exc())
+                self.logger.warning("Subscribing to Tofino gRPC server failed. Can occur when gRPC server is probed at stamper startup.\n" + traceback.format_exc())
             self.connection_established = False
 
     def bind_p4_name(self, p4_program):
@@ -142,7 +151,7 @@ class TofinoInterface:
         cfg.p4_name = p4_program
         try:
             self.grpc_stub.SetForwardingPipelineConfig(request)
-            print("Binding P4 name " + p4_program + " was successful")
+            self.logger.debug("Binding P4 name " + p4_program + " was successful")
 
             send_request = bfruntime_pb2.GetForwardingPipelineConfigRequest()
             send_request.device_id = self.device_id
@@ -154,14 +163,16 @@ class TofinoInterface:
                 if config.p4_name == p4_program:
                     self.bfruntime_info = json.loads(config.bfruntime_info.decode())
 
+            self.p4_connected = True
+
         except grpc.RpcError as e:
-            print("Binding P4 name " + p4_program + " error")
+            self.logger.error("Binding P4 name " + p4_program + " error")
             return str(traceback.format_exc())
 
         return ""
 
     def teardown(self):
-        print("Teardown...")
+        self.logger.debug("Teardown ...")
         while self.client_id in TofinoInterface.used_client_ids:
             try:
                 TofinoInterface.used_client_ids.remove(self.client_id)
@@ -169,6 +180,11 @@ class TofinoInterface:
                 pass
         self.out_queue.put(None)
         self.stream_receive_thr.join()
+        self.grpc_channel.close()
+        self.p4_program = ""
+        self.connection_established = False
+        self.p4_connected = False
+        self.logger.info("Tofino gRPC teardown finished.")
 
     # compatibility for code using table/key/data/action names without pipe.###
     def _get_full_name(self, name):
@@ -176,12 +192,12 @@ class TofinoInterface:
         e.g. "table1" => "pipe.SwitchIngress.table1" """
         for table in self.bfruntime_info["tables"]:
             if table["name"].split(".")[-1] == name:
-                print("Replaced table name " + name + " with " + table["name"])
+                self.logger.debug("Replaced table name " + name + " with " + table["name"])
                 return table["name"]
             if "key" in table:
                 for key in table["key"]:
                     if key["name"].split(".")[-1] == name:
-                        print("Replaced key name " + name + " with " + key[
+                        self.logger.debug("Replaced key name " + name + " with " + key[
                             "name"])
                         return key["name"]
             if "action_specs" in table:
@@ -191,7 +207,7 @@ class TofinoInterface:
                     if "data" in action:
                         for data in action["data"]:
                             if data["name"].split(".")[-1] == name:
-                                print("Replaced data name " + name + " with " +
+                                self.logger.debug("Replaced data name " + name + " with " +
                                       data["name"])
                                 return data["name"]
         # no replacement found, just return original string=>it may be correct
@@ -208,21 +224,21 @@ class TofinoInterface:
                     return table["id"]
             if i == 0:
                 if self.print_errors:
-                    print_error(
+                    self.logger.debug(
                         "Table " + table_name + " not found for given p4 program: "
                         + self.p4_program +
                         " try to substitute name with suitable from json.",
-                        yellow=True)
+                        )
                 table_name = self._get_full_name(table_name)
             else:
                 if self.print_errors:
-                    print_error(
+                    self.logger.error(
                         "Table " + table_name + " not found for given p4 program: "
                         + self.p4_program)
         return None
 
     def get_key_id(self, key_name, table_name):
-        if table_name.find("$") == 0:
+        if (table_name.find("$") == 0) or (table_name.find("tf1.pktgen") == 0) or (table_name.find("tf2.pktgen") == 0):
             for table in self.non_p4_config["tables"]:
                 if table["name"] == table_name:
                     for key in table["key"]:
@@ -247,7 +263,7 @@ class TofinoInterface:
                                         bit_width = 64
                                     else:
                                         bit_width = 32
-                                        print_error(
+                                        self.logger.error(
                                             "Bit width for key " + key["name"]
                                             + " from table " + table_name +
                                             " not determinable - using 32 bit")
@@ -260,15 +276,20 @@ class TofinoInterface:
         return None
 
     def get_action_id(self, action_name, table_name):
-        for i in range(2):
-            for table in self.bfruntime_info["tables"]:
-                if table["name"] == table_name and "action_specs" in table:
-                    for action in table["action_specs"]:
-                        if action["name"] == action_name:
-                            return action["id"]
-            if i == 0:
-                table_name = self._get_full_name(table_name)
-                action_name = self._get_full_name(action_name)
+        if action_name is not None:
+            if table_name.find("tf1.pktgen") == 0 or table_name.find("tf2.pktgen") == 0:
+                tables = self.non_p4_config["tables"]
+            else:
+                tables = self.bfruntime_info["tables"]
+            for i in range(2):
+                for table in tables:
+                    if table["name"] == table_name and "action_specs" in table:
+                        for action in table["action_specs"]:
+                            if action["name"] == action_name:
+                                return action["id"]
+                if i == 0:
+                    table_name = self._get_full_name(table_name)
+                    action_name = self._get_full_name(action_name)
         return None
 
     def get_data_id(self, data_name, action_name, table_name):
@@ -289,6 +310,36 @@ class TofinoInterface:
                                 bit_width = 32
                             # 32 bit fixed size for port stuff?
                             return data["singleton"]["id"], bit_width
+        elif  (table_name.find("tf1.pktgen") == 0) or (table_name.find("tf2.pktgen") == 0):
+            for table in self.non_p4_config["tables"]:
+                if table["name"] == table_name:
+                    if data_name == "timer_nanosec":
+                        # TODO: unclear why id is forced to 1 here
+                        return 1,32
+                    else:
+                        for data in table["data"]:
+                            if data["singleton"]["name"] == data_name:
+                                if data_name == "pkt_len":
+                                    bit_width = 16
+                                elif data_name == "pkt_buffer_offset":
+                                    bit_width = 16
+                                elif data_name == "batch_count_cfg":
+                                    bit_width = 16
+                                elif data_name == "packets_per_batch_cfg":
+                                    bit_width = 16
+                                elif data_name == "batch_counter":
+                                    bit_width = 64
+                                elif data_name == "pkt_counter":
+                                    bit_width = 64
+                                elif data_name == "trigger_counter":
+                                    bit_width = 64
+                                elif data_name == "assigned_chnl_id":
+                                    bit_width = 8
+                                else:
+                                    bit_width = 32
+
+                                # 32 bit fixed size for port stuff?
+                                return data["singleton"]["id"], bit_width
         else:
             for i in range(2):
                 for table in self.bfruntime_info["tables"]:
@@ -304,7 +355,7 @@ class TofinoInterface:
                                         bit_width = 64
                                     else:
                                         bit_width = 32
-                                        print_error(
+                                        self.logger.error(
                                             "Bit width for data " +
                                             data["name"] + " from table " +
                                             table_name + " not determinable - "
@@ -347,15 +398,15 @@ class TofinoInterface:
     # [["egress_port", int(loadgen_grp["loadgens"][0]["p4_port"])]],
     # "SwitchIngress.send")
     def add_to_table(self, table_name, keys=[], datas=[], action="",
-                     mod_inc=False, silent=False):
+                     mod=False, mod_inc=False, silent=False):
         def get_table_type(table_name):
             for table in self.bfruntime_info["tables"]:
                 if table["name"] == table_name:
                     return table["table_type"]
 
         if not silent:
-            print("Adding to table: " + table_name + "\nkeys:" + str(
-                keys) + " => " + action + "(" + str(datas) + ")\n")
+            self.logger.debug("Tofino: Adding to table: " + table_name + "\nkeys:" + str(
+                keys) + " => " + action + "(" + str(datas) + ")")
         request = self._get_request(req_type="write")
 
         table_id = self.get_table_id(table_name)
@@ -363,21 +414,22 @@ class TofinoInterface:
         update = request.updates.add()
         if mod_inc:
             update.type = bfruntime_pb2.Update.MODIFY_INC
+        elif mod:
+            update.type = bfruntime_pb2.Update.MODIFY
         else:
             update.type = bfruntime_pb2.Update.INSERT
         tbl_entry = update.entity.table_entry
         tbl_entry.table_id = table_id
         for key_pair in keys:
             key_field = tbl_entry.key.fields.add()
-            key_field.field_id, key_bit_width = self.get_key_id(key_pair[0],
-                                                                table_name)
+            key_field.field_id, key_bit_width = self.get_key_id(key_pair[0], table_name)
             if type(key_pair[1]) == str:
                 key_field.exact.value = key_pair[1].encode()
             elif type(key_pair[1]) == int:
                 key_field.exact.value = key_pair[1].to_bytes(
                     math.ceil(key_bit_width / 8), "big")
             else:
-                print_error("Key value must be String or Int! Table: " +
+                self.logger.error("Key value must be String or Int! Table: " +
                             table_name + " Key: " + str(key_pair[0]))
 
         action_id = self.get_action_id(action, table_name)
@@ -404,14 +456,14 @@ class TofinoInterface:
                             data_pair[1][0]) == bool:
                         data_field.bool_arr_val.val.extend(data_pair[1])
                 else:
-                    print_error(
+                    self.logger.error(
                         "Data value must be Int, Float, String, Bool! Table: "
                         + table_name + " Action: " + action + " Data: " + str(
                             data_pair[0]))
 
         elif table_name.find("$") == 0 or get_table_type(
                 table_name) == "Counter" or get_table_type(
-                table_name) == "Register":
+                table_name) == "Register" or (table_name.find("tf1.pktgen") == 0) or (table_name.find("tf2.pktgen") == 0):
             for data_pair in datas:
                 data_field = tbl_entry.data.fields.add()
                 data_field.field_id, data_bit_width = self.get_data_id(
@@ -419,6 +471,8 @@ class TofinoInterface:
                 if type(data_pair[1]) == int:
                     data_field.stream = data_pair[1].to_bytes(
                         math.ceil(data_bit_width / 8), "big")
+                elif type(data_pair[1]) == bytearray:
+                    data_field.stream = bytes(data_pair[1])
                 elif type(data_pair[1]) == float:
                     data_field.float_val = data_pair[1]
                 elif type(data_pair[1]) == str:
@@ -433,8 +487,8 @@ class TofinoInterface:
                             data_pair[1][0]) == bool:
                         data_field.bool_arr_val.val.extend(data_pair[1])
                 else:
-                    print_error("Data value must be Int, Float, String, Bool, "
-                                "List! Table: " + table_name + " Data: " + str(
+                    self.logger.error("Data value must be Int, Float, String, Bool, "
+                                "List, Bytearray! Table: " + table_name + " Data: " + str(
                                     data_pair[0]))
 
         self.grpc_stub.Write(request)
@@ -473,10 +527,10 @@ class TofinoInterface:
                     key_field.exact.value = del_value
 
             self.grpc_stub.Write(request)
-            print("Deleted Table " + table_name)
+            self.logger.debug("Tofino: Deleted Table " + table_name)
         except Exception:
             if self.print_errors:
-                print_error(traceback.format_exc())
+                self.logger.error(traceback.format_exc())
 
     def clear_all_tables(self, ignore_tables_list=[]):
         ignore_tables_list.append("$")
@@ -490,7 +544,7 @@ class TofinoInterface:
                     self.delete_table(table["name"])
                 except Exception:
                     if self.print_errors:
-                        print_error(traceback.format_exc())
+                        self.logger.error(traceback.format_exc())
 
     # hosts = [{"p4_port": xxx, "speed": 10G, "fec": "NONE",
     # "an": "default"}, {..}, ..]
@@ -509,19 +563,19 @@ class TofinoInterface:
                 else:
                     raise Exception
             except Exception as e:
-                print_error(
+                self.logger.debug(
                     "Error at parsing an-set status for port " +
                     host["p4_port"] + " setting to 0 (default). This message c"
                                       "an occure several times during the port"
                                       " activation process and can be ignored "
                                       "if no AN setting is set. Msg: " +
-                    str(e), yellow=True)
+                    str(e))
                 return "PM_AN_DEFAULT"
 
         def get_fec(fec, speed):
             if fec == "FC":
                 if speed == "100G":
-                    print_error("FIRECODE IS NOT AVAILABLE FOR 100G")
+                    self.logger.warning("FIRECODE IS NOT AVAILABLE FOR 100G")
                     return "NONE"
                 else:
                     return "FIRECODE"
@@ -575,20 +629,24 @@ class TofinoInterface:
                         # is prevented
                         already_added_p4_ports.append(p4_ports)
                 else:
-                    self.add_to_table("$PORT",
-                                      keys=[
-                                          ["$DEV_PORT", int(host["p4_port"])]],
-                                      datas=[["$SPEED",
-                                              "BF_SPEED_" + host["speed"]],
-                                             ["$AUTO_NEGOTIATION",
-                                              get_an(host)],
-                                             ["$FEC", "BF_FEC_TYP_" + get_fec(
-                                                 host["fec"], host["speed"])],
-                                             ["$PORT_ENABLE", True]],
-                                      action="")
+                    try:
+                        self.add_to_table("$PORT",
+                                        keys=[
+                                            ["$DEV_PORT", int(host["p4_port"])]],
+                                        datas=[["$SPEED",
+                                                "BF_SPEED_" + host["speed"]],
+                                                ["$AUTO_NEGOTIATION",
+                                                get_an(host)],
+                                                ["$FEC", "BF_FEC_TYP_" + get_fec(
+                                                    host["fec"], host["speed"])],
+                                                ["$PORT_ENABLE", True]],
+                                        action="")
+                    except Exception:
+                        if self.print_errors:
+                            self.logger.error(traceback.format_exc())
             except Exception:
                 if self.print_errors:
-                    print_error(traceback.format_exc())
+                    self.logger.error(traceback.format_exc())
 
     def delete_ports(self):
         self.delete_table("$PORT")
@@ -625,13 +683,13 @@ class TofinoInterface:
                 if item["group_id"] not in created_mcast_grps:
                     created_mcast_grps.append(item["group_id"])
 
-                print("Added port " + str(item["port"]) + " to node " + str(
+                self.logger.debug("Added port " + str(item["port"]) + " to node " + str(
                     item["node_id"]) + " and to mcast group " + str(
                     item["group_id"]))
             except Exception:
-                print_error(
+                self.logger.error(
                     "Exception at multicast creating for item: " + str(item))
-                print_error(traceback.format_exc())
+                self.logger.error(traceback.format_exc())
 
     def clear_multicast_groups(self):
         self.delete_table("$pre.mgid")
@@ -639,17 +697,18 @@ class TofinoInterface:
 
     # reads register and returns dictionary
     def read_register(self, table_name, register_index=0):
+        self.logger.debug("Read register " + str(table_name) + " index " +str(register_index))
         table_id = self.get_table_id(table_name)
         read_request = self._get_request(req_type="read")
         tbl_entry = read_request.entities.add().table_entry
         tbl_entry.table_id = table_id
         tbl_entry.is_default_entry = False
-        tbl_entry.table_read_flag.from_hw = True  # not sure
+        tbl_entry.table_read_flag.from_hw = True
         key_field = tbl_entry.key.fields.add()
-        key_field.field_id, key_bit_width = self.get_key_id("$REGISTER_INDEX",
-                                                            table_name)
+        key_field.field_id, key_bit_width = self.get_key_id("$REGISTER_INDEX", table_name)
         key_field.exact.value = register_index.to_bytes(
             math.ceil(key_bit_width / 8), "big")
+        
         answers = self.grpc_stub.Read(read_request)
 
         data_fields_values = []
@@ -659,19 +718,26 @@ class TofinoInterface:
                     data_fields_values.append(int(data_field.stream.hex(), 16))
 
         if len(data_fields_values) == 0:
-            print_error("No values retrieved for register " + table_name)
+            self.logger.error("No values retrieved for register " + table_name)
             data_fields_values.append(0)
         return data_fields_values
+    
+    def get_name_by_id(self, _id, _table_type):
+        for table in self.non_p4_config["tables"]:
+            if table["table_type"] == _table_type:
+                for data in table["data"]:
+                    if data["singleton"]["id"] == _id:
+                        return data["singleton"]["name"]
+        
+        for table in self.bfruntime_info["tables"]:
+            if table["table_type"] == _table_type:
+                for data in table["data"]:
+                    if data["singleton"]["id"] == _id:
+                        return data["singleton"]["name"]
+
 
     # reads counter and returns list of tuple(pckts, bytes) where indx 0=port 0
     def read_counter(self, table_name, port_list=range(512)):
-        def get_name_by_id(_id):
-            for table in self.bfruntime_info["tables"]:
-                if table["table_type"] == "Counter":
-                    for data in table["data"]:
-                        if data["singleton"]["id"] == _id:
-                            return data["singleton"]["name"]
-
         table_id = self.get_table_id(table_name)
         read_request = self._get_request(req_type="read")
 
@@ -679,22 +745,22 @@ class TofinoInterface:
             tbl_entry = read_request.entities.add().table_entry
             tbl_entry.table_id = table_id
             tbl_entry.is_default_entry = False
-            tbl_entry.table_read_flag.from_hw = True  # not sure
+            tbl_entry.table_read_flag.from_hw = True
             key_field = tbl_entry.key.fields.add()
-            key_field.field_id, key_bit_width = self.get_key_id(
-                "$COUNTER_INDEX", table_name)
-            key_field.exact.value = port.to_bytes(math.ceil(key_bit_width / 8),
-                                                  "big")
-
+            key_field.field_id, key_bit_width = self.get_key_id("$COUNTER_INDEX", table_name)
+            key_field.exact.value = port.to_bytes(math.ceil(key_bit_width / 8), "big")
         answers = self.grpc_stub.Read(read_request)
         counter_read_datas = []
-        for answer in answers:
-            for e in answer.entities:
-                as_dict = {}
-                for data_field in e.table_entry.data.fields:
-                    as_dict[get_name_by_id(data_field.field_id)] = int(
-                        data_field.stream.hex(), 16)
-                counter_read_datas.append(as_dict)
+        try:
+            for answer in answers:
+                for e in answer.entities:
+                    as_dict = {}
+                    for data_field in e.table_entry.data.fields:
+                        as_dict[self.get_name_by_id(data_field.field_id, "Counter")] = int(
+                            data_field.stream.hex(), 16)
+                    counter_read_datas.append(as_dict)
+        except:
+            self.logger.error(traceback.format_exc())
 
         all = [(0, 0) for i in range(512)]
         i = 0
@@ -727,7 +793,7 @@ class TofinoInterface:
                                   mod_inc=False,
                                   silent=True)
             except Exception:
-                print_error(traceback.format_exc())
+                self.logger.error(traceback.format_exc())
 
     def clear_register(self, register_name):
         table_id = self.get_table_id(register_name)
@@ -737,10 +803,9 @@ class TofinoInterface:
         tbl_entry = update.entity.table_entry
         tbl_entry.table_id = table_id
         self.grpc_stub.Write(request)
-        print("Cleared Register " + register_name)
+        self.logger.debug("Tofino: Cleared Register " + register_name)
 
     def get_port_mapping(self):
-        print("Tofino: get_port_mapping")
         portmap = {}
         try:
             table_id = self.get_table_id("$PORT_STR_INFO")
@@ -760,20 +825,19 @@ class TofinoInterface:
                         val = int(data_field.stream.hex(), 16)
                     portmap[keyval] = val
         except Exception:
-            print_error(traceback.format_exc())
+            self.logger.error(traceback.format_exc())
             return None
         return portmap
 
-    def read_port_status(self):
-        def get_name_by_id(_id):
-            for table in self.non_p4_config["tables"]:
-                if table["table_type"] == "PortConfigure":
-                    for data in table["data"]:
-                        if data["singleton"]["id"] == _id:
-                            return data["singleton"]["name"]
-
+    def read_port_status(self, statistics=False):
         try:
-            table_id = self.get_table_id("$PORT")
+            if statistics:
+                table_id = self.get_table_id("$PORT_STAT")
+                table_type = "PortStat"
+            else:
+                table_id = self.get_table_id("$PORT")
+                table_type = "PortConfigure"
+
             read_request = self._get_request(req_type="read")
             tbl_entry = read_request.entities.add().table_entry
             tbl_entry.table_id = table_id
@@ -784,11 +848,19 @@ class TofinoInterface:
             for answer in answers:
                 for e in answer.entities:
                     as_dict = {}
+                    if statistics:
+                        # read keys to determine port we get statistics from
+                        keys = []
+                        for key_field in e.table_entry.key.fields:
+                            key_tuple = (key_field.field_id, key_field.exact.value)
+                            keys.append(key_tuple)
+                        as_dict["keys"] = keys
+
                     for data_field in e.table_entry.data.fields:
-                        data_name = get_name_by_id(data_field.field_id)
+                        data_name = self.get_name_by_id(data_field.field_id, table_type)
                         as_dict[data_name] = data_field
                     port_read_datas.append(as_dict)
 
             return port_read_datas
         except Exception:
-            print_error(traceback.format_exc())
+            self.logger.error(traceback.format_exc())

@@ -13,6 +13,7 @@
 # limitations under the License.
 import rpyc
 import time
+import traceback
 
 from django.shortcuts import render
 
@@ -57,7 +58,7 @@ def stamper_status_wrapper(request, html_file):
                       {"dev_status": dev_status, "dev_is_running": running,
                        "pm": lines_pm, "cfg": cfg})
     except Exception as e:
-        print(e)
+        globals.logger.error(traceback.format_exc())
         return render(
             request, "middlebox/timeout.html",
             {"inside_ajax": True, "error": ("stamper status error "+str(e))})
@@ -114,7 +115,7 @@ def deploy(request):
         return render(request, "middlebox/output_deploy.html",
                       {"deploy_error": deploy_error})
     except Exception as e:
-        print(e)
+        globals.logger.error(traceback.format_exc())
         return render(
             request, "middlebox/timeout.html",
             {"inside_ajax": True, "error": ("Exception Deploy: " + str(e))})

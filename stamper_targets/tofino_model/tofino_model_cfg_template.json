@@ -74,6 +74,7 @@
     }
   ],
   "multicast": "1",
+  "p4sta_version": "1.2.1",
   "program": "tofino_stamper_v1_2_1",
   "sde": "/opt/bf-sde-9.13.0",
   "selected_loadgen": "iperf3",

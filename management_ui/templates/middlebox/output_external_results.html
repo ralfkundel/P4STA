@@ -67,6 +67,10 @@ $("#latency_interactive_btn").click(function() {
 	<div class="col-md-6"><p><b>Latency Standard Deviation: </b>{{ latency_std_deviation.0.0 }} <b>{{ latency_std_deviation.1 }}</b></p></div>
 	<div class="col-md-6"><p class="math"><b>Latency Variance (σ<sup>2</sup>): </b>{{ latency_variance.0 }} <b>{{ latency_variance.1 }}</b></p></div>
 </div>
+<div class="row">
+	<div class="col-md-6"><p><b>Positive Standard Deviation: </b>{{ pos_latency_std_deviation.0.0 }} <b>{{ pos_latency_std_deviation.1 }}</b></p></div>
+	<div class="col-md-6"><p><b>Positive Standard Deviation: </b>{{ neg_latency_std_deviation.0.0 }} <b>{{ neg_latency_std_deviation.1 }}</b></p></div>
+</div>
 <hr/>
 <div class="row">
 	<div class="col-md-6"><p><b>Minumum IPDV: </b>{{ min_ipdv.0.0 }} <b>{{ min_ipdv.1 }}</b></p></div>

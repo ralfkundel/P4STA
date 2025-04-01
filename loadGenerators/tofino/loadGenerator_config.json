@@ -1,0 +1,8 @@
+{
+	"name": "Tofino Packet Generator",
+	"driver": "IntegratedGeneration.py",
+	"configure_page_inputs": false,
+	"status_check": {
+		"needed_sudos_to_add": []
+	}
+}

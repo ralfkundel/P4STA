@@ -32,7 +32,7 @@ Mounted files edited/created inside a container are owned by root afterwards, he
 
 
 ```
-pre_clone_script = "[ -d \"/home/gitlab-runner/builds/PLEASE_INSERT/0/gitlab/ralf.kundel/p4-timestamping-middlebox/\" ] && cd /home/gitlab-runner/builds/PLEASE_INSERT/0/gitlab/ralf.kundel/p4-timestamping-middlebox/ && sudo git clean -ffdx"
+pre_clone_script = "[ -d \"/home/gitlab-runner/builds/PLEASE_INSERT/0/gitlab/fridolin/p4-timestamping-middlebox/\" ] && cd /home/gitlab-runner/builds/PLEASE_INSERT/0/gitlab/fridolin/p4-timestamping-middlebox/ && sudo git clean -ffdx"
 ```
 ### 2. create docker images:
 Note: you must copy the bf-sde-9.13.0.tgz file into bf_sde_docker before creating the container

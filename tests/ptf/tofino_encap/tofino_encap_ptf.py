@@ -18,12 +18,14 @@ sys.path.append("stamper_targets/Wedge100B65/")
 sys.path.append("core/")
 try:
     from cfg import cfg
-    import tofino1_65p_stamper_v1_2_1
+    # import tofino1_65p_stamper_v1_2_1 as stamper
+    import tofino1_65p_stamper_v1_3_0 as stamper
     import p4sta_ptf_base_tcp
     import p4sta_ptf_base_udp
     import p4sta_ptf_encap_tcp
     import p4sta_ptf_encap_udp
     from ext_host_header_scapy import Exthost
+    import P4STA_logger
 except Exception as e:
     print(e)
 
@@ -32,7 +34,8 @@ for i in range(17):
     target_cfg["p4_ports"].append(str(i))
 target_cfg["p4_ports"].append("64")
 
-target_tofino = tofino1_65p_stamper_v1_2_1.TargetImpl(target_cfg)
+logger = P4STA_logger.create_logger("#ptf_tofino_encap")
+target_tofino = stamper.TargetImpl(target_cfg, logger)
 
 cfg = {
     "available_loadgens": [
@@ -135,7 +138,7 @@ cfg = {
     "multicast": "1",
     "stamper_ssh": "0.0.0.0",
     "stamper_user": "root",
-    "program": "tofino_stamper_v1_2_1",
+    "program": "tofino_stamper_v1_3_0",
     "sde": "/opt/bf-sde-9.13.0",
     "selected_extHost": "GoExtHostUdp",
     "selected_loadgen": "iperf3",
@@ -188,8 +191,8 @@ class TOF_L3_Group2ToDut2_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_Group2ToDut2):
         target_tofino.deploy(cfg)
 
 
-### Group1ToDut1
-# Case where pppoe/gtpu packets are encapsulated by DUT (UPF or BNG) and then go back into tofino => upstream
+### Dut1ToGroup1
+# Case where pppoe/gtpu packets are encapsulated by DUT (UPF or BNG) and then go back into tofino => downstream
 # TCP
 class TOF_L1_Dut1ToGroup1_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1):
     def setUp(self):
@@ -211,6 +214,45 @@ class TOF_L3_Dut1ToGroup1_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1):
 
 ## Skipping UDP test cases for now
 
+################ IP only tests, to verify GTP or PPPoE compiled P4 still stamps normal IP packets correctly
+### Group1ToDut1
+class TOF_L1_Group1ToDut1_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_IPonly_Group1ToDut1):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_IPonly_Group1ToDut1.setUp(self)
+        cfg["forwarding_mode"] = "1"
+        target_tofino.deploy(cfg)
+
+class TOF_L2_Group1ToDut1_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_IPonly_Group1ToDut1):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_IPonly_Group1ToDut1.setUp(self)
+        cfg["forwarding_mode"] = "2"
+        target_tofino.deploy(cfg)
+
+class TOF_L3_Group1ToDut1_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_IPonly_Group1ToDut1):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_IPonly_Group1ToDut1.setUp(self)
+        cfg["forwarding_mode"] = "3"
+        target_tofino.deploy(cfg)
+
+################ IP only tests, to verify GTP or PPPoE compiled P4 still stamps normal IP packets correctly
+### Dut2ToGroup2
+class TOF_L1_IPOnly_Dut2ToGroup2_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_IPonly_Dut2ToGroup2):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_IPonly_Dut2ToGroup2.setUp(self, l1=True)
+        cfg["forwarding_mode"] = "1"
+        target_tofino.deploy(cfg)
+
+class TOF_L2_IPOnly_Dut2ToGroup2_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_IPonly_Dut2ToGroup2):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_IPonly_Dut2ToGroup2.setUp(self)
+        cfg["forwarding_mode"] = "2"
+        target_tofino.deploy(cfg)
+
+class TOF_L3_IPOnly_Dut2ToGroup2_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_IPonly_Dut2ToGroup2):
+    def setUp(self):
+        p4sta_ptf_encap_tcp.Encap_IPonly_Dut2ToGroup2.setUp(self)
+        cfg["forwarding_mode"] = "3"
+        target_tofino.deploy(cfg)
 
 ### Group1ToDut1 Python Ext Host Tests (with real ext host running at port 5, not grabbed by PTF)
 # TCP
@@ -236,7 +278,7 @@ class TOF_L1_Dut1ToGroup1_ENCAP_TCP_PY_EXT_HOST(p4sta_ptf_encap_tcp.Encap_Dut1To
         # call = "sudo /home/" + self.cfg["ext_host_user"] + "/p4sta/externalHost/go/go/bin/go run extHostHTTPServer.go goUdpSocketExtHost.go --name " + file_id + " --ip_port " + self.cfg["ext_host_ip"] + ":41111 --ip " + self.cfg["ext_host_ip"] 
 
 
-        cmd = "ip addr add 10.11.12.99/24 dev veth11; ip link set dev veth11 address e2:46:14:e3:0b:7c; cd /home/root/p4sta/externalHost/go/; nohup ./go/bin/go run extHostHTTPServer.go goUdpSocketExtHost.go --name PTF_L1_PPPOE_GTPU --ip_port 10.11.12.99:41111 --ip 10.11.12.99 > foo.out 2> foo.err < /dev/null &"
+        cmd = "ip addr add 10.11.12.99/24 dev veth11; ip link set dev veth11 address e2:46:14:e3:0b:7c; cd /home/root/p4sta/externalHost/go/; nohup ./go/bin/go run extHostHTTPServer.go goUdpSocketExtHost.go --name PTF_L1_PPPOE_GTPU --ip_port 10.11.12.99:41111 --ip 10.11.12.99 > log.out 2> log.err < /dev/null &"
         subprocess.run(cmd, shell = True, executable="/bin/bash")
         print("Start external host GO receiver - wait 10 sec")
         time.sleep(10)
@@ -261,7 +303,7 @@ class TOF_L1_Dut1ToGroup1_ENCAP_TCP_PY_EXT_HOST(p4sta_ptf_encap_tcp.Encap_Dut1To
                     temp.append(int(elem[0]))
             return temp
         
-        if False:
+        if False: # can fail in gitlab CI but works locally, unknown why => set to False then
             timestamp1_list = read_csv("timestamp1_list_PTF_L1_PPPOE_GTPU.csv")
             if len(timestamp1_list) > 0:
                 for ts1 in timestamp1_list:

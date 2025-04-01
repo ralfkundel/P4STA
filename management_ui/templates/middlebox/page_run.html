@@ -19,6 +19,75 @@
 <head>
 	{% include "middlebox/includes.html"%}
 	<script type="text/javascript">
+
+		// sleep in ms
+		function sleep (t) {
+			return new Promise((resolve) => setTimeout(resolve, t));
+		}
+
+		function discard_ext_host(yes=false){
+			if(yes){
+				$.ajax({
+					type: "GET",
+					url: "/subpage_run_ext_host_live_status/",
+					data: {
+					'csrfmiddlewaretoken': "{{csrf_token}}",
+					'kill': 11,
+					},
+					success: function (response) {
+						clearInterval(window.intervalId_ext_stop);
+						fetch_ext_host_live_status_stopped();
+					}
+				});
+			} else {
+				if (confirm("Abort data collection from external host:\nAre you sure? Possible data loss for the current run!\n\nPress OK for YES.")) {
+					discard_ext_host(yes=true);
+				}
+			}
+		}
+
+		function fetch_ext_host_live_status_stopped(){
+			$.get("/subpage_run_ext_host_live_status/", function(data) {
+				data = JSON.parse(data)
+				if(data.hasOwnProperty("live_status")){
+					html_str = ''
+					
+					if(data.live_status.hasOwnProperty("stop_state")){
+						
+						switch(data.live_status.stop_state) {
+							case 0:
+								html_str += "<p> Stopping external monitoring host: <b>not started</b> </p>"
+								break;
+							case 1:
+								html_str += '<p> Stopping external monitoring host: <b style="color: green">results successfully collected</b> </p><p>External host stopped and results are ready under <a href="/analyze/">Analyze</a></p>'
+								break;
+							case 2:
+								html_str += "<p> Stopping external monitoring host: <b>failed</b> </p>"
+								break;
+							case 3:
+								html_str += '<p> Stopping external monitoring host: <b>currently stopping and collecting results ...</b> <img src="{% static 'images/spinner.svg' %}" width="30" height="30" /></p>'
+
+								if(data.live_status.hasOwnProperty("current_run_state")){
+									html_str += "<p> External monitoring host state: <b>" + data.live_status.current_run_state + "</b></p>";
+								}{% if ext_host_cfg.provides_status_api %}else{
+									// Ext Host should have some API for current state, but is not reachable.
+									html_str += "<p> External monitoring host state: <b style='color:orange'>API not reachable</b></p>";
+									html_str += "<i> The API is not reachable as the external monitoring host is currently terminating.</i>"; //"<i>In case of an endless run, you can discard the current run (stamper results are possibly saved):</i>"
+									//html_str += '<button id="force_kill_ext" type="button" class="save btn btn-danger" style="width:300px" onclick="discard_ext_host(yes=false)">Discard Current Run</button>'
+								}
+								{% endif %}
+
+								break;
+							default:
+							  // pass
+						  }
+					}
+
+					$("#output_stop_external").html(html_str);
+				}
+			}, "html");
+		}
+
 		$(document).ready(function(){ 
 			$("#ping").click(function() {
 				$("#output_ping").html('<p>Retrieving ping results ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
@@ -28,17 +97,50 @@
 			});
 
 			$("#start_external").click(function() {
+				clearInterval(window.intervalId_ext_stop);
 				$("#output_stop_external").empty();
 				$("#output_start_external").html('<p>Starting external host ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
 				$.get("/subpage_run_start_external/", function(data) {
+					$("#output_start_external").html(data);
+					$("#output_stop_external").empty(); // if ext stop intervall takes longer to clear
+				}, "html");
+			});
+
+			$("#skip_external").click(function() {
+				$("#output_stop_external").empty();
+				$.get("/subpage_run_skip_external/", function(data) {
 					$("#output_start_external").html(data);
 				}, "html");
 			});
  
 			$("#stop_external").click(function() {
+				//stop polling of live ext host in output_external_started_integrated_generation.html
+				clearInterval(window.intervalId_ext);
+				// stop polling of live troughput metrics
+				clearInterval(window.intervalId_live_metrics);
 				$("#output_start_external").empty();
-				$("#output_stop_external").html('<p>Reading counters from Stamper and timestamp csv-files from ext-host. Can take up to 1 Minute...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
-				$.get("/subpage_run_stop_external/", function(data) {
+
+				fetch_ext_host_live_status_stopped(); // because setInterval first waits the set interval
+
+				$.get("/subpage_run_stop_external_background/", function(data) {}, "html"); //subpage_run_stop_external_background
+
+				// $("#output_stop_external").html('<p>Reading counters from Stamper and timestamp csv-files from ext-host. Can take up to 1 Minute...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				
+				window.intervalId_ext_stop = setInterval(function() {
+				 	fetch_ext_host_live_status_stopped();
+				}, 2000)
+
+
+			});
+
+			$("#stop_without_external").click(function() {
+				//stop polling of live ext host in output_external_started_integrated_generation.html
+				clearInterval(window.intervalId_ext);
+				$("#output_start_external").empty();
+				// stop polling of live troughput metrics
+				clearInterval(window.intervalId_live_metrics);
+				$("#output_stop_external").html('<p>Reading counters from Stamper. Can take up to 1 Minute...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$.get("/subpage_run_stop_without_external/", function(data) {
 					$("#output_stop_external").html(data);
 				}, "html");
 			});
@@ -51,7 +153,7 @@
 
 <div class="jumbotron text-center" style="margin-bottom:0">
 <h5>
-<span style="color:grey">configure switch</span>
+<span style="color:grey">configure stamper</span>
 &emsp;<i class="fas fa-arrow-right"></i>
 &emsp;<span style="color:grey">deploy configuration</span>
 &emsp;<i class="fas fa-arrow-right"></i>
@@ -62,6 +164,13 @@
 </div>
 <div class="container-fluid">
 <div style="margin-top:20px;"></div>
+
+
+
+
+{% if selected_loadgen != "Tofino Packet Generator" %}
+
+
 <div class="row">
 	<div class="col-md-4">Execute Ping Test:</div>
 </div>
@@ -70,17 +179,26 @@
 	<div class="col-md-8"><div id="output_ping" class="card card-body"></div></div>
 </div>
 <hr/>
+
+{% endif %}
+
 <div style="margin-top:20px;"></div>
 <div class="row">
 	<div class="col-md-4">Start listening at external host and execute Loadgenerator (<b>{{selected_loadgen}}</b>):</div>
 </div>
 <div class="row">
-	<div class="col-md-2"><button id="start_external" type="button" class="save btn btn-secondary">Start listening</button></div>
+	<div class="col-md-2">
+		<button id="start_external" type="button" class="save btn btn-primary">Start Monitoring</button>
+		<button id="skip_external" type="button" class="save btn btn-secondary">Skip Monitoring</button>
+	</div>
 	<div class="col-md-8"><div id="output_start_external" class="card card-body"></div></div>
 </div>
 <div style="margin-top:20px;"></div>
 <div class="row">
-	<div class="col-md-2"><button id="stop_external" type="button" class="save btn btn-secondary">Stop listening</button></div>
+	<div class="col-md-2">
+		<button id="stop_external" type="button" class="save btn btn-primary">Stop Monitoring</button>
+		<button id="stop_without_external" type="button" class="save btn btn-secondary">Stop</button>
+	</div>
 	<div class="col-md-8"><div id="output_stop_external" class="card card-body"></div></div>
 </div>
 <div style="margin-top:20px;"></div>
