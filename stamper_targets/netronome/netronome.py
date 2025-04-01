@@ -39,8 +39,8 @@ class RteError(Exception):
 
 
 class TargetImpl(AbstractTarget):
-    def __init__(self, target_cfg):
-        super().__init__(target_cfg)
+    def __init__(self, target_cfg, logger):
+        super().__init__(target_cfg, logger)
 
     def _get_rte_client(self, cfg):
         transport = TZlibTransport.TZlibTransport(

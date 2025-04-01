@@ -9,7 +9,8 @@ import traceback
 
 class PDFixedConnect:
     # connects directly to tm_api_rpc
-    def __init__(self, thrift_ip, port=9090):
+    def __init__(self, thrift_ip, logger, port=9090):
+        self.logger = logger
         try:
             transport = TTransport.TBufferedTransport(
                 TSocket.TSocket(thrift_ip, port))
@@ -22,22 +23,21 @@ class PDFixedConnect:
             self.error_message = ""
         except Exception:
             message = traceback.format_exc()
-            print(message)
+            self.logger.error(message)
             self.error = True
             self.error_message = message
 
     def set_port_shaping_rate(self, port, rate):
-        # rate limit over 100 Gbit/s is not possible
-        if rate > 100000000:
-            rate = 100000000
+        # rate limit over 400 Gbit/s is not possible
+        if rate > 400000000:
+            rate = 400000000
         cells = int(rate / 300)
         if cells > 250000:
-            # more doesn't make sense
+            # more doesn't work on tofino1, tof2 can do 300000 but no advantage
             cells = 250000
         elif cells < 300:
             cells = 300
-        print("Set Tofino Shaping Rate: " + str(rate/1000) + "Mbit/s | Cells: "
-              + str(cells) + " for port " + str(port))
+        self.logger.info("Set Tofino Shaping Rate: " + str(rate/1000) + "Mbit/s | Cells: " + str(cells) + " for port " + str(port))
         self.meth_dict["tm_set_port_shaping_rate"](0, port, False, 1600, rate)
         self.meth_dict["tm_set_ingress_port_drop_limit"](0, port, cells)
 

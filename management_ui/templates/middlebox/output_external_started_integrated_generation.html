@@ -1,0 +1,550 @@
+<!--
+# Copyright 2025-present Ralf Kundel, Fridolin Siegmund
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License. -->
+
+{% load static %}
+{% load management_ui %}
+<head>
+
+	<script type="text/javascript">
+		$(document).ready(function(){ 
+			$("#reset").click(function() {
+				$("#output_reset").html('<img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$.get("/subpage_run_reset/", function(data) {
+					$("#output_reset").html(data);
+				}, "html");
+			});
+		});
+	</script>
+
+	<script type="text/javascript">
+	function exec_loadgens(){
+		// var el = document.getElementsByName("csrfmiddlewaretoken");
+		// csrf_value = el[0].getAttribute("value");
+
+		let custom_name = document.getElementById("inputCustomName");
+		if(custom_name == null){
+			custom_name = "";
+		} else {
+			custom_name = custom_name.value;
+		}
+
+		var dur = document.getElementById("inputDuration").value;
+
+		gen_port_cfgs = []
+		{% for dut_port in cfg.dut_ports %}
+		var gen_port_cfg{{dut_port.id}} = {}
+		gen_port_cfg{{dut_port.id}}["generator_port"] = document.getElementById("egress_port_{{dut_port.id}}").name;
+		gen_port_cfg{{dut_port.id}}["selected_packet"] = document.getElementById("selected_packet_{{dut_port.id}}").value;
+		gen_port_cfg{{dut_port.id}}["use_port"] = document.getElementById("use_port_{{dut_port.id}}").checked;
+		gen_port_cfg{{dut_port.id}}["mcast_duplication_multi"] = document.getElementById("mcast_duplication_multi_{{dut_port.id}}").value
+
+		var rate_value = document.getElementById("loadgen_rate_{{dut_port.id}}").value;
+		// check if string contains integer
+		parse_float = parseFloat(rate_value)
+		if(!isNaN(parse_float)){
+			gen_port_cfg{{dut_port.id}}["rate_mbps"] = parse_float * 1000
+		} else {
+			window.alert("DUT ID {{dut_port.id}} rate " + rate_value + " can't be parsed as float.")
+			gen_port_cfg{{dut_port.id}}["rate_mbps"] = 0
+		}
+
+		var additional_ports = [
+			{% for port in cfg.additional_ports %}
+			{{port.id}},
+			{% endfor %}
+		]
+
+		gen_port_cfg{{dut_port.id}}["duplicate_to_additional_port_ids"] = []
+		additional_ports.forEach((portid) => {
+			key = "duplicate_to_" + portid + "_dut{{dut_port.id}}"
+			chckbx = document.getElementById(key)
+			if (chckbx.checked){
+				gen_port_cfg{{dut_port.id}}["duplicate_to_additional_port_ids"].push(portid)
+			}
+		})
+		
+		gen_port_cfgs.push(gen_port_cfg{{dut_port.id}})
+		{% endfor %}
+
+		if ('{{cfg.selected_loadgen}}' === 'Tofino Packet Generator'){
+			$.ajax({
+					type: "POST",
+					url: "/subpage_run_run_loadgens_integrated/",
+					data: {
+					'csrfmiddlewaretoken': "{{csrf_token}}", // csrf_value,
+					'duration': dur,
+					'custom_name': custom_name,
+					'gen_ports_cfgs_json_str': JSON.stringify(gen_port_cfgs)
+					},
+					success: function (response) {
+					$("#output_loadgens").html(response);
+					// run javascript code located in ajax loaded content, important because otherwise browser would interprete all content as html "strings"
+					eval(document.getElementById("live_metrics_script"))
+					}
+			});
+		}
+	}
+	
+	function load_status_overview() {
+		$("#status_overview").html('<p>Retrieving status ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+		$.get("/status_overview/", function(data) {
+			$("#status_overview").html(data);
+		}, "html");
+		document.getElementById("show_status").innerHTML = "Refresh";
+	}
+
+	function fetch_ext_host_live_status(){
+		$.get("/subpage_run_ext_host_live_status/", function(data) {
+			data = JSON.parse(data)
+			if(data.hasOwnProperty("live_status")){
+				// {"live_status": {"current_run_state": "UP and listening", "start_time": "2025-03-14T15:53:50.941627623+01:00"}}
+				html_str = ''
+				if(data.live_status.hasOwnProperty("green_light")){
+					if(data.live_status.green_light){
+						html_str += 'State: <span class="dot_green"></span>'
+					} else {
+						html_str += 'State: <span class="dot_red"></span> DOWN'
+					}
+				}
+				if(data.live_status.hasOwnProperty("current_run_state")){
+					html_str += " <i>" + data.live_status.current_run_state + "</i>";
+				}
+
+				if(data.live_status.hasOwnProperty("start_time")){
+					html_str += "<br> Start time: <i>" + data.live_status.start_time + "</i>"
+				}
+				
+				if(data.live_status.hasOwnProperty("log_list")){
+					html_str += '<div style="height: 10px"></div>' //spacer div
+					html_str += '<div class="row">'
+					html_str += '<div class="col-md-3">Default Log from External Host:</div>'
+
+					if(data.live_status.log_list.length === 0){
+						html_str += '<div class="col-md-9">No log entries</div></div>' //close row div in this case
+					}
+					
+					counter = 0
+					data.live_status.log_list.forEach(log_line => {
+						// if first element close row 
+						if(counter === 0){
+							html_str += '<div class="col-md-9">' + counter.toString() + ': <i>' + log_line + '</i></div></div>'
+						} else {
+							html_str +=  '<div class="row"><div class="col-md-3"></div><div class="col-md-9">' + counter.toString() + ': <i>' + log_line + '</i></div></div>'
+						}
+						counter += 1
+					});
+				}
+
+				if(data.live_status.hasOwnProperty("error_list")){
+					html_str += '<div style="height: 10px"></div>' //spacer div
+					html_str += '<div class="row">'
+					html_str += '<div class="col-md-3">Error Log from External Host:</div>'
+
+					if(data.live_status.error_list.length === 0){
+						html_str += '<div class="col-md-9">No log entries</div></div>' //close row div in this case
+					}
+					
+					counter = 0
+					data.live_status.error_list.forEach(log_line => {
+						// if first element close row 
+						if(counter === 0){
+							html_str += '<div class="col-md-9">' + counter.toString() + ': <i>' + log_line + '</i></div></div>'
+						} else {
+							html_str +=  '<div class="row"><div class="col-md-3"></div><div class="col-md-9">' + counter.toString() + ': <i>' + log_line + '</i></div></div>'
+						}
+
+						counter += 1
+					});
+
+				}
+
+				$("#ext_host_live_status").html(html_str);
+			}
+		}, "html");
+	}
+
+	window.intervalId_ext = setInterval(function() {
+		fetch_ext_host_live_status();
+	  }, 3000)
+
+	</script> 
+
+<style>
+.dot_red {
+  height: 15px;
+  width: 15px;
+  background-color: #F00;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot_green {
+  height: 15px;
+  width: 15px;
+  background-color: #008000;
+  border-radius: 50%;
+  display: inline-block;
+}
+</style>
+
+</head>
+
+{% csrf_token %}
+{% if running == True and errors|length == 0 %}
+<!--
+<div class="row">
+	<div class="col-md-4">
+		<p>Started with run <b>{{new_run_id}}</b>.</p>
+	</div>
+
+	<div class="col-md-6">
+		Set custom name: <input class="form-control" type="text" id="custom_name" value="" style="width: 200px" />
+	</div>
+
+</div>-->
+
+
+<div class="form-group row">
+    <label for="inputCustomName" class="col-sm-3 col-form-label">Started with run <b>{{new_run_id}}</b>. &nbsp; &nbsp; Set custom name:</label>
+    <div class="col-sm-6">
+      <input type="text" class="form-control" id="inputCustomName" placeholder="">
+    </div>
+	<!--
+	<div class="col-sm-3">
+		<button id="setCustomName" type="button" class="btn btn-primary">Save</button>
+	</div>-->
+  </div>
+
+
+<hr/>
+
+{% if not skipped %}
+<p>Monitoring: External host started listening via multicast. Press the stop button to get the results.</p>
+{% else %}
+<p>Monitoring: External host <b>skipped</b>. Only measurements from stamper target are retrieved (min, max, avg), no plots and per packet analysis.</p>
+{% endif %}
+<p>You should reset the switch registers to get exact results.</p>
+<p>Results from external host, stamper and loadgens are automaticly saved when you press <i>Stop Monitoring</i><p>
+
+
+
+<div class="row">
+	<div class="col-md-2">
+	{% if running == True %}
+		<button id="reset" type="button" class="btn btn-danger">Reset P4 registers</button>
+	{% else %}
+		<span style="color:red;">P4 device is not reachable. Please start it at <a href="/2/">Deploy</a>
+	{% endif %}
+	
+	</div>
+	<div class="col-md-10"><div id="output_reset"></div></div>
+</div>
+
+
+<div style="margin-top:10px;"></div>
+
+{% if ext_host_cfg.provides_status_api is True %}
+<hr/>
+<div style="margin-top:10px;"></div>
+
+<p>
+	<b>Live status of external monitoring host:</b> <div id="ext_host_live_status"></div>
+</p>
+<div style="margin-top:10px;"></div>
+{% endif %}
+
+<hr/>
+
+
+
+<div style="margin-top:10px;"></div>
+<p><b>P4STA configuration:</b></p>
+<div class="row">
+	<div class="col-md-3">The P4-Device is configured to stamp:</div>
+	<div class="col-md-9">
+		<p>TCP: <span class='{% if cfg.stamp_tcp == "checked" %}dot_green{% else %}dot_red{% endif %}'></span>
+			UDP: <span class='{% if cfg.stamp_udp == "checked" %}dot_green{% else %}dot_red{% endif %}'></span></p>
+	</div>
+</div>
+<hr/>
+
+<div class="row">
+<div style="margin-top:30px;"></div>
+	<div class="col-md-12"><b>Loadgen Packet Crafting:</b></div>
+</div>
+
+<!-- ACE (text edit javascript framework with syntax highlighting for code)-->
+<link rel="stylesheet" href="{% static 'includes/ace/ace.css' %}" type="text/css" media="screen" charset="utf-8">
+<script src="{% static 'includes/ace/ace_no_conflict.js' %}" type="text/javascript" charset="utf-8"></script>
+
+<!-- try to fix auto import wrong path of ace (e.g. p4staip:9997/run/mode_python.js is auto import but doesnt work with django)-->
+<script src="{% static 'includes/ace/mode-python.js' %}" type="text/javascript" charset="utf-8"></script> 
+<script src="{% static 'includes/ace/theme-dawn.js' %}" type="text/javascript" charset="utf-8"></script>
+
+ <style>
+	#packet_editor {
+		font-size: 14px;
+		width: 100%;
+		height: 600px; 
+		border: "1px solid #ddd";
+		}
+</style>
+
+<div id="packet_editor">
+</div>
+
+<script>
+    var editor = ace.edit("packet_editor");
+    editor.setTheme("ace/theme/dawn");
+    editor.getSession().setMode("ace/mode/python");
+
+	{% autoescape off %}
+	var stored_py_code = `{{py_code}}`;
+	{% endautoescape %}
+
+	if (stored_py_code !== ""){
+		editor.setValue(stored_py_code);
+	} else {
+
+		editor.setValue(`
+# Do not worry about scapy imports - P4STA handles them for you.
+# You can add packet crafts, helper functions and more in Python 3 here.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# IMPORTANT: Do not forget to push packet as __ "packet name": scapy_packet __ to packets={} after crafting!
+# CAUTION: All code from this window is evaluated as Python code in the management server without any filtering!
+
+packets = {}
+
+# adds packet payload "0" after scapy headers until total packet length is reached
+def add_payload_0(scapy_headers, total_paket_len):
+	return scapy_headers/Raw(load="0" * (total_paket_len - len(scapy_headers)))
+
+
+# UDP Packet
+udp_packet_headers = Ether()/IP()/UDP(dport=42424)
+packets["udp_packet"] = add_payload_0(udp_packet_headers, 1500)
+
+
+# TCP Packet
+tcp_packet_headers = Ether()/IP()/TCP(dport=24242)
+packets["tcp_packet"] = add_payload_0(tcp_packet_headers, 1500)
+
+
+# PPPoE Packet
+
+
+
+# GTP-U Packet
+
+
+# Now craft whatever custom packets you desire for load generation and after saving assign them to the generator ports. 
+# But keep in mind: P4STA does only stamp TCP and UDP packets, including (QinQ) VLANs, PPPoE and GTP-U. For instance, ARP and ICMP are not stamped.
+
+	`);
+
+}
+
+
+function submit_python_code(){
+	all_code = editor.getSession().getValue();
+
+	// var el = document.getElementsByName("csrfmiddlewaretoken");
+	// csrf_value = el[0].getAttribute("value");
+
+	$.ajax({
+		type: "POST",
+		url: "/subpage_run_packet_templates_config/",
+		data: {
+		  'csrfmiddlewaretoken': "{{csrf_token}}", // csrf_value,
+		  'packets_python_code': all_code
+		},
+		success: function (response) {
+			{% for dut_port in cfg.dut_ports %}
+				var select = document.getElementById("selected_packet_{{dut_port.id}}");
+				if(select !== null){
+					var sel_val = select.value;
+					select.innerHTML = "";
+					found = false;
+					response.packet_names.forEach(name => {
+						// only add not selected options
+						if (name !== sel_val){
+							var option = document.createElement("option");
+							option.value = name;
+							option.innerHTML = name;
+							select.appendChild(option);
+						} else {
+							found = true;
+						}
+					});
+					// be sure the old selected value(=packet name) is still in new packet list
+					if (found){
+						// add old selected packet name
+						var option = document.createElement("option");
+						option.value = sel_val;
+						option.innerHTML = sel_val;
+						option.selected = true;
+						select.appendChild(option);
+					}
+				}
+			{% endfor %}
+
+		}
+  });
+}
+
+function reset_template(){
+	// var el = document.getElementsByName("csrfmiddlewaretoken");
+	// csrf_value = el[0].getAttribute("value");
+
+	var editor = ace.edit("packet_editor");
+
+	$.ajax({
+		type: "POST",
+		url: "/subpage_run_packet_templates_config/",
+		data: {
+		  'csrfmiddlewaretoken': "{{csrf_token}}", //csrf_value,
+		  'reset': true
+		},
+		success: function (response) {
+			editor.setValue(response.py_code);
+		}
+  });
+
+}
+</script>
+
+<div class="row">
+	<div class="col-md-10"> <button class="btn btn-primary" style="width: 100%" onclick="submit_python_code()">Update Packets</button> </div>
+	<div class="col-md-2"><button class="btn btn-secondary" style="width: 100%" onclick="reset_template()">Load Default</button> </div>
+</div>
+
+<div style="margin-top:20px;"></div>
+
+<hr/>
+
+<div class="row">
+	<div style="margin-top:30px;"></div>
+		<div class="col-md-12"><b>Traffic Configuration:</b></div>
+	</div>
+	
+	<div style="margin-top:20px;"></div>
+
+	<div style="margin-top:10px;"></div>
+
+	<div class="row">
+		<div class="col-md-3">Load Generation Port:</div>
+
+		{% for dut_port in cfg.dut_ports %}
+		<div class="col-md-2">
+			<input class="form-control" id="egress_port_{{dut_port.id}}" name="{{dut_port.p4_port}}" value="{{dut_port.real_port}} | {{dut_port.speed}}" disabled />
+		</div>
+		{% endfor %}
+	</div>
+
+	<div class="row" style="margin-top:15px;">
+		<div class="col-md-3" id="useportlabel" data-toggle="tooltip" data-placement="top">Generate Packets: </div>
+
+		{% for dut_port in cfg.dut_ports %}
+
+		<div class="col-md-2">
+			<center>
+			<input type="checkbox" class="form-check-input-server" id="use_port_{{dut_port.id}}" checked/>
+			</center>
+		</div>
+
+		{% endfor %}
+
+	</div>
+
+
+	<div class="row" style="margin-top:15px;">
+		<div class="col-md-3" id="usepacketlabel" data-toggle="tooltip" data-placement="top">Select Packet: </div>
+
+		{% for dut_port in cfg.dut_ports %}
+
+		<div class="col-md-2">
+			<select class="form-control" id="selected_packet_{{dut_port.id}}" onchange="">
+				{% for name in packet_names %}
+				<option value="{{name}}">{{name}}</option>
+				{% endfor %}
+			</select>
+		</div>
+
+		{% endfor %}
+
+	</div>
+
+
+	<div class="row" style="margin-top:15px;">
+		<div class="col-md-3" id="loadgen_rate_label" data-toggle="tooltip" data-placement="top">Generate Throughput [Gbit/s]: </div>
+
+		{% for dut_port in cfg.dut_ports %}
+
+		<div class="col-md-2">
+			<input class="form-control" type="number" id="loadgen_rate_{{dut_port.id}}" value="1" min="1" placeholder="1 [mbps]" />
+		</div>
+
+		{% endfor %}
+
+	</div>
+
+
+<!-- duplication groups -->
+	<div class="row" style="margin-top:15px;">
+		<div class="col-md-3" id="duplicate_groups_label" data-toggle="tooltip" data-placement="top">Duplicate Packets to Ports: </div>
+
+		{% for dut_port in cfg.dut_ports %}
+
+		<div class="col-md-2">
+			{% for port in cfg.additional_ports %}
+			<p><center>
+				<input type="checkbox" class="form-check-input-server" id="duplicate_to_{{port.id}}_dut{{dut_port.id}}" unchecked/>
+				<b>{{port.real_port}}</b> | <b>{{port.speed}}</b>
+			</center></p>
+			{% endfor %}
+
+			<p><center>
+			<input style="width: 100px" type="number" id="mcast_duplication_multi_{{dut_port.id}}" name="mcast_duplication_multi_{{dut_port.id}}" class="form-control" />
+			<label class="form-label" for="mcast_duplication_multi">Duplication Multi (incl. DUT!)</label>
+			</p></center>
+
+		
+		</div>
+
+		{% endfor %}
+	</div>
+	
+<div class="row" style="margin-top:10px;">
+	<div class="col-md-3" id="inputDurationlabel">Duration of test in seconds: </div>
+	<div class="col-md-9"><input type="number" class="form-control" id="inputDuration" value="10" placeholder="10"></div>
+</div>
+
+<hr/>	
+
+<div style="margin-top:10px;"></div>
+<div class="row">
+	<div class="col-md-2"><button id="exec_loadgen" type="button" class="save btn btn-secondary" onclick="exec_loadgens()">Start</button></div>
+	<div class="col-md-10"><div id="output_loadgens" class="card card-body"></div></div>
+</div>
+{% elif running == False %}
+<span style="color: red">P4 device is not reachable. Please start it at <a href="/deploy/">Deploy</a></span>
+<button id="show_status" type="button" class="save btn btn-secondary" onclick="load_status_overview();">Show Status</button></h2> <div id="status_overview"></div>
+
+
+{% elif errors|length > 0 %}
+{% for error in errors %}
+<p>{{error}}</p>
+{% endfor %}
+<p>Aborted starting of external host. Please check your configuration at <a href="/configuration/">Configure</a></p>
+{% endif %}

@@ -102,7 +102,7 @@ class Dut1ToGroup1(BaseTest):
         
         exp_pkt_ext_host = (
             Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:01")
-            / IP(src="10.0.2.4", dst="10.11.12.99", len=46) # len 46 as set in P4
+            / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, .100
             / UDP(sport=41111, dport=41111, chksum=0, len=26)
             / Exthost(len=len(pkt)) 
             / Raw(load=with_tstamps)
@@ -217,7 +217,7 @@ class Dut2ToGroup2(BaseTest):
         
         exp_pkt_ext_host_1 = (
             Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:02")
-            / IP(src="10.0.1.3", dst="10.11.12.99", len=46) # len 46 as set in P4
+            / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, src = .100
             / UDP(sport=41111, dport=41111, chksum=0, len=26)
             / Exthost(len=len(pkt1)) 
             / Raw(load=with_tstamps)
@@ -231,7 +231,7 @@ class Dut2ToGroup2(BaseTest):
         if not self.l1:
             exp_pkt_ext_host_2 = (
                 Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:02")
-                / IP(src="10.0.1.3", dst="10.11.12.99", len=46) # len 46 as set in P4
+                / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, src = .100
                 / UDP(sport=41111, dport=41111, chksum=0, len=26)
                 / Exthost(len=len(pkt2)) 
                 / Raw(load=with_tstamps)
@@ -379,7 +379,7 @@ class Only1DUTDut1ToGroup1(BaseTest):
 
         exp_pkt_ext_host = (
             Ether(dst="55:14:df:9f:03:af", src="22:22:22:22:22:23")
-            / IP(src="10.0.1.4", dst="10.11.12.99", len=46) # len 46 as set in P4
+            / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, src = .100
             / UDP(sport=41111, dport=41111, chksum=0, len=26)
             / Exthost(len=len(pkt)) 
             / Raw(load=with_tstamps)
@@ -392,7 +392,7 @@ class Only1DUTDut1ToGroup1(BaseTest):
 
         exp_pkt_ext_host2 = (
             Ether(dst="55:14:df:9f:03:af", src="22:22:22:22:22:22")
-            / IP(src="10.0.1.3", dst="10.11.12.99", len=46) # len 46 as set in P4
+            / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, src = .100
             / UDP(sport=41111, dport=41111, chksum=0, len=26)
             / Exthost(len=len(pkt2)) 
             / Raw(load=with_tstamps)

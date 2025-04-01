@@ -23,6 +23,7 @@
 import argparse
 import csv
 import json
+import logging
 import multiprocessing
 import numpy as np
 import os
@@ -45,47 +46,59 @@ project_path = dir_path[0:dir_path.find("/analytics")]
 lock = threading.RLock()
 
 
+def get_fallback_logger():
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.DEBUG)
+    logger.info("Using default Python logger as fallback.")
+    return logger
+
+
 # read the csv files and plots the graphs
-def main(file_id, multicast, results_path):
+def main(file_id, multicast, results_path, logger=None):
     def thread_join(thrs):
         for thread in thrs:
             thread.start()
         for thread in thrs:
             thread.join()
 
+    if logger == None:
+        logger = get_fallback_logger()
+
     fpath = project_path + "/results/" + str(
         file_id) + "/generated/extHost_results.json"
     if os.path.isfile(fpath):
         with open(fpath, "r") as f:
-            print("Using cached version of " + fpath)
-            return json.load(f)
+            dict_from_json = json.load(f)
+            if "pos_latency_std_deviation" in dict_from_json:
+                logger.info("Using cached version of " + fpath)
+                return dict_from_json
+            else:
+                logger.info("Calculating results with newest P4STA features ...")
 
     start = time.time()
-    raw_packet_counter = read_csv(
-        results_path, "raw_packet_counter", file_id)[0]
-    packet_sizes = read_csv(results_path, "packet_sizes", file_id)
-    timestamp1_list = read_csv(results_path, "timestamp1_list", file_id)
-    timestamp2_list = read_csv(results_path, "timestamp2_list", file_id)
+    raw_packet_counter = read_csv(logger, results_path, "raw_packet_counter", file_id)[0]
+    packet_sizes = read_csv(logger, results_path, "packet_sizes", file_id)
+    timestamp1_list = read_csv(logger, results_path, "timestamp1_list", file_id)
+    timestamp2_list = read_csv(logger, results_path, "timestamp2_list", file_id)
     end = time.time()
-    print("It took " + str(end-start) +
-          "s to load csv files for P4STA analytics.")
+    logger.debug("It took " + str(end-start) + "s to load csv files for P4STA analytics.")
 
     # get list of cumulative packet sizes
     throughput_at_time = []
     total_throughput = 0
     
     # debugging
-    print("LEN PACKET SIZES: " + str(len(packet_sizes)))
-    print("len(timestamp1_list) = ", len(timestamp1_list))
-    print("len(timestamp2_list) = ", len(timestamp2_list))
+    logger.debug("LEN PACKET SIZES: " + str(len(packet_sizes)) )
+    logger.debug("len(timestamp1_list) = " + str(len(timestamp1_list)))
+    logger.debug("len(timestamp2_list) = " + str(len(timestamp2_list)))
 
     for i in range(len(packet_sizes)):
         total_throughput = total_throughput + packet_sizes[i]
         throughput_at_time.append(total_throughput)
 
     latency_list = []
-    min_latency = max_latency = ave_latency = \
-        latency_variance = latency_std_deviation = 0
+    min_latency = max_latency = ave_latency = latency_variance = 0
+    latency_std_deviation = pos_latency_std_deviation = neg_latency_std_deviation = 0
     total_ipdv = abs_total_ipdv = total_pdv = total_latencies = 0
     min_ipdv = max_ipdv = ave_ipdv = ave_abs_ipdv = 0
     min_pdv = max_pdv = ave_pdv = 0
@@ -98,19 +111,18 @@ def main(file_id, multicast, results_path):
     packet_list = []
     time_throughput = []
     if len(timestamp1_list) > 0 and len(timestamp2_list) > 0:
-        if timestamp1_list[0] > 0 \
-                and len(timestamp1_list) == len(timestamp2_list):
+        if timestamp1_list[0] > 0 and len(timestamp1_list) == len(timestamp2_list):
             # creates list of all latencies
+
+            # 50% faster than for loop calculating t2-t1 for each packet
+            latency_list = list(map(int.__sub__, timestamp2_list, timestamp1_list))
+            total_latencies = sum(latency_list) # maybe numpy sum here
             for i in range(0, len(timestamp1_list)):
-                delta = timestamp2_list[i] - timestamp1_list[i]
-                latency_list.append(delta)
-                total_latencies = total_latencies + delta
                 # sets the start time to 0 ms
-                time_throughput.append(int(round(
-                    (timestamp2_list[i] - timestamp2_list[0]) / 1000000)))
+                diff = timestamp2_list[i] - timestamp2_list[0]
+                time_throughput.append(int(round(diff / 1000000)))
                 # - [0] to set first time to 0 sec
-                count_list_sec.append(
-                    (timestamp2_list[i] - timestamp2_list[0]) / 1000000000)
+                count_list_sec.append(diff / 1000000000)
             # minimum and maximum latency
             min_latency = min(latency_list, default=0)
             max_latency = max(latency_list, default=0)
@@ -135,10 +147,35 @@ def main(file_id, multicast, results_path):
                 ave_pdv = round(total_pdv / len(pdv_list))
                 # calculate standard deviation of latency
                 total_sqr_dev = 0
+                pos_sqr_dev = 0
+                pos_counter = 0
+                neg_sqr_dev = 0
+                neg_counter = 0
                 for z in range(0, len(latency_list)):
                     total_sqr_dev += (latency_list[z] - ave_latency)**2
+                    # we count equal values to positive
+                    if latency_list[z] >= ave_latency:
+                        pos_sqr_dev += (latency_list[z] - ave_latency)**2
+                        pos_counter += 1
+                    else:
+                        neg_sqr_dev += (latency_list[z] - ave_latency)**2
+                        neg_counter += 1
+
+
                 latency_variance = total_sqr_dev / len(ipdv_list)
                 latency_std_deviation = latency_variance ** 0.5
+
+                if pos_counter > 0:
+                    pos_latency_std_deviation = (pos_sqr_dev / pos_counter) ** 0.5
+                else:
+                    pos_latency_std_deviation = 0
+
+                if neg_counter > 0:
+                    neg_latency_std_deviation = (neg_sqr_dev / neg_counter) ** 0.5
+                else:
+                    neg_latency_std_deviation = 0
+
+
             # minimum and maximum ipdv
             min_ipdv = min(ipdv_list, default=0)
             max_ipdv = max(ipdv_list, default=0)
@@ -282,8 +319,7 @@ def main(file_id, multicast, results_path):
 
             thread_join(processes)
             end = time.time()
-            print("MULTIP: It took " + str(end - start) +
-                  "s to plot graphs in analytics.")
+            logger.debug("MULTIP: It took " + str(end - start) + " s to plot graphs in analytics.")
 
     results = {"num_raw_packets": raw_packet_counter,
                "num_processed_packets": len(latency_list),
@@ -297,6 +333,8 @@ def main(file_id, multicast, results_path):
                "max_packets_per_second": max_packets,
                "avg_packets_per_second": ave_packet_sec,
                "latency_std_deviation": latency_std_deviation,
+               "pos_latency_std_deviation": pos_latency_std_deviation,
+               "neg_latency_std_deviation": neg_latency_std_deviation,
                "latency_variance": latency_variance,
                "latency_list": latency_list}
     if __name__ == "__main__":
@@ -355,7 +393,8 @@ def plot_graph(value_list_input, index_list, titel, x_label, y_label,
                 fig.savefig(fpath, format="svg")
             plt.close('all')
     else:
-        print("Using cached version of " + fpath)
+        # print("Using cached version of " + fpath)
+        pass
 
 
 # input: list
@@ -451,7 +490,6 @@ def plot_bar(value_list_input, min, max, filename,
             total_range = max - min
             parts = []
             stepwidth = round((total_range / slices)+0.1, 1)
-            print("PLOT BAR: stepwidth: "+str(stepwidth))
             base = round(min, 1)
             for i in range(0, slices+1):
                 parts.append(round(base + (i*stepwidth), 1))
@@ -494,11 +532,11 @@ def plot_bar(value_list_input, min, max, filename,
                     file_id) + "/generated/" + filename + ".svg", format="svg")
             plt.close('all')
     else:
-        print("Using cached version of " + fpath)
-
+        # print("Using cached version of " + fpath)
+        pass
 
 # reads csv file and returns list with elements from csv file
-def read_csv(results_path, file_name, file_id, thread_return=[], thr_id=-1):
+def read_csv(logger, results_path, file_name, file_id, thread_return=[], thr_id=-1):
     temp = []
     try:
         with open(os.path.join(results_path, file_name + "_" + str(file_id)
@@ -507,7 +545,7 @@ def read_csv(results_path, file_name, file_id, thread_return=[], thr_id=-1):
             for elem in reader:
                 temp.append(int(elem[0]))
     except Exception as e:
-        print("exception in csv reader:" + str(e))
+        logger.error("exception in csv reader:" + str(e))
         temp.append(-1)
     # if thread id is set use passed list to store results
     if thr_id > -1:
@@ -525,8 +563,13 @@ if __name__ == "__main__":
         '--id', help='ID of the csv files. Not set: use cfg file in /data',
         type=str, action="store", required=True)
     args = parser.parse_args()
+
+    logger = get_fallback_logger()
+
+    logger.info("Start standalone analytics")
+
     if args.id is None:
-        print("No ID given")
+        logger.info("No ID given")
     else:
         id = args.id
         multicast = "n/a"
@@ -538,11 +581,11 @@ if __name__ == "__main__":
                 multicast = config["multicast"]
         except Exception:
             multicast = ""
-            print("config.json not found. path: " + dir_path[0:dir_path.find(
+            logger.warning("config.json not found. path: " + dir_path[0:dir_path.find(
                 "analytics")]+"/data/config_" + id + ".json")
 
         if len(id) > 0 and len(multicast) > 0:
             path = dir_path[0:dir_path.find("analytics")]+"results/"+str(id)
-            results = main(id, multicast, path)
+            results = main(id, multicast, path, logger)
         else:
-            print("Aborted execution.")
+            logger.error("Aborted execution.")

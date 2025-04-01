@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import time
+import requests
 import subprocess
+import time
 import P4STA_utils
 
 from abstract_extHost import AbstractExtHost
@@ -22,9 +23,9 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
 class ExtHostImpl(AbstractExtHost):
-    def __init__(self, host_cfg):
-        super().__init__(host_cfg)
-        print("init GoLang Ext Host")
+    def __init__(self, host_cfg, logger):
+        # dir name at the host the actual external host impl is running, .../p4sta_externalHost/ + self.path_on_exec_host
+        super().__init__(host_cfg, "go", logger)
 
     def start_external(self, file_id, multi=1, tsmax=(2 ** 32 - 1)):
         self.cfg = P4STA_utils.read_current_cfg()
@@ -42,19 +43,25 @@ class ExtHostImpl(AbstractExtHost):
                  self.cfg["ext_host_user"] + "@" + self.cfg[
                      "ext_host_ssh"] + ":/home/" + self.cfg[
                      "ext_host_user"] + "/p4sta/externalHost/go"]
+        self.logger.debug(input)
         res = subprocess.run(input, stdout=subprocess.PIPE, timeout=3).stdout
+        self.logger.debug(res)
         
         input = ["scp", ext_dir + "/extHostHTTPServer.go",
                  self.cfg["ext_host_user"] + "@" + self.cfg[
                      "ext_host_ssh"] + ":/home/" + self.cfg[
                      "ext_host_user"] + "/p4sta/externalHost/go"]
+        self.logger.debug(input)
         res = subprocess.run(input, stdout=subprocess.PIPE, timeout=3).stdout
+        self.logger.debug(res)
 
         input = ["scp", ext_dir + "/check_extH_status.sh",
                  self.cfg["ext_host_user"] + "@" + self.cfg[
                      "ext_host_ssh"] + ":/home/" + self.cfg[
                      "ext_host_user"] + "/p4sta/externalHost/go"]
+        self.logger.debug(input)
         res = subprocess.run(input, stdout=subprocess.PIPE, timeout=3).stdout
+        self.logger.debug(res)
 
         args = "chmod +x /home/" + self.cfg["ext_host_user"] + \
                "/p4sta/externalHost/go/goUdpSocketExtHost.go; " \
@@ -62,44 +69,40 @@ class ExtHostImpl(AbstractExtHost):
                "/p4sta/externalHost/go/check_extH_status.sh;" \
                " rm -f /home/" + self.cfg["ext_host_user"] + \
                "/p4sta/externalHost/go/golangUdpSocketExtHost.log"
-        print(args)
+        self.logger.debug(args)
         res = P4STA_utils.execute_ssh(self.cfg["ext_host_user"],
                                       self.cfg["ext_host_ssh"], args)
 
-        print("start golang extHost")
-        # enable_gtpu = ""
-        # if ("enable_gtp" in self.host_cfg and self.host_cfg["enable_gtp"] == True):
-        #     enable_gtpu = " --gtp"
-        # enable_pppoe = ""
-        # if ("enable_pppoe" in self.host_cfg and self.host_cfg["enable_pppoe"] == True):
-        #     enable_pppoe = " --pppoe"
+        self.logger.info("start golang extHost")
+
         call = "sudo /home/" + self.cfg["ext_host_user"] + \
                "/p4sta/externalHost/go/go/bin/go run extHostHTTPServer.go goUdpSocketExtHost.go --name " + file_id + \
                " --ip_port " + self.cfg["ext_host_ip"] + ":41111 --ip " + self.cfg["ext_host_ip"]  # + " --multi " + str(multi) + " --tsmax " + str(tsmax)
         args = "cd /home/" + self.cfg["ext_host_user"] + \
                "/p4sta/externalHost/go/; nohup " + call + \
-               " > foo.out 2> foo.err < /dev/null &"
-        print(args)
+               " > log.out 2> log.err < /dev/null &"
+        self.logger.debug(args)
         res = P4STA_utils.execute_ssh(self.cfg["ext_host_user"],
                                       self.cfg["ext_host_ssh"], args)
 
-        time.sleep(2)  # wait for the ext-host to succeed/fail
-        # check if interface is not found or other crash
-        input = ["ssh",
-                 self.cfg["ext_host_user"] + "@" + self.cfg["ext_host_ssh"],
-                 "cd /home/" + self.cfg["ext_host_user"] +
-                 "/p4sta/externalHost/go; cat golangUdpSocketExtHost.log; exit"]
-        res = subprocess.run(input, stdout=subprocess.PIPE, timeout=3).stdout
-        result = res.decode("utf-8")
+        # time.sleep(2)  # wait for the ext-host to succeed/fail
+        # # check if interface is not found or other crash
+        # input = ["ssh",
+        #          self.cfg["ext_host_user"] + "@" + self.cfg["ext_host_ssh"],
+        #          "cd /home/" + self.cfg["ext_host_user"] +
+        #          "/p4sta/externalHost/go; cat golangUdpSocketExtHost.log; exit"]
+       
+        # res = subprocess.run(input, stdout=subprocess.PIPE, timeout=3).stdout
+        # result = res.decode("utf-8")
 
-        # TODO: adjust for golang, still python errors
-        if result.find("Errno 19") > -1:
-            errors = errors + ("Interface " + str(self.cfg["ext_host_if"]) +
-                               " not found at external host: " + result,)
-        elif result.find("Exception") > -1:
-            errors = errors + ("An exception occurred: " + result,)
-        elif result.find("Started") == -1:
-            errors = errors + ("Ext host not started properly",)
+        # TODO: adjust for golang, still python errors => not required with live view in webgui
+        # if result.find("Errno 19") > -1:
+        #     errors = errors + ("Interface " + str(self.cfg["ext_host_if"]) +
+        #                        " not found at external host: " + result,)
+        # elif result.find("Exception") > -1:
+        #     errors = errors + ("An exception occurred: " + result,)
+        # elif result.find("Started") == -1:
+        #     errors = errors + ("Ext host not started properly",)
 
         return errors
 
@@ -228,18 +231,6 @@ class ExtHostImpl(AbstractExtHost):
             user_name + '@' + ip + ' "cd /home/' + user_name +
             '/p4sta/externalHost/go; ./check_install_go.sh;"')
 
-        # lst.append(
-        #     '  ssh  -t -o ConnectTimeout=2 -o StrictHostKeyChecking=no ' +
-        #     user_name + '@' + ip +
-        #     ' "sudo apt update; sudo apt install -y python3-pip"')
-        # for version in self.host_cfg["python_dependencies"]:
-        #     for module in version["modules"]:
-        #         pip_str = "pip" + version[
-        #             "python_version"] + " install " + module
-        #         lst.append('  ssh  -t -o ConnectTimeout=2 -o '
-        #                    'StrictHostKeyChecking=no ' + user_name + '@' +
-        #                    ip + ' "' + pip_str + '"')
-
         lst.append('fi')
         return lst
 
@@ -255,3 +246,18 @@ class ExtHostImpl(AbstractExtHost):
                     self.host_cfg["status_check"]["needed_sudos_to_add"],
                     dynamic_mode_inp=results[index]
                     ["list_of_path_possibilities"])
+            
+    def ext_host_live_status(self):
+        cfg = P4STA_utils.read_current_cfg()
+
+        base_url = "http://" + str(cfg["ext_host_ssh"]) + ":8888"
+        try:
+            run_state = requests.get(base_url + "/run_state").json()
+        except requests.exceptions.ConnectionError:
+            self.logger.warning("HTTP API of GoLangExtHost not reachable.")
+            run_state = {}
+        except Exception as e:
+            self.logger.error(str(e))
+            run_state = {}
+
+        return run_state

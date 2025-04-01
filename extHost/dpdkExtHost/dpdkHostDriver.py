@@ -23,9 +23,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
 class ExtHostImpl(AbstractExtHost):
-    def __init__(self, host_cfg):
-        super().__init__(host_cfg)
-        print("init ext Host dpdk")
+    def __init__(self, host_cfg, logger):
+        super().__init__(host_cfg, "dpdkExtHost", logger)
 
     def start_external(self, file_id, multi=1, tsmax=(2 ** 32 - 1)):
         self.cfg = P4STA_utils.read_current_cfg()
@@ -41,12 +40,12 @@ class ExtHostImpl(AbstractExtHost):
             cmd += " --vdev=eth_af_packet42,iface=" + self.cfg[
                 "ext_host_if"] + ",blocksz=4096,framesz=2048,framecnt=512," \
                                  "qpairs=1,qdisc_bypass=0"
-        cmd += " -- --name " + file_id + " > foo.out 2> foo.err < /dev/null &"
-        print(cmd)
+        cmd += " -- --name " + file_id + " > log.out 2> log.err < /dev/null &"
+        self.logger.debug(cmd)
         res = P4STA_utils.execute_ssh(self.cfg["ext_host_user"],
                                       self.cfg["ext_host_ssh"], cmd)
-        print("started DPDK-based external host")
-        print(res)
+        self.logger.info("started DPDK-based external host")
+        self.logger.debug(res)
         errors = ()
         return errors
 
@@ -58,7 +57,7 @@ class ExtHostImpl(AbstractExtHost):
                      "ext_host_user"] + "/p4sta/externalHost/dpdkExtHost/; "
                                         "touch receiver_stop"]
         res = subprocess.run(input).stdout
-        print(res)
+        self.logger.debug(res)
         input = ["ssh", "-o ConnectTimeout=5",
                  self.cfg["ext_host_user"] + "@" + self.cfg["ext_host_ssh"],
                  "cd /home/" + self.cfg[
@@ -186,7 +185,7 @@ class ExtHostImpl(AbstractExtHost):
                     "[ -d '/home/" + cfg["ext_host_user"] +
                     "/p4sta/externalHost/dpdkExtHost/dpdk-24.07/build' ] "
                     "&& echo '1'")
-                print(answer)
+                self.logger.debug(answer)
                 if answer[0] == "1":
                     results[index]["custom_checks"] = [
                         [True, "DPDK", "is installed"]]

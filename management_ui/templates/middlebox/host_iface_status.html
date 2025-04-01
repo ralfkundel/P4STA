@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License. -->
 
+
+
+{% if cfg.selected_loadgen != "Tofino Packet Generator" %}
+
 {% for loadgen_grp in cfg.loadgen_groups %}
 {% if loadgen_grp.use_group == "checked" %}
 {% for host in loadgen_grp.loadgens %}
@@ -26,3 +30,9 @@
 {% endfor %}
 {% endif %}
 {% endfor %}
+
+{% else %}
+
+No load generator checks required for Tofino Packet Generator.
+
+{% endif %}

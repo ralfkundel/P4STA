@@ -9,3 +9,35 @@
         display : none;
     }
 }
+
+
+.jumbotron {
+    padding-top: 15px !important;
+    padding-bottom: 15px !important;
+}
+
+/* For P4STA topology port_graphic.html */
+.leftPort {
+    background-color:#848484;
+    /*position: fixed;*/
+    /* padding: 2em; */
+    width: 100px;
+    height: 15px;
+    transform: translate(-150%, 50%);
+}
+
+.rightPort {
+    background-color:#848484;
+    /*position: fixed;*/
+    /* padding: 2em; */
+    width: 100px;
+    height: 15px;
+    transform: translate(150%, -55%);
+}
+
+.fixedBottomCenter {
+    position: fixed;
+    bottom: 10px;
+    margin-left: 50px;
+    /*transform: translateX(25%);*/
+}

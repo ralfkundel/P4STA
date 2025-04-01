@@ -1,10 +1,12 @@
 {
    "target":"Wedge100BF32X",
+   "tofino_generation": "1",
    "cfg_template":"tofino_model_cfg_template.json",
-   "default_target_driver":"../Wedge100B65/tofino1_65p_stamper_v1_2_1.py",
+   "default_target_driver":"../Wedge100B65/tofino1_65p_stamper_v1_3_0.py",
    "available_target_drivers": [
       {"version": "1.2.0", "target_driver": "../Wedge100B65/tofino1_65p_stamper_v1_2_0.py"},
-      {"version": "1.2.1", "target_driver": "../Wedge100B65/tofino1_65p_stamper_v1_2_1.py"}
+      {"version": "1.2.1", "target_driver": "../Wedge100B65/tofino1_65p_stamper_v1_2_1.py"},
+      {"version": "1.3.0", "target_driver": "../Wedge100B65/tofino1_65p_stamper_v1_3_0.py"}
    ],
    "stamping_capabilities":{
       "tcp":true,
@@ -12,6 +14,10 @@
       "timestamp-multi":1,
       "timestamp-max":281474976710655
    },
+   "packet_generator_ports": [
+      "68",
+      "196"
+   ],
    "config":{
       "stamper_specific":[
          {
@@ -25,9 +31,10 @@
             "type":"drop-down",
             "values":[
                "1.2.0",
-               "1.2.1"
+               "1.2.1",
+               "1.3.0"
             ],
-            "default_value":"1.2.1",
+            "default_value":"1.3.0",
             "target_key":"p4sta_version",
             "description":"P4sta Version to use, e.g. 1.2.1 or 1.2.0"
          },
@@ -52,9 +59,10 @@
             "type":"drop-down",
             "values":[
                "1.2.0",
-               "1.2.1"
+               "1.2.1",
+               "1.3.0"
             ],
-            "default_value":"1.2.1",
+            "default_value":"1.3.0",
             "target_key":"p4sta_version",
             "description":"P4sta Version to use, e.g. 1.2.1 or 1.2.0"
          },

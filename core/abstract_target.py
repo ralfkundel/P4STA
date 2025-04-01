@@ -21,8 +21,9 @@ import P4STA_utils
 
 
 class AbstractTarget:
-    def __init__(self, target_cfg):
+    def __init__(self, target_cfg, logger):
         self.target_cfg = target_cfg
+        self.logger = logger
 
     def setRealPath(self, path):
         self.realPath = path
@@ -56,7 +57,7 @@ class AbstractTarget:
                     else:
                         all_dut_dst_p4_ports.append(dut["p4_port"])
                 else:
-                    print("Port " +
+                    self.logger.warning("Port " +
                           str(dut["p4_port"] + " seems to be configured to "
                                                "more than one DUT port, P4STA "
                                                "may not work properly."))
@@ -142,8 +143,8 @@ class AbstractTarget:
         res["stamper_sudo_rights"], list_of_path_possibilities = \
             P4STA_utils.check_sudo(
                 cfg["stamper_user"], cfg["stamper_ssh"], dynamic_mode=True)
-        print("Target sudo path possibilities:")
-        print(list_of_path_possibilities)
+        self.logger.debug("Target sudo path possibilities:")
+        self.logger.debug(list_of_path_possibilities)
 
         if res["stamper_ssh_ping"]:
             res["stamper_compile_status_color"], res["p4_compile_status"] = \

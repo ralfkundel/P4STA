@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import json
 import os
 import time
 import traceback
@@ -30,34 +31,48 @@ from management_ui import globals
 # writes id of selected dataset in config file and reload /analyze/
 def page_analyze(request):
     if request.method == "POST":
-        globals.selected_run_id = request.POST["set_id"]
-        saved = True
+        is_set = False
+        if "custom_id" in request.POST:
+            if request.POST["custom_id"] != "" and request.POST["custom_id"].isnumeric():
+                path = "results/" + str(request.POST["custom_id"])
+                if os.path.exists(path):
+                    globals.selected_run_id = request.POST["custom_id"]
+                    is_set = True
+                    saved = True
+                else:
+                    globals.logger.warning("Result not found: " + str(request.POST["custom_id"]))
+                    is_set = False
+                    saved = False
+        if not is_set:
+            globals.selected_run_id = request.POST["set_id"]
+            saved = True
     else:
         globals.selected_run_id = \
             globals.core_conn.root.getLatestMeasurementId()
         saved = False
 
-    return page_analyze_return(request, saved)
+    return page_analyze_return(request, {"saved": saved})
 
 
 # return html object for /analyze/ and build list
 # for selector of all available datasets
 def page_analyze_return(request, saved):
     if globals.selected_run_id is None:
-        globals.selected_run_id = globals.core_conn.root. \
-            getLatestMeasurementId()
+        globals.logger.debug("global selected_run_id is None .. set latest test run.")
+        globals.selected_run_id = globals.core_conn.root.getLatestMeasurementId()
 
     if globals.selected_run_id is not None:
         id_int = int(globals.selected_run_id)
         cfg = P4STA_utils.read_result_cfg(globals.selected_run_id)
         id_ex = time.strftime('%H:%M:%S %d.%m.%Y', time.localtime(id_int))
+        id_custom_name = globals.core_conn.root.get_custom_name_by_id(globals.selected_run_id)
         id_list = []
         found = globals.core_conn.root.getAllMeasurements()
 
         for f in found:
-            time_created = time.strftime('%H:%M:%S %d.%m.%Y', time.localtime(
-                int(f)))
-            id_list.append([f, time_created])
+            time_created = time.strftime('%H:%M:%S %d.%m.%Y', time.localtime(int(f)))
+            custom_name = globals.core_conn.root.get_custom_name_by_id(f, silent=True)
+            id_list.append([f, time_created, custom_name])
         id_list_final = []
         for f in range(0, len(id_list)):
             if id_list[f][1] != id_ex:
@@ -72,13 +87,20 @@ def page_analyze_return(request, saved):
         id_ex = "no data sets available"
         error = True
 
+    globals.logger.info("Load analyze page with selected_run_id = " + str(globals.selected_run_id))
+
+    # **cfg with cfg=None raises an exception
+    if cfg == None:
+        cfg = {}
+    
     return render(request, "middlebox/page_analyze.html",
                   {**cfg, **{
-                      "id": [id_int, id_ex],
+                      "id": [id_int, id_ex, id_custom_name],
                       "id_list": id_list_final,
                       "saved": saved,
-                      "ext_host_real": cfg["ext_host_real"],
-                      "error": error}})
+                      "ext_host_real": cfg["ext_host_real"] if "ext_host_real" in cfg else "",
+                      "error": error,
+                      "cfg_json": json.dumps(cfg)}})
 
 
 # delete selected data sets and reload /analyze/
@@ -107,7 +129,7 @@ def stamper_results(request):
                 raise Exception(sw["error"])
             return render(request, "middlebox/output_stamper_results.html", sw)
         except Exception as e:
-            print(e)
+            globals.logger.error(traceback.format_exc())
             return render(request, "middlebox/timeout.html",
                           {"inside_ajax": True, "error":
                               ("render stamper results error: " + str(e))})
@@ -122,8 +144,8 @@ def external_results(request):
         try:
             extH_results = analytics.main(str(globals.selected_run_id),
                                           cfg["multicast"],
-                                          P4STA_utils.get_results_path(
-                                              globals.selected_run_id))
+                                          P4STA_utils.get_results_path(globals.selected_run_id),
+                                          globals.logger)
             ipdv_range = extH_results["max_ipdv"] - extH_results["min_ipdv"]
             pdv_range = extH_results["max_pdv"] - extH_results["min_pdv"]
             rate_jitter_range = extH_results["max_packets_per_second"] - \
@@ -180,11 +202,15 @@ def external_results(request):
                                extH_results["avg_abs_ipdv"]),
                            "latency_std_deviation": analytics.find_unit(
                                extH_results["latency_std_deviation"]),
+                           "pos_latency_std_deviation": analytics.find_unit(
+                               extH_results["pos_latency_std_deviation"]),
+                           "neg_latency_std_deviation": analytics.find_unit(
+                               extH_results["neg_latency_std_deviation"]),
                            "latency_variance": analytics.find_unit_sqr(
                                extH_results["latency_variance"])})
 
         except Exception:
-            print(traceback.format_exc())
+            globals.logger.error(traceback.format_exc())
             return render(request, "middlebox/timeout.html",
                           {"inside_ajax": True, "error": (
                                       "render external error: " + str(
@@ -276,7 +302,8 @@ def download_all_zip(request):
         # trigger generation of graphs
         _ = analytics.main(
             str(globals.selected_run_id), cfg["multicast"],
-            P4STA_utils.get_results_path(globals.selected_run_id)
+            P4STA_utils.get_results_path(globals.selected_run_id),
+            globals.logger
         )
 
     # stamper
@@ -347,7 +374,7 @@ def pack_zip(files, file_id, zip_name):
         try:
             zip_file.write(filename=f[0], arcname=f[1])
         except FileNotFoundError:
-            print(str(f) + ": adding to zip object failed")
+            globals.logger.warning(str(f) + ": adding to zip object failed")
             # if a file is not found continue writing the
             # remaining files in the zip file
             continue
@@ -365,8 +392,8 @@ def dygraph(request):
         try:
             extH_results = analytics.main(str(globals.selected_run_id),
                                           cfg["multicast"],
-                                          P4STA_utils.get_results_path(
-                                              globals.selected_run_id))
+                                          P4STA_utils.get_results_path(globals.selected_run_id),
+                                          globals.logger)
             # list for "Dygraph" javascript graph
             graph_list = []
             counter = 1
@@ -377,9 +404,11 @@ def dygraph(request):
                 counter = counter + 1
 
             timestamp1_list = analytics.read_csv(
+                globals.logger,
                 P4STA_utils.get_results_path(globals.selected_run_id),
                 "timestamp1_list", str(globals.selected_run_id))
             timestamp2_list = analytics.read_csv(
+                globals.logger,
                 P4STA_utils.get_results_path(globals.selected_run_id),
                 "timestamp2_list", str(globals.selected_run_id))
 
@@ -396,7 +425,7 @@ def dygraph(request):
                            "time_throughput": time_throughput, "unit": unit})
 
         except Exception:
-            print(traceback.format_exc())
+            globals.logger.error(traceback.format_exc())
             return render(request, "middlebox/timeout.html",
                           {"inside_ajax": True, "error": (
                                       "render external error: " + str(

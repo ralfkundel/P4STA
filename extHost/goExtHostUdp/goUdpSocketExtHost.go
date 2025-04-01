@@ -24,6 +24,7 @@ var packet_counter uint64
 var name *string
 var save *bool
 var start_time time.Time
+var current_run_state string
 
 func write_csv_uint_list(filename string, to_write []uint64) {
 	file, err := os.Create(fmt.Sprintf("%s_%s.csv", filename, *name))
@@ -59,6 +60,7 @@ func overwrite_textfile(full_filename string, to_write string) {
 }
 
 func save_data() {
+	current_run_state = "Writing timestamp files ..."
 	fmt.Println("saving data ..")
 	fmt.Println("timestamp1 list length: ", len(timestamp1_list))
 	fmt.Println("timestamp2 list length: ", len(timestamp2_list))
@@ -92,10 +94,17 @@ func save_data() {
 
 		overwrite_textfile("receiver_finished.log", "True")
 		fmt.Println("Finished writing")
+		current_run_state = "Finished writing timestamp files"
 	}
 }
 
+// called by http server to check if this thread is still running
+// func wellnes_check(){
+//
+// }
+
 func main() {
+	current_run_state = "Starting HTTP API ..."
 	// in extHostHTTPServer, use "go run extHostHTTPServer.go goUdpSocketExtHost.go"
 	go start_api()
 
@@ -133,7 +142,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
+	current_run_state = "Starting listening socket for timestamped packets ..."
 	// Start listening for UDP packages on the given address
 	conn, err := net.ListenUDP("udp", udp_addr)
 
@@ -145,11 +154,10 @@ func main() {
 	var paket_len_original uint16
 	var timestamp1 uint64
 	var timestamp2 uint64
-
 	var padding = []byte{0, 0} // to fill 6 byte timestamp into uint64
-
 	packet_counter = 0
 
+	current_run_state = "UP and listening"
 	// Read from UDP listener in endless loop
 	for {
 		var buf [100]byte

@@ -61,6 +61,7 @@
   "multicast": "1",
   "stamper_ssh": "0.0.0.0",
   "stamper_user": "root",
+  "p4sta_version": "1.0.0",
   "program": "bmv2_stamper_v1_0_0",
   "selected_loadgen": "iperf3",
   "selected_extHost": "PythonExtHost",

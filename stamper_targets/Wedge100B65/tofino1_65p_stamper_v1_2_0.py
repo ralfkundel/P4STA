@@ -37,11 +37,9 @@ except Exception as e:
 
 class TargetImpl(AbstractTarget):
 
-    def __init__(self, target_cfg):
-        super().__init__(target_cfg)
+    def __init__(self, target_cfg, logger):
+        super().__init__(target_cfg, logger)
         self.port_mapping = None
-
-        print("tofino1_65p_stamper_v1_2_0 init")
 
     def get_sde(self, cfg):
         try:
@@ -55,7 +53,7 @@ class TargetImpl(AbstractTarget):
     def get_port_mapping(self, ssh_ip, data_plane_program_name):
         if self.port_mapping is None:
             try:
-                interface = grpc_interface.TofinoInterface(ssh_ip, device_id=0)
+                interface = grpc_interface.TofinoInterface(ssh_ip, 0, self.logger)
                 if not interface.connection_established:
                     interface.teardown()
                     return None # case where run_switchd is not running correctly
@@ -113,11 +111,10 @@ class TargetImpl(AbstractTarget):
     def deploy(self, cfg):
         try:
             # client id is chosen randomly by TofinoInterface
-            interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], device_id=0)
+            interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], 0, self.logger)
 
             if type(interface) == str:  # error case
-                interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"],
-                                                           device_id=0)
+                interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], 0, self.logger)
                 if type(interface) == str:
                     total_error = interface.replace("\n", "")
                 else:
@@ -129,8 +126,7 @@ class TargetImpl(AbstractTarget):
                 total_error = interface.bind_p4_name(cfg["program"])
 
         except Exception:
-            total_error = total_error + str(traceback.format_exc()).replace(
-                "\n", "")
+            total_error = total_error + str(traceback.format_exc()).replace("\n", "")
 
         if len(total_error) < 2 and interface is not None:
             try:
@@ -219,7 +215,7 @@ class TargetImpl(AbstractTarget):
                 interface.teardown()
 
             # set traffic shaping
-            thrift = pd_fixed_api.PDFixedConnect(cfg["stamper_ssh"])
+            thrift = pd_fixed_api.PDFixedConnect(cfg["stamper_ssh"], self.logger)
 
             def set_shape(host, key=""):
                 try:
@@ -547,7 +543,7 @@ class TargetImpl(AbstractTarget):
             except Exception:
                 return 0
 
-        interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], 0)
+        interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], 0, self.logger)
         if type(interface) == str:
             return
         interface.bind_p4_name(cfg["program"])
@@ -689,7 +685,7 @@ class TargetImpl(AbstractTarget):
                                  "loaded program on p4 device."
                 running = True
 
-                interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], 0)
+                interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], 0, self.logger)
                 print("Connection to Tofino established: " + str(interface.connection_established))
                 if not interface.connection_established:
                     interface.teardown()
@@ -783,7 +779,7 @@ class TargetImpl(AbstractTarget):
         reachable = False
         for i in range(12):
             time.sleep(10)
-            interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], 50+i, print_errors=False)
+            interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], 0, self.logger, print_errors=False)
             established = interface.connection_established
             print("Probing gRPC connection to Tofino... Established: " + str(established))
             interface.teardown()
@@ -815,8 +811,7 @@ class TargetImpl(AbstractTarget):
              cfg["stamper_user"]], stdout=subprocess.PIPE)
 
     def reset_p4_registers(self, cfg):
-        interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"],
-                                                   device_id=0)
+        interface = grpc_interface.TofinoInterface(cfg["stamper_ssh"], 0, self.logger)
         if type(interface) == str:
             print("error resetting registers ..")
             print(interface)

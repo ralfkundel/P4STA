@@ -66,6 +66,7 @@
     }
   ],
   "multicast": "50",
+  "p4sta_version": "1.0.0",
   "program": "middlebox_v7",
   "thrift_port": "20206",
   "nfpfw": "stamper_targets/netronome/p4_src/build/firmware.nffw",

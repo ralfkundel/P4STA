@@ -16,10 +16,12 @@ try:
     from cfg import cfg
     import p4sta_ptf_base_tcp_bmv2 as p4sta_ptf_base_tcp
     import p4sta_ptf_base_udp_bmv2 as p4sta_ptf_base_udp
+    import test_logger
 except Exception as e:
     print(e)
 
-target_bmv2 = bmv2_stamper_v1_0_0.TargetImpl({})
+logger = test_logger.create_logger("#ptf_bmv2")
+target_bmv2 = bmv2_stamper_v1_0_0.TargetImpl({}, logger)
 
 
 ########################################

@@ -73,28 +73,33 @@ urlpatterns = [
 
     # page_deploy.html
     path('subpage_deploy_stamper_status/', deploy.stamper_status),
-    path('subpage_deploy_stop_stamper_software/',
-         deploy.stop_stamper_software),
+    path('subpage_deploy_stop_stamper_software/', deploy.stop_stamper_software),
 
     # page_run.html
     path('subpage_run_ping/', run.ping),
     path('subpage_run_start_external/', run.start_external),
+    path('subpage_run_skip_external/', run.skip_external),
     path('subpage_run_stop_external/', run.stop_external),
+    path('subpage_run_stop_external_background/', run.stop_external_background),
+    path('subpage_run_stop_without_external/', run.stop_without_external),
 
     # setup_page.html
     path('job_setup_ssh_checker/', setup_devices.setup_ssh_checker),
 
     # output_external_started.html
     path('subpage_run_run_loadgens/', run.run_loadgens_first),
-
+    path('subpage_run_run_loadgens_integrated/', run.run_loadgens_first_integrated_generator),
+    path('subpage_run_packet_templates_config/', run.packet_templates_config),
+    path('subpage_run_live_metrics_page/', run.live_metrics_page),
+    path('subpage_run_live_metrics/', run.live_metrics), #json api
+    path('subpage_run_ext_host_live_status/', run.get_ext_host_live_status), #json api
+    
     # page_deploy.html => output_stamper_software_status.html
     path('subpage_deploy_deploy_device/', deploy.deploy),
     path('subpage_deploy_show_ports/', deploy.stamper_ports),
     path('subpage_deploy_host_iface_status/', deploy.host_iface_status),
-    path('subpage_deploy_start_stamper_software/',
-         deploy.start_stamper_software),
-    path('subpage_deploy_get_stamper_startup_log/',
-         deploy.get_stamper_startup_log),
+    path('subpage_deploy_start_stamper_software/', deploy.start_stamper_software),
+    path('subpage_deploy_get_stamper_startup_log/', deploy.get_stamper_startup_log),
     path('subpage_deploy_reboot/', deploy.reboot),
     path('subpage_deploy_refresh_links/', deploy.refresh_links),
 

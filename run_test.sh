@@ -1,4 +1,4 @@
-AVAILABLE_TESTS="install|test_code_quality|test_ptf_bmv2|test_ptf_tofino|test_core|test_ui|test_ui_tofino|dpdk_install|test_core_dpdk|cleanup|all"
+AVAILABLE_TESTS="install|test_code_quality|test_ptf_bmv2|test_ptf_tofino|test_ptf_tofino_encap|test_core|test_ui|test_ui_tofino|dpdk_install|test_core_dpdk|test_ui_tofino_dpdk|cleanup|all"
 if [[ ! "$1" =~ $AVAILABLE_TESTS ]]
 then
     echo "Usage: $0 [ ${AVAILABLE_TESTS//|/ | } ]"

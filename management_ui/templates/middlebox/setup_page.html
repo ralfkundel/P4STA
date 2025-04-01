@@ -30,11 +30,28 @@
 	<script type="text/javascript">
 		$(document).ready(function(){
 			$("#modal1").modal();
-			$('[data-toggle="tooltip"]').tooltip(); 
+			$('[data-toggle="tooltip"]').tooltip();
+			check_loadgen_div();
+			selected_stamper_changed();
 		});
 
 		function forward_to_p4sta(){
 			window.location.href="/skip_setup_redirect_to_config";
+		}
+
+		function check_loadgen_div(){
+			let curr = document.getElementById("selected_loadgen").value;
+			if(curr === "Tofino Packet Generator"){
+				document.getElementById("add_loadgen_client").disabled = true;
+				document.getElementById("loadgen_table").style.cssText = "opacity: 0";
+				document.getElementById("delete_loadgen_client").disabled = true;
+
+			} else {
+				document.getElementById("add_loadgen_client").disabled = false;
+				document.getElementById("loadgen_table").style.cssText = "";
+				document.getElementById("delete_loadgen_client").disabled = false;
+
+			}
 		}
 
 		function check_ssh_loadgen(id){
@@ -44,13 +61,13 @@
 		}
 
 		function check_ssh(user, ip, output){
-			var el = document.getElementsByName("csrfmiddlewaretoken");
-			csrf_value = el[0].getAttribute("value");
+			//var el = document.getElementsByName("csrfmiddlewaretoken");
+			//csrf_value = el[0].getAttribute("value");
 			$.ajax({
 			      type: "POST",
 			      url: "/job_setup_ssh_checker/",
 			      data: {
-				'csrfmiddlewaretoken': csrf_value,
+				'csrfmiddlewaretoken': "{{csrf_token}}",
 				'user': user,
 				'ip': ip
 			      },
@@ -88,8 +105,8 @@
 
 			cell1.innerHTML = "Loadgenerator:";
 			cell2.innerHTML ="";
-			cell3.innerHTML = '<div class="col-sm-12"><input id="loadgen_ip_'+nextId+'" type="text" class="form-control" name="loadgen_ip_'+nextId+'" value="" required/></div>  <div id="output_check_loadgen_'+nextId+'_ping"></div>';
-			cell4.innerHTML = '<div class="col-sm-12"><input id="loadgen_user_'+nextId+'" type="text" class="form-control" name="loadgen_user_'+nextId+'" value="" required/></div> <div id="output_check_loadgen_'+nextId+'_ssh">';
+			cell3.innerHTML = '<div class="col-sm-12"><input id="loadgen_ip_'+nextId+'" type="text" class="form-control" name="loadgen_ip_'+nextId+'" value=""/></div>  <div id="output_check_loadgen_'+nextId+'_ping"></div>';
+			cell4.innerHTML = '<div class="col-sm-12"><input id="loadgen_user_'+nextId+'" type="text" class="form-control" name="loadgen_user_'+nextId+'" value=""/></div> <div id="output_check_loadgen_'+nextId+'_ssh">';
 			cell5.innerHTML = '<button type="button" class="btn btn-secondary" onclick="check_ssh_loadgen('+nextId+');"> Check </button>';
 			cell5.innerHTML += '<button type="button" id="delete_loadgen_client" class="btn btn-default btn-sm" onclick="removeRow(this);" style="float: right;"> <i class="fa fa-trash" style="font-size: 28pt; color:red;"></i> </button>';
 			nextId = nextId+1;
@@ -171,8 +188,6 @@
 							p.appendChild(input)
 							div.appendChild(p);
 						} else if (opt["type"] == "drop-down") {
-							console.log(opt)
-
 							var p = document.createElement("p");
 							bold = document.createElement('strong');
 							var node = document.createTextNode(opt["title"] + ": ");
@@ -257,6 +272,9 @@
 	<p>This tool creates a bassh script (install_server.sh) in the p4sta directory, which must be executed in the next step.</p>
 
 	<p><b>Please insert in the following the IPv4 addresses and user names of the servers you want to configure. Please disable (checkbox or red trash can) a category if you do not want to install this kind of server. </b></p>
+	
+	<p><b>Do not forget to edit the default config at the configure page according to your stamper and external monitoring host.</b></p>
+
 	<div class="table-responsive">
 		<table id="tbl_install_script" class="table table-bordered table-striped table-highlight">
 			<thead>
@@ -277,7 +295,11 @@
 						<div>
 							<select class="form-control" id="selected_stamper" name="selected_stamper" onchange="selected_stamper_changed()">
 							{% for stamper in stampers %}
+								{% if stamper == "Wedge100B65" %}
+								<option selected="{{stamper}}">{{stamper}}</option>
+								{% else %}
 								<option value="{{stamper}}">{{stamper}}</option>
+								{% endif %}
 							{% endfor %}
 							</select>
 						</div>
@@ -293,7 +315,11 @@
 						<div>
 							<select class="form-control" id="selected_extHost" name="selected_extHost">
 							{% for extHost in extHosts %}
+								{% if extHost == "GoExtHostUdp" %}
+								<option selected="{{extHost}}">{{extHost}}</option>
+								{% else %}
 								<option value="{{extHost}}">{{extHost}}</option>
+								{% endif %}
 							{% endfor %}
 							</select>
 						</div>
@@ -313,9 +339,13 @@
 						<th>Loadgenerators:</th>
 						<th>
 							<div>
-								<select class="form-control" id="selected_loadgen" name="selected_loadgen">
+								<select class="form-control" id="selected_loadgen" name="selected_loadgen" onchange="check_loadgen_div()">
 								{% for loadgen in loadgens %}
+								{% if loadgen == "Tofino Packet Generator" %}
+									<option selected="{{loadgen}}">{{loadgen}}</option>
+								{% else %}
 									<option value="{{loadgen}}">{{loadgen}}</option>
+								{% endif %}
 								{% endfor %}
 								</select>
 							</div>
@@ -325,16 +355,16 @@
 						<th><button type="button" id="add_loadgen_client" class="btn btn-default btn-sm" style="float: right;" onclick="addRow()"><i class="fa fa-plus" style="font-size: 28pt; color:green;"></i></button></th>
 					</tr>
 				</thead>
-				<tbody>	
+				<tbody id="loadgen_table">	
 				<tr>
 					<td>Loadgenerator:</td>
 					<td></td>
 					<td>
-						<div class="col-sm-12"><input id="loadgen_ip_1" type="text" class="form-control" name="loadgen_ip_1" value="" required/></div>
+						<div class="col-sm-12"><input id="loadgen_ip_1" type="text" class="form-control" name="loadgen_ip_1" value=""/></div>
 						<div id="output_check_loadgen_1_ping"></div>
 					</td>
 					<td>
-						<div class="col-sm-12"><input id="loadgen_user_1" type="text" class="form-control" name="loadgen_user_1" value="" required/></div>
+						<div class="col-sm-12"><input id="loadgen_user_1" type="text" class="form-control" name="loadgen_user_1" value=""/></div>
 						<div id="output_check_loadgen_1_ssh"></div>
 					</td>
 					<td>

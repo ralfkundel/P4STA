@@ -1,6 +1,7 @@
 {
 	"name": "iperf3",
 	"driver": "iperf3.py",
+	"configure_page_inputs": true,
 	"status_check": {
 		"needed_sudos_to_add": ["ethtool", "reboot", "ifconfig", "/bin/ip", "pkill"]
 	}

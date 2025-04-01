@@ -1,29 +1,28 @@
 <!--
-# Copyright 2019-present Ralf Kundel, Fridolin Siegmund
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License. -->
-
-<!DOCTYPE html>
-<html lang="en">
-{% load static %}
-<head>
-	{% include "middlebox/includes.html"%}
-	<script type="text/javascript">
+   # Copyright 2019-present Ralf Kundel, Fridolin Siegmund
+   #
+   # Licensed under the Apache License, Version 2.0 (the "License");
+   # you may not use this file except in compliance with the License.
+   # You may obtain a copy of the License at
+   #
+   #    http://www.apache.org/licenses/LICENSE-2.0
+   #
+   # Unless required by applicable law or agreed to in writing, software
+   # distributed under the License is distributed on an "AS IS" BASIS,
+   # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   # See the License for the specific language governing permissions and
+   # limitations under the License. -->
+   <!DOCTYPE html>
+   <html lang="en">
+	  {% load static %}
+	  <head>
+		 {% include "middlebox/includes.html"%}
+		 <script type="text/javascript">
 			$(document).ready(function(){
 			$('[data-toggle="tooltip"]').tooltip(); 
-		});
-
-		$(document).ready(function(){ 
+			});
+			
+			$(document).ready(function(){ 
 			$("#external_results, #all").click(function() {
 				$("#output_results").html('<p>Loading External Host results ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
 				$.get("/subpage_analyze_external_results/", function(data) {
@@ -33,150 +32,187 @@
 					$('[data-toggle="tooltip"]').tooltip();
 				});
 			});
-		});
-
-		$(document).ready(function(){ 
+			});
+			
+			$(document).ready(function(){ 
 			$("#loadgen_results, #all").click(function() {
 				$("#output_loadgen_results").html('<p>Loading Loadgen results ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
 				$.get("/subpage_analyze_loadgen_results/", function(data) {
 					$("#output_loadgen_results").html(data);
 				}, "html");
 			});
-		});
-
-		$(document).ready(function(){ 
+			});
+			
+			$(document).ready(function(){ 
 			$("#stamper_results, #all").click(function() {
 				$("#output_stamper_results").html('<p>Loading Stamper results ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
 				$.get("/subpage_analyze_stamper_results/", function(data) {
 					$("#output_stamper_results").html(data);
 				}, "html");
 			});
-		});
-	</script>
-</head>
-<body>
-
-{% include "middlebox/navbar.html"%}
-
-<div class="jumbotron text-center" style="margin-bottom:0">
-<h5>
-<span style="color:grey">configure switch</span>
-&emsp;<i class="fas fa-arrow-right"></i>
-&emsp;<span style="color:grey">deploy configuration</span>
-&emsp;<i class="fas fa-arrow-right"></i>
-&emsp;<span style="color:grey">run tests </span>
-&emsp;<i class="fas fa-arrow-right"></i>
-&emsp;<u>analyze results</u>
-</h5>
-</div>
-
-
-<div class="container-fluid">
-<div class="row">
-<div class="col-md-8">
-<div style="margin-top:20px;"></div>
-<div class="row">
-<div class="col-md-4">Please select the dataset you want to analyze: <i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="Your Choice defines which data-set at /results/ directory will be displayed."></i></div>
-<form method="POST" style="white-space: nowrap;">{% csrf_token %}
-<div class="col-md-4">
-			<select id= "set_id" name="set_id" class="form-control" style="width: 200px;">
-				<option value="{{id.0}}">{{id.1}}</option>
-				{% for z in id_list %}
-				<option value={{z.0}}>{{z.1}}</option>
-				{% endfor %}
-			</select>
-			<button type="submit" class="btn btn-dark" style="margin-top:10px;" {% if error %}disabled{% endif %}>Apply</button>
-			{% if saved %}
-				<span style="color:green;">saved</span>
-			{% endif %}
-
-</div>
-</form>
-<div class="col-md-2">
-<!-- Button trigger modal -->
-<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#resultsModal">Delete Popup</button>
-</div>
-<div class="col-md-2"></div>
-
-</div>
-<div class="row">
-<div class="col-md-6"><button id="all" type="button" class="btn btn-secondary"{% if error %}disabled{% endif %}>Display all results</button></div>
-<div class="col-md-6"><a class="btn btn-primary" href="/downloadAllResults/" role="button" style="float: right;">Download all</a></div>
-</div>
-<div style="margin-top:40px;"></div>
-<hr/>
-
-<div class="row">
-	<div class="col-md-12">Display registers and counters from switch:</div>
-</div>
-<div style="margin-top:20px;"></div>
-<div class="row">
-	<div class="col-md-2"><button id="stamper_results" type="button" class="save btn btn-secondary"{% if error %}disabled{% endif %}>Display results</button></div>
-	<div class="col-md-10"><div id="output_stamper_results" class="card card-body"></div></div>
-</div>
-<hr/>
-<div class="row">
-	<div class="col-md-12">Display results from the external host:</div>
-</div>
-<div style="margin-top:20px;"></div>
-<div class="row">
-	<div class="col-md-2">
-		<p><button id="external_results" type="submit" class="save btn btn-secondary"{% if error %}disabled{% endif %}>Display results</button></p>
-	</div>
-	<div class="col-md-10"><div id="output_results" class="card card-body" ></div></div>
-</div>
-<hr/>
-<div class="row">
-	<div class="col-md-12">Display load generator (<b>{{selected_loadgen}}</b>) results:</div>
-</div>
-<div style="margin-top:20px;"></div>
-<div class="row">
-	<div class="col-md-2"><p><button id="loadgen_results" type="button" class="save btn btn-secondary"{% if error %}disabled{% endif %}>Display results</button></p></div>
-	<div class="col-md-10"><div id="output_loadgen_results" class="card card-body"></div></div>
-</div>
-
-<!-- Modal ("popup" window, but no real browser popup) -->
-<div class="modal fade" id="resultsModal" tabindex="-1" role="dialog" aria-labelledby="resultsModalLabel" aria-hidden="true">
-<form method="POST">{% csrf_token %}
-	<div class="modal-dialog" role="document">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title" id="resultsModalLabel">Select the results to be permanently deleted.</h5>
-				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-					<span aria-hidden="true">&times;</span>
-				</button>
+			});
+		 </script>
+	  </head>
+	  <body>
+		 {% include "middlebox/navbar.html"%}
+		 <div class="jumbotron text-center" style="margin-bottom:0">
+			<h5>
+			   <span style="color:grey">configure stamper</span>
+			   &emsp;<i class="fas fa-arrow-right"></i>
+			   &emsp;<span style="color:grey">deploy configuration</span>
+			   &emsp;<i class="fas fa-arrow-right"></i>
+			   &emsp;<span style="color:grey">run tests </span>
+			   &emsp;<i class="fas fa-arrow-right"></i>
+			   &emsp;<u>analyze results</u>
+			</h5>
+		 </div>
+		 <div class="container-fluid">
+		 <div class="row">
+			<div class="col-md-10">
+			   <div style="margin-top:20px;"></div>
+			   <div class="row">
+				  <div class="col-md-4">Please select the dataset you want to analyze: <i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="Your Choice defines which data-set at /results/ directory will be displayed."></i></div>
+				  <form method="POST" style="white-space: nowrap;">
+					 {% csrf_token %}
+					 <div class="col-md-4">
+						<select id= "set_id" name="set_id" class="form-control" style="width: 500px;">
+						   <option value="{{id.0}}">{{id.1}} (ID: {{id.0}}) {{id.2}}</option>
+						   {% for z in id_list %}
+						   <option value={{z.0}}>{{z.1}} (ID: {{z.0}}) {{z.2}}</option>
+						   {% endfor %}
+						</select>
+						<div style="margin-top:10px;">or query by ID:</div>
+						<input class="form-control" style="margin-top:10px; width: 150px" type="text" id="custom_id" name="custom_id" value="">
+						<button type="submit" class="btn btn-dark" style="margin-top:10px;" {% if error %}disabled{% endif %}>Apply</button>
+						{% if saved %}
+						<span style="color:green;">saved</span>
+						{% endif %}
+					 </div>
+				  </form>
+				  <div class="col-md-2">
+					 <!-- Button trigger modal -->
+					 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#resultsModal">Delete Popup</button>
+				  </div>
+				  <div class="col-md-2"></div>
+			   </div>
+			   <div class="row">
+				  <div class="col-md-6"><button id="all" type="button" class="btn btn-secondary"{% if error %}disabled{% endif %}>Display all results</button></div>
+				  <div class="col-md-6"><a class="btn btn-primary" href="/downloadAllResults/" role="button" style="float: right;">Download all</a></div>
+			   </div>
+			   <div style="margin-top:40px;"></div>
+			   <hr>
+			   <div class="row">
+				  <div class="col-md-12">Display registers and counters from switch:</div>
+			   </div>
+			   <div style="margin-top:20px;"></div>
+			   <div class="row">
+				  <div class="col-md-2"><button id="stamper_results" type="button" class="save btn btn-secondary"{% if error %}disabled{% endif %}>Display results</button></div>
+				  <div class="col-md-10">
+					 <div id="output_stamper_results" class="card card-body"></div>
+				  </div>
+			   </div>
+			   <hr>
+			   <div class="row">
+				  <div class="col-md-12">Display results from the external host:</div>
+			   </div>
+			   <div style="margin-top:20px;"></div>
+			   <div class="row">
+				  <div class="col-md-2">
+					 <p><button id="external_results" type="submit" class="save btn btn-secondary"{% if error %}disabled{% endif %}>Display results</button></p>
+				  </div>
+				  <div class="col-md-10">
+					 <div id="output_results" class="card card-body" ></div>
+				  </div>
+			   </div>
+			   {% if selected_loadgen != "Tofino Packet Generator" %}
+			   <hr>
+			   <div class="row">
+				  <div class="col-md-12">Display load generator (<b>{{selected_loadgen}}</b>) results:</div>
+			   </div>
+			   <div style="margin-top:20px;"></div>
+			   <div class="row">
+				  <div class="col-md-2">
+					 <p><button id="loadgen_results" type="button" class="save btn btn-secondary"{% if error %}disabled{% endif %}>Display results</button></p>
+				  </div>
+				  <div class="col-md-10">
+					 <div id="output_loadgen_results" class="card card-body"></div>
+				  </div>
+			   </div>
+			   {% endif %}
+			
+			   <!-- Modal ("popup" window, but no real browser popup) -->
+			   <div class="modal fade" id="resultsModal" tabindex="-1" role="dialog" aria-labelledby="resultsModalLabel" aria-hidden="true">
+				  <form method="POST">
+					 {% csrf_token %}
+					 <div class="modal-dialog" role="document">
+						<div class="modal-content">
+						   <div class="modal-header">
+							  <h5 class="modal-title" id="resultsModalLabel">Select the results to be permanently deleted.</h5>
+							  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							  <span aria-hidden="true">&times;</span>
+							  </button>
+						   </div>
+						   <div class="modal-body">
+							  <div class="form-check">
+								 <p><input class="form-check-input" type="checkbox" id="{{id.0}}" name="{{id.0}}"  value="{{id.0}}" disabled><label class="form-check-label" for="{{id.0}}">{{id.1}}</label>
+									<i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="The current selected dataset can't be deleted."></i>
+								 </p>
+								 {% for z in id_list %}
+								 <p><input class="form-check-input" type="checkbox" id="{{z.0}}" name="{{z.0}}" value="{{z.0}}"><label class="form-check-label" for="{{z.0}}">{{z.1}}</label></p>
+								 {% endfor %}
+							  </div>
+						   </div>
+						   <div class="modal-footer">
+							  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+							  <button type="submit" class="btn btn-danger" formaction="/deleteData/">Delete selected</button>
+						   </div>
+						</div>
+					 </div>
+				  </form>
+			   </div>
 			</div>
-			<div class="modal-body">
-				<div class="form-check">
-					<p><input class="form-check-input" type="checkbox" id="{{id.0}}" name="{{id.0}}"  value="{{id.0}}" disabled><label class="form-check-label" for="{{id.0}}">{{id.1}}</label>
-					<i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="The current selected dataset can't be deleted."></i></p>
-					{% for z in id_list %}
-						<p><input class="form-check-input" type="checkbox" id="{{z.0}}" name="{{z.0}}" value="{{z.0}}"><label class="form-check-label" for="{{z.0}}">{{z.1}}</label></p>
-					{% endfor %}
+			<div class="col-md-2">
+
+				<!-- Modal ("popup" window, but no real browser popup) -->
+				<div class="modal fade" id="topologyModal" tabindex="-1" role="dialog" aria-labelledby="topologyModalLabel" aria-hidden="true">
+					<div class="modal-dialog modal-xl" role="document">
+						<div class="modal-content">
+							<div class="modal-header">
+							<h5 class="modal-title" id="topologyModalLabel"><b>P4STA Topology {{id.1}} (ID: {{id.0}})</b></h5>
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+							</button>
+							</div>
+							<div class="modal-body" style="max-height: 50vh; overflow-y: auto;">
+							
+								<center>
+										<div id="topology2"></div> 
+								</center>
+
+							</div>
+							<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+							<!--<button type="submit" class="btn btn-danger" formaction="/deleteData/">Delete selected</button>-->
+							</div>
+						</div>
+					</div>
 				</div>
+ 
+				<!-- Button trigger modal -->
+				
+					<div class="fixedBottomCenter">
+						<button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#topologyModal">Show Topology</button>
+					</div>
+				
+
+
 			</div>
-			<div class="modal-footer">
-			<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-			<button type="submit" class="btn btn-danger" formaction="/deleteData/">Delete selected</button>
-			</div>
+		 </div>
 		</div>
-	</div>
-</form>
-</div>
-
-
-</div>
-<div class="col-md-4">
-	
-		<p><button id="pause_port_animation" class="btn btn-default btn-sm"><i id="port_animation_icon" class="fas fa-pause-circle" style="font-size: 24pt;"></i></button>&emsp;<u><b>Network Configuration {{id.1}}</b></u></p>
-		<div id="topology2" style="position:fixed;"></div>
-</div>
-</div>
-
-<!-- draws current network config -->
-<script>
-	{% include "middlebox/port_graphic.html"%}
-	draw(document.getElementById("topology2"));
-</script>
-
-</body>
+		 <!-- draws current network config -->
+		 <script>
+			{% include "middlebox/port_graphic.html"%}
+			draw(document.getElementById("topology2"));
+		 </script>
+	  </body>
+	</html>

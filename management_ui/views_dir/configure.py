@@ -44,7 +44,7 @@ def fetch_iface(request):
         ipv4, mac, prefix, up_state, iface_found = results
     except Exception as e:
         ipv4 = mac = prefix = up_state = "timeout"
-        print("Exception fetch iface: " + str(e))
+        globals.logger.error("Exception fetch iface: " + str(e))
     return JsonResponse({"mac": mac, "ip": ipv4, "prefix": prefix,
                          "up_state": up_state, "iface_found": iface_found})
 
@@ -54,7 +54,7 @@ def fetch_target(request):
         return
     try:
         target = str(request.POST["target"])
-        print("fetching target " + target)
+        globals.logger.debug("fetching target " + target)
         
         # filter ext hosts for p4sta version if available
         if "p4sta_version" in request.POST:
@@ -67,7 +67,7 @@ def fetch_target(request):
 
         return JsonResponse({"target": results})
     except:
-        print(traceback.format_exc())
+        globals.logger.error(traceback.format_exc())
         return JsonResponse({"target": str(traceback.format_exc())})
     
 
@@ -89,18 +89,21 @@ def status_overview(request):
         status_overview.wait()
         cfg = status_overview.value
         cfg = P4STA_utils.flt(cfg)
+        if cfg["selected_loadgen"] == "Tofino Packet Generator":
+            # do not display loadgen groups in "Current Status" GUI, nothing to check
+            cfg["loadgen_groups"] = []
 
         return render(request, "middlebox/output_status_overview.html", cfg)
     except Exception as e:
-        print(e)
+        globals.logger.error(traceback.format_exc())
         return render(request, "middlebox/timeout.html", {
             "inside_ajax": True, "error": ("stamper status error: " + str(e))})
 
 
 def updateCfg(request):
-    print(request.POST)
     cfg = P4STA_utils.read_current_cfg()
     target_cfg = globals.core_conn.root.get_target_cfg()
+
     try:
         # if target has changed first request all port config again
         if cfg["selected_target"] is not request.POST["target"]:
@@ -110,18 +113,22 @@ def updateCfg(request):
             target_cfg = globals.core_conn.root.get_target_cfg()
 
         cfg["selected_loadgen"] = request.POST["selected_loadgen"]
+        loadgen_cfg = P4STA_utils.flt(globals.core_conn.root.get_loadgen_obj(cfg["selected_loadgen"]).loadgen_cfg)
+
         cfg["selected_extHost"] = request.POST["selected_extHost"]
 
         # rebuild loadgen_groups list based on user choice
-        if len(cfg["loadgen_groups"]) != int(
-                request.POST["num_loadgen_groups"]):
+        if len(cfg["loadgen_groups"]) != int(request.POST["num_loadgen_groups"]):
             cfg["loadgen_groups"] = []
             for i in range(1, int(request.POST["num_loadgen_groups"]) + 1):
                 cfg["loadgen_groups"].append({"group": i, "loadgens": []})
 
-        for loadgen_grp in cfg["loadgen_groups"]:  #
-            num_servers = int(
-                request.POST["num_grp_" + str(loadgen_grp["group"])])
+        # only parse POST when selected loadgen requires ssh ip, user, loadgen ip, ...
+        needs_cfg = "configure_page_inputs" in loadgen_cfg and loadgen_cfg["configure_page_inputs"]
+
+        for loadgen_grp in cfg["loadgen_groups"]:
+            num_servers = int(request.POST["num_grp_" + str(loadgen_grp["group"])])
+            
             servers = []
             i = 1
             _grp = str(loadgen_grp["group"])
@@ -132,41 +139,53 @@ def updateCfg(request):
                     i += 1
                     if i == 99:
                         break
-                s["real_port"] = str(request.POST["s" + _grp + "_" + str(i) + "_real_port"])
-                s["p4_port"] = -1
+                if needs_cfg:    
+                    s["real_port"] = str(request.POST["s" + _grp + "_" + str(i) + "_real_port"])
+                    s["p4_port"] = -1
+                    s["ssh_ip"] = str(request.POST["s" + _grp + "_" + str(i) + "_ssh_ip"])
+                    s["ssh_user"] = str(request.POST["s" + _grp + "_" + str(i) + "_ssh_user"])
+                    s["loadgen_iface"] = str(request.POST["s" + _grp + "_" + str(i) + "_loadgen_iface"])
+                    s["loadgen_mac"] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_loadgen_mac"])
+                    s["loadgen_ip"] = str(request.POST["s" + _grp + "_" + str(i) + "_loadgen_ip"]).split(" ")[0].split("/")[0]
+                else:
+                    if "s" + _grp + "_" + str(i) + "_real_port" in request.POST:
+                        port = str(request.POST["s" + _grp + "_" + str(i) + "_real_port"])
+                    else:
+                        port = ""
+                    s["real_port"] = port
+                    s["p4_port"] = port
+                    s["ssh_ip"] = ""
+                    s["ssh_user"] = ""
+                    s["loadgen_iface"] = ""
+                    s["loadgen_mac"] = ""
+                    s["loadgen_ip"] = ""
 
-                s["ssh_ip"] = str(request.POST["s" + _grp + "_" + str(i) + "_ssh_ip"])
-                s["ssh_user"] = str(request.POST["s" + _grp + "_" + str(i) + "_ssh_user"])
-                s["loadgen_iface"] = str(request.POST["s" + _grp + "_" + str(i) + "_loadgen_iface"])
-                s["loadgen_mac"] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_loadgen_mac"])
-                s["loadgen_ip"] = str(request.POST["s" + _grp + "_" + str(i) + "_loadgen_ip"]).split(" ")[0].split("/")[0]
-
-                if "s" + _grp + "_" + str(i) + "_namespace" in request.POST:
+                if "s" + _grp + "_" + str(i) + "_namespace" in request.POST and needs_cfg:
                     s["namespace_id"] = str(request.POST["s" + str(loadgen_grp["group"]) + "_" + str(i) + "_namespace"])
-                # read target specific config from webinterface
-                for t_inp in target_cfg["inputs"]["input_table"]:
-                    try:
-                        if "s" + _grp + "_" + str(i) + "_" + \
-                                t_inp["target_key"] in request.POST:
-                            s[t_inp["target_key"]] = str(
-                                request.POST["s" + str(
-                                    loadgen_grp["group"])
-                                             + "_"
-                                             + str(i)
-                                             + "_"
-                                             + t_inp["target_key"]])
-                        elif "restrict" not in t_inp \
-                                or t_inp["restrict"] == "loadgen":
-                            s[t_inp["target_key"]] = ""
-                    except Exception as e:
-                        print(traceback.format_exc())
-                        print("\n#\nError parsing special target "
-                              "config parameters:" + str(e))
+                
+                if True: #needs_cfg:
+                    # read target specific config from webinterface
+                    for t_inp in target_cfg["inputs"]["input_table"]:
+                        try:
+                            if "s" + _grp + "_" + str(i) + "_" + \
+                                    t_inp["target_key"] in request.POST:
+                                s[t_inp["target_key"]] = str(
+                                    request.POST["s" + str(
+                                        loadgen_grp["group"])
+                                                + "_"
+                                                + str(i)
+                                                + "_"
+                                                + t_inp["target_key"]])
+                            elif "restrict" not in t_inp \
+                                    or t_inp["restrict"] == "loadgen":
+                                s[t_inp["target_key"]] = ""
+                        except Exception as e:
+                            globals.logger.error("\n#\nError parsing special target "
+                                "config parameters:" + str(e))
                 servers.append(s)
                 i += 1
-            print(str(request.POST["add_to_grp_" + _grp]))
+            
             if str(request.POST["add_to_grp_" + _grp]) == "1":
-                print("addtogrp i was here")
                 s = {}
                 s["id"] = num_servers + 1
                 s["real_port"] = ""
@@ -182,6 +201,7 @@ def updateCfg(request):
                     else:
                         s[t_inp["target_key"]] = ""
                 servers.append(s)
+                globals.logger.debug("created loadgen: " + str(s))
 
             # set target specific default values
             for s in servers:
@@ -232,8 +252,7 @@ def updateCfg(request):
                         t_inp["default_value"]
 
         except Exception as e:
-            print("EXCEPTION: " + str(e))
-            print(traceback.format_exc())
+            globals.logger.error(traceback.format_exc())
 
         cfg["ext_host_real"] = str(request.POST["ext_host_real"])
         cfg["ext_host"] = -1
@@ -263,7 +282,7 @@ def updateCfg(request):
                 else:
                     dut["stamp_outgoing"] = "unchecked"
             except Exception:
-                print(traceback.format_exc())
+                globals.logger.error(traceback.format_exc())
                 dut["stamp_outgoing"] = "checked"
 
             if "dut" + str(dut["id"]) + "_real" in request.POST:
@@ -273,6 +292,41 @@ def updateCfg(request):
             else:
                 dut["real_port"] = ""
                 dut["p4_port"] = ""
+
+        # additional ports config
+        try:
+            additional_ports_counter = int(request.POST["additional_ports_counter"])
+            
+            # generate config from POST, overwrite additional_ports in cfg
+            additional_ports = []
+            for i in range(additional_ports_counter):
+                indx = i + 1 # port id starts at 1
+                port = {"id": indx}
+
+                key = "additional_" + str(indx) + "_real_port"
+                if key in request.POST:
+                    port["real_port"] = request.POST[key]
+                    port["p4_port"] = -1
+                else:
+                    globals.logger.debug(key + " not found in request.POST")
+                
+                for t_inp in target_cfg["inputs"]["input_table"]:        
+                    # for dut in cfg["dut_ports"]:
+                    key = "additional_" + str(indx) + "_" + t_inp["target_key"]
+                    if key in request.POST:
+                        port[t_inp["target_key"]] = str(request.POST[key])
+                    elif "restrict" not in t_inp or t_inp["restrict"] == "dut":
+                        port[t_inp["target_key"]] = ""
+
+                    if "default_value" in t_inp and port[t_inp["target_key"]] == "":
+                        port[t_inp["target_key"]] = t_inp["default_value"]
+
+                additional_ports.append(port)
+
+            cfg["additional_ports"] = additional_ports
+
+        except:
+            globals.logger.error(traceback.format_exc())
 
         cfg["multicast"] = str(request.POST["multicast"])
         cfg["stamper_ssh"] = str(request.POST["stamper_ssh"])
@@ -295,16 +349,15 @@ def updateCfg(request):
             cfg["stamp_udp"] = "unchecked"
 
         # save config to file "database"
-        print("write config")
+        globals.logger.info("write config.json to /data")
+        globals.logger.debug(cfg)
         cfg = P4STA_utils.flt(cfg)
         P4STA_utils.write_config(cfg)
-        print("finished config write")
 
         return True, cfg
 
     except Exception as e:
-        print("EXCEPTION: " + str(e))
-        print(traceback.format_exc())
+        globals.logger.error(traceback.format_exc())
 
         return False, cfg
 
@@ -312,9 +365,9 @@ def updateCfg(request):
 # input from configure page and reloads configure page
 def configure_page(request):
     if globals.core_conn.root.check_first_run():
-        print("FIRST RUN! Redirect to /setup_devices")
+        globals.logger.info("FIRST RUN! Redirect to /setup_devices")
         return HttpResponseRedirect("/setup_devices")
-
+    
     saved = ""
     target_cfg = P4STA_utils.flt(globals.core_conn.root.get_target_cfg())
 
@@ -328,6 +381,10 @@ def configure_page(request):
     else:
         cfg = P4STA_utils.read_current_cfg()
     cfg["target_cfg"] = target_cfg
+
+    
+    loadgen_obj = globals.core_conn.root.get_loadgen_obj(cfg["selected_loadgen"])
+    cfg["loadgen_cfg"] = P4STA_utils.flt(loadgen_obj.loadgen_cfg)
 
     # The following config updates are only for UI representation
     targets_without_selected = []
@@ -364,7 +421,10 @@ def configure_page(request):
         loadgens_without_selected)
 
     # exthosts_without_selected = globals.core_conn.root.get_all_extHost()
-    exthosts_without_selected = globals.core_conn.root.fetch_target(cfg["selected_target"], cfg["p4sta_version"])["supported_ext_hosts"]
+    p4sta_ver = ""
+    if cfg != None and "p4sta_version" in cfg:
+        p4sta_ver = cfg["p4sta_version"]
+    exthosts_without_selected = globals.core_conn.root.fetch_target(cfg["selected_target"], p4sta_ver)["supported_ext_hosts"]
     if cfg["selected_extHost"] in exthosts_without_selected:
         exthosts_without_selected.remove(cfg["selected_extHost"])
     cfg["exthosts_without_selected"] = P4STA_utils.flt(
@@ -374,29 +434,29 @@ def configure_page(request):
     # target uses separate hardware ports & p4 ports (e.g. tofino)
     # now only hw (front) ports are left but relabeled as
     # "ports" and p4-ports are ignored
-    # ports_list in abstract_target creates mapping 1->1
+    # ports_list in abstract_target creates mapping 1->1    
     cfg["port_mapping"] = "p4_ports" in target_cfg
+    cfg["cfg_json"] = json.dumps(cfg)
     cfg["cfg"] = cfg  # needed for dynamic target input_individual
 
     return render(request, "middlebox/page_config.html", cfg)
 
 
 def create_new_cfg_from_template(request):
-    print("CREATE CONFIG:")
     path = globals.core_conn.root.get_template_cfg_path(
         request.POST["selected_cfg_template"])
     with open(path, "r") as f:
         cfg = json.load(f)
         P4STA_utils.write_config(cfg)
+        globals.logger.info("Created new config from template: " + str(path))
     return HttpResponseRedirect("/")
 
 
 def open_selected_config(request):
-    print("OPEN SELECTED CONFIG:")
     cfg = P4STA_utils.read_current_cfg(request.POST["selected_cfg_file"])
     # check if old style cfg is used and convert to new style
     if "dut1_real" in cfg and "loadgen_clients" in cfg:
-        print("Old CFG structure -> converting to new style....")
+        globals.logger.info("old config structure -> converting to new style....")
         cfg["dut_ports"] = [{"id": 1}, {"id": 2}]
         cfg["dut_ports"][0]["p4_port"] = cfg.pop("dut1")
         cfg["dut_ports"][0]["real_port"] = cfg.pop("dut1_real")
@@ -430,17 +490,15 @@ def open_selected_config(request):
 
 
 def delete_selected_config(request):
-    print("DELETE SELECTED CONFIG:")
     name = request.POST["selected_cfg_file"]
     if name == "config.json":
-        print("CORE: Delete of config.json denied!")
+        globals.logger.warning("Deletion of config.json denied.")
         return
     os.remove(os.path.join(globals.project_path, "data", name))
     return HttpResponseRedirect("/")
 
 
 def save_config_as_file(request):
-    print("SAVE CONFIG:")
     saved, cfg = updateCfg(request)
     time_created = time.strftime('%d.%m.%Y-%H:%M:%S', time.localtime())
     file_name = cfg["selected_target"] + "_" + str(time_created) + ".json"

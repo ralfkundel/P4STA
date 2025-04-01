@@ -1,0 +1,1105 @@
+{% load static %}
+{% load management_ui %}
+
+<script type="text/javascript">
+
+	document.addEventListener("DOMContentLoaded", function() {
+		$('[data-toggle="tooltip"]').tooltip();
+	});
+
+	window.addEventListener('load', function() {
+		// when page load finished: 
+		// ensure that loadgen fields are manipulated for loadgen (integrated doesn't need loadgen fields)
+        if("{{loadgen_cfg.configure_page_inputs}}" == "False"){
+            loadgen_changed("{{loadgen_cfg.name}}");
+        }
+	}, false);
+
+	// idea: leave only first server/client when fw mode layer 1
+	function changedForwardingMode(){
+		fw_selector = document.getElementById("forwarding_mode");
+		layer = fw_selector.options[fw_selector.selectedIndex].value;
+		if(layer == 1){
+			{% for loadgen_grp in loadgen_groups %}
+			if(document.getElementById("tbl_grp_{{loadgen_grp.group}}").rows.length > 2){
+				for (i = 2; i < document.getElementById("tbl_grp_{{loadgen_grp.group}}").rows.length; i++) {
+					document.getElementById("tbl_grp_{{loadgen_grp.group}}").deleteRow(i);
+				}
+			}
+			{% endfor %}
+		}
+	}
+
+	document.addEventListener("keydown", event => {
+		// If Control or Command key is pressed and the S key is pressed
+		// run save function. 83 is the key code for S.
+		if((event.ctrlKey || event.metaKey) && event.which == 83) {
+			event.preventDefault();
+			submit_main_table();
+		}
+	});
+	
+	var del_id;
+	//$(document).ready(function(){
+	document.addEventListener("DOMContentLoaded", function() {
+		document.getElementById("add_new_loadgen_grp").addEventListener('click', function() {
+			document.getElementById("num_loadgen_groups").value ++;
+			// create hidden "num_grp_#" input for new group to trigger adding of group in backend
+			new_inp = document.createElement("INPUT");
+			new_inp.setAttribute("type", "hidden");
+			var len_loadgen_grps = {{loadgen_groups|length}};
+			len_loadgen_grps = len_loadgen_grps + 1;
+			new_inp.name="num_grp_" + len_loadgen_grps.toString();
+			new_inp.value = "0";
+			document.getElementById("add_loadgen_group_helper").appendChild(new_inp);
+			// now create add_to_grp_# for new added group to instantly add first entry in group in backend
+			new_inp2 = document.createElement("INPUT");
+			new_inp2.setAttribute("type", "hidden");
+			new_inp2.name="add_to_grp_" + len_loadgen_grps.toString();
+			new_inp2.value = "1";
+			document.getElementById("add_loadgen_group_helper").appendChild(new_inp2);
+
+			exec_submit = check_all_fields();
+			if(exec_submit){
+				document.getElementById("config_form").submit();
+			} else {
+				// because inputs are created already a second execution of "#add_new_loadgen_grp" would result in errors
+				document.getElementById("add_new_loadgen_grp").disabled = true;
+			}
+		});
+
+		document.getElementById("del_loadgen_grp").addEventListener('click', function() {
+			if(document.getElementById("num_loadgen_groups").value > 1){
+				var num_loadgen_groups = document.getElementById("num_loadgen_groups").value;
+				document.getElementById("num_loadgen_groups").value --;
+				//document.getElementById("config_form").submit();
+				// more convinient solution if user wants to undo delete
+				document.getElementById("div_tbl_grp_" + num_loadgen_groups.toString()).remove();
+				document.getElementById("dut_tr_" + num_loadgen_groups.toString()).remove();
+				
+				exec_submit = check_all_fields();
+				if(exec_submit){
+					document.getElementById("config_form").submit();
+				} else {
+					// because inputs are already deleted a second execution of "#del_loadgen_grp" would result in errors
+					document.getElementById("del_loadgen_grp").disabled = true;
+				}
+
+			}
+
+		});
+
+
+		// additional port plus button
+		document.getElementById("add_additional").addEventListener('click', function() {
+			var body = document.getElementById("additional_ports_body")
+
+			var counter = document.getElementById("additional_ports_counter")
+
+			var counter_number_next = Number(counter.value) + 1
+			
+			var div = document.createElement("DIV");
+			div.classList.add("input-group")
+			div.classList.add("mb-3")
+			var input = document.createElement("INPUT");
+			input.id = "additional_" + counter_number_next + "_real_port"
+			input.classList.add("form-control")
+			input.classList.add("real_port_inp")
+
+			input.name = "additional_" + counter_number_next + "_real_port"
+			input.value = "" 
+
+			div.appendChild(input)
+
+			var innerdiv = document.createElement("DIV")
+			innerdiv.classList.add("input-group-append")
+
+			var span = document.createElement("SPAN")
+			span.classList.add("input-group-text")
+			span.id = "additional_" + counter_number_next + "_internal_port"
+			span.style = "width: 120px;"
+			span.innerHTML = "internal: -1"
+
+			innerdiv.appendChild(span)
+
+			div.appendChild(innerdiv)
+
+			var td = document.createElement("TD")
+			td.appendChild(div)
+
+			var tr = document.createElement("TR")
+			tr.id = "additional_port_row_" + counter_number_next
+
+			id_td = document.createElement("TD")
+			id_td.innerHTML = "<i>" + counter_number_next + "</i>"
+			tr.appendChild(id_td)
+			tr.appendChild(td)
+
+			// from stamper target config file
+			{% for entry in target_cfg.inputs.input_table %}
+					{% if not entry.restrict or entry.restrict == "dut" %}
+						var td = document.createElement("TD")
+
+						{% with current=dut|getkeyvalue:entry.target_key %}
+						
+						{% if entry.type == "drop-down" %}
+						var select = document.createElement("SELECT")
+						select.classList.add("form-control")
+						select.id = "additional_" + counter_number_next + "_{{entry.target_key}}"
+						select.name = "additional_" + counter_number_next + "_{{entry.target_key}}"
+
+						var option = document.createElement("OPTION")
+						option.value = "{{current}}"
+						option.innerHTML = "{{current}}"
+
+						select.appendChild(option)
+
+						{% for val in entry.values %}
+							{% if current != val %}
+							var option = document.createElement("OPTION") 
+							option.value = "{{val}}"
+							option.innerHTML = "{{val}}"
+							select.appendChild(option)
+							{% endif %}
+						{% endfor %}
+						
+						td.appendChild(select)
+						
+						{% elif entry.type == "input" %}
+						var input = document.createElement("INPUT")
+						input.id = "additional_" + counter_number_next + "_{{entry.target_key}}"
+						input.classList.add("form-control")
+						input.name = "additional_" + counter_number_next + "_{{entry.target_key}}"
+						input.value = "{{current}}"
+
+						td.appendChild(input)
+						{% endif %}
+
+						{% endwith %}
+
+						tr.appendChild(td)
+
+						{% endif %}
+			{% endfor %}
+
+			body.appendChild(tr)
+			counter.value = counter_number_next
+		})
+
+
+		// addelete ditional port minus button
+		document.getElementById("del_additional").addEventListener('click', function() {
+			var body = document.getElementById("additional_ports_body")
+			var counter = document.getElementById("additional_ports_counter")
+			var counter_last = Number(counter.value)
+
+			last_elem = document.getElementById("additional_port_row_" + counter_last)
+			last_elem.remove()
+
+			counter.value = counter_last - 1
+		})
+
+
+		{% for loadgen_grp in loadgen_groups %}
+		//$("#add_loadgen_to_grp_{{loadgen_grp.group}}").click(function() {
+		document.getElementById("add_loadgen_to_grp_{{loadgen_grp.group}}").addEventListener('click', function() {
+			document.getElementById("add_to_grp_{{loadgen_grp.group}}").value="1";
+			exec_submit = check_all_fields();
+			if(exec_submit){
+				document.getElementById("config_form").submit();
+			}
+		});
+		{% endfor %}
+
+		{% for dut in dut_ports %}
+		{% if dut.id != 1 %}
+		use_port_box_changed({{dut.id}});
+		{% endif %}
+		{% endfor %}
+	});
+
+	function delServerfromLoadgenGroup(loadgen_grp, id, l1_warning=true){
+		table_row_id = "tr_loadgen_" + loadgen_grp + "_" + id;
+		for (let row of document.getElementById('tbl_grp_' + loadgen_grp).rows) {
+			if(row.id === table_row_id){
+				document.getElementById('tbl_grp_' + loadgen_grp).deleteRow(row.rowIndex);
+				document.getElementById("num_grp_" + loadgen_grp).value --;
+				break;
+			}
+		}
+		// now check if only one row is left => disable delete button (user should delete whole loadgen group if not used)
+		if(document.getElementById('tbl_grp_' + loadgen_grp).rows.length <= 2){ // +1 row because of head row
+			for (let row of document.getElementById('tbl_grp_' + loadgen_grp).rows) {
+				row.childNodes.forEach(function(table_elem){
+					if(table_elem.lastChild != null){
+						if(table_elem.lastChild.id === "delete_loadgen_server_btn"){
+							table_elem.lastChild.disabled = true;
+							table_elem.lastChild.lastChild.style.color = "gray";
+						}
+					}
+				});
+			}
+		}
+		// no auto submit when DELETING, leaves the possibility to reload page if accidentally clicked delete
+		var num_hosts_in_grp = document.getElementById("num_grp_" + loadgen_grp).value;
+		var e = document.getElementById("forwarding_mode");
+		var layer = e.options[e.selectedIndex].value;
+
+		if(num_hosts_in_grp < 1){
+			{% for dut in dut_ports %}{% if dut.id != 1 %}
+			if(document.getElementById("dut_{{dut.id}}_use_port").checked && "{{dut.id}}" == loadgen_grp ){
+				document.getElementById("dut_{{dut.id}}_use_port").click();
+				var sp1 = document.createElement("SPAN");
+				sp1.className = "fa fa-question-circle";
+				sp1.style.marginLeft = "5px";
+				sp1.setAttribute("data-toggle", "tooltip");
+				sp1.setAttribute("data-placement", "top");
+				sp1.setAttribute("title", "The associated Loadgen Group [" + loadgen_grp + "] doesn't contain any Loadgens.");
+				insertAfter(sp1, document.getElementById("dut_{{dut.id}}_use_port"))
+				$('[data-toggle="tooltip"]').tooltip();
+			}
+			{% endif %}{% endfor %}
+		}
+
+		if(num_hosts_in_grp < 2 && layer == 1 && l1_warning){
+			$("#modal1").modal();
+		} else {
+			//submitDelClient(true);
+		}	
+	}
+
+	function insertAfter(newNode, refNode) {
+    	refNode.parentNode.insertBefore(newNode, refNode.nextSibling);
+	}
+
+	/* function delClient(id){
+		del_id = id;
+		num_clients = document.getElementById("num_clients").value;
+		e = document.getElementById("forwarding_mode");
+		layer = e.options[e.selectedIndex].value;
+		
+		// TODO: anpassen auf mehrere loadgen gruppen
+		if(num_clients < 2){ // 1 client is actually 0, not updated
+			{% for dut in dut_ports %}{% if dut.id != 1 %}
+			if(document.getElementById("dut_{{dut.id}}_use_port").checked){
+				document.getElementById("dut_{{dut.id}}_use_port").click();
+				var sp1 = document.createElement("SPAN");
+				sp1.className = "fa fa-question-circle";
+				sp1.style.marginLeft = "5px";
+				sp1.setAttribute("data-toggle", "tooltip");
+				sp1.setAttribute("data-placement", "top");
+				sp1.setAttribute("title", "Only ony group is used, other DUT ports will not work.");
+				insertAfter(sp1, document.getElementById("dut_{{dut.id}}_use_port"))
+				$('[data-toggle="tooltip"]').tooltip();
+			}
+
+			{% endif %}{% endfor %}
+		}
+
+		if(num_clients < 2 && layer == 1){
+			$("#modal1").modal();
+		} else {
+			submitDelClient(true);
+		}	
+	} */
+
+    // TODO: probably broken due to global var del_id, only used in L1 warning modal.
+	function submitDelClient(delete_it){
+		if(delete_it){
+			document.getElementById('tbl_client').deleteRow(del_id);
+			document.getElementById("num_clients").value --;
+			del_id = null;
+			// no auto submit when DELETING, leaves the possibility to reaload page if accidentally clicked delete
+			// document.getElementById("config_form").submit();
+		} else {
+			del_id = null;
+		}	
+	}
+
+	function use_port_box_changed(dut_id){
+		var disabled = !document.getElementById("dut_" + dut_id + "_use_port").checked;
+		// document.getElementById('dut' + dut_id + '_real').disabled = false;
+		document.getElementById('dut' + dut_id + '_real').readOnly = disabled;
+		document.getElementById('dut_' + dut_id + '_outgoing_stamp').readOnly = disabled;
+		if(disabled){
+			document.getElementById('dut_' + dut_id + '_outgoing_stamp').checked = false;
+		}
+		{% for entry in target_cfg.inputs.input_table %}
+		document.getElementById('dut' + dut_id + '_{{entry.target_key}}').disabled = disabled;
+		if(disabled){
+			var input = document.createElement('input');
+			input.setAttribute('type', 'hidden');
+			input.setAttribute('name', 'dut' + dut_id + '_{{entry.target_key}}');
+			input.setAttribute('value', document.getElementById('dut' + dut_id + '_{{entry.target_key}}').value);
+			document.getElementById('stamper_post_helper').appendChild(input);
+		}
+		{% endfor %}
+
+		// disable loadgen group table associated with DUT port
+		var table_children = document.getElementById("tbl_grp_" + dut_id).children[1].children
+		for (var i = 0; i < table_children.length; i++) {
+			if(table_children[i].nodeName == "TR"){
+				for(var row_indx = 0; row_indx < table_children[i].children.length; row_indx++){
+					var tr_children = table_children[i].children[row_indx].children;
+					for(var field_indx = 0; field_indx < tr_children.length; field_indx++){
+						try {
+							// check if bootstrap div is around input [used for p4 ports]
+							if(tr_children[field_indx].nodeName == "DIV" && tr_children[field_indx].className == "input-group mb-3"){
+								tr_children[field_indx].children[0].readOnly = disabled;
+							// namespace div
+							} else if (tr_children[field_indx].nodeName == "DIV" && tr_children[field_indx].id.search("_namespace") > 1){
+								tr_children[field_indx].children[0].children[0].readOnly = disabled;
+							} else if (tr_children[field_indx].nodeName == "SELECT" && tr_children[field_indx].className === ("form-control")){
+								// unfortunately selects can't be readOnly => disable (but this prevents POST data for this field)
+								// Solution: append hidden inputs for each disabled input
+								tr_children[field_indx].disabled = disabled;
+								if(disabled){
+									var input = document.createElement('input');
+									input.setAttribute('type', 'hidden');
+									input.setAttribute('name', tr_children[field_indx].id);
+									input.setAttribute('value', tr_children[field_indx].value);
+									document.getElementById('loadgens_hidden_inputs').appendChild(input);
+								}
+							}
+							else {
+								tr_children[field_indx].readOnly = disabled;
+							}
+						} catch (e) {
+							console.log("Exception at trying to disable loadgen inputs: "  + e.toString())
+						}
+					}
+				}
+			}
+		}
+
+		outgoing_stamp_changed();
+	}
+
+	function retrieveIFextHost(){
+		const sleep = (milliseconds) => {
+		  return new Promise(resolve => setTimeout(resolve, milliseconds))
+		}
+
+		ssh_ip = document.getElementById('ext_host_ssh').value;
+		user = document.getElementById('ext_host_user').value;
+		iface = document.getElementById('ext_host_if').value;
+		
+
+		// var el = document.getElementsByName("csrfmiddlewaretoken");
+		// csrf_value = el[0].getAttribute("value");	
+
+		$.ajax({
+		      type: "POST",
+		      url: "/job_fetch_iface/",
+		      data: {
+				'csrfmiddlewaretoken': "{{csrf_token}}", //csrf_value,
+				'ssh_ip': ssh_ip,
+				'user': user,
+				'iface': iface,
+				'namespace': ""
+		      },
+		      success: function (response) {
+			if(response.up_state == "up"){
+				document.getElementById('ext_host_if').className = "form-control is-valid";
+				document.getElementById('ext_host_if_up').className = "valid-feedback";
+				document.getElementById('ext_host_if_up').innerHTML = "Status: UP";
+
+			} else if (response.up_state == "down"){
+				document.getElementById('ext_host_if').className = "form-control is-invalid";
+				document.getElementById('ext_host_if_up').className = "invalid-feedback";
+				if (response.iface_found){
+					document.getElementById('ext_host_if_up').innerHTML = "Status: DOWN, Press 'set IP' to UP";
+				} else {
+					document.getElementById('ext_host_if_up').innerHTML = "Iface not found";
+				}
+			}
+
+			if(response.ip != ""){
+				document.getElementById('ext_host_ip').value = response.ip + response.prefix;
+			} else {
+				old_ip = document.getElementById('ext_host_ip').value;
+				document.getElementById('ext_host_ip').value = "##error##";
+				sleep(2000).then(() => {
+					document.getElementById('ext_host_ip').value = old_ip;
+				})
+			}
+
+			if(response.mac != ""){	
+				document.getElementById('ext_host_mac').value = response.mac;	
+			} else {
+				old_mac = document.getElementById('ext_host_mac').value;
+				document.getElementById('ext_host_mac').value = "##error##";
+				sleep(2000).then(() => {
+					document.getElementById('ext_host_mac').value = old_mac;
+				})
+			}
+		      }
+   		});
+	}
+
+	function retrieveIF(type, id){
+		const sleep = (milliseconds) => {
+		  return new Promise(resolve => setTimeout(resolve, milliseconds))
+		}
+
+		ssh_ip = document.getElementById(type+'_'+id+'_ssh').value;
+		user = document.getElementById(type+'_'+id+'_user').value;
+		iface = document.getElementById(type+'_'+id+'_iface').value;
+		
+		if (document.getElementById(type+'_'+id+'_namespace') !== null){
+			namespace = document.getElementById(type+'_'+id+'_namespace').value;
+		} else {
+			namespace = "";
+		}
+
+		// var el = document.getElementsByName("csrfmiddlewaretoken");
+		// csrf_value = el[0].getAttribute("value");	
+
+		$.ajax({
+		      type: "POST",
+		      url: "/job_fetch_iface/",
+		      data: {
+				'csrfmiddlewaretoken': "{{csrf_token}}", //csrf_value,
+				'ssh_ip': ssh_ip,
+				'user': user,
+				'iface': iface,
+				'namespace': namespace
+		      },
+		      success: function (response) {
+			if(response.up_state == "up"){
+				document.getElementById(type+'_'+id+'_iface').className = "form-control is-valid";
+				document.getElementById(type+'_'+id+'_iface_up').className = "valid-feedback";
+				document.getElementById(type+'_'+id+'_iface_up').innerHTML = "Status: UP";
+
+			} else if (response.up_state == "down"){
+				document.getElementById(type+'_'+id+'_iface').className = "form-control is-invalid";
+				document.getElementById(type+'_'+id+'_iface_up').className = "invalid-feedback";
+				if (response.iface_found){
+					document.getElementById(type+'_'+id+'_iface_up').innerHTML = "Status: DOWN, Press 'set IP' to UP";
+				} else {
+					document.getElementById(type+'_'+id+'_iface_up').innerHTML = "Iface not found";
+				}
+			}
+
+			if(response.ip != ""){
+				document.getElementById(type+'_'+id+'_ip').value = response.ip + response.prefix;
+			} else {
+				old_ip = document.getElementById(type+'_'+id+'_ip').value;
+				document.getElementById(type+'_'+id+'_ip').value = "##error##";
+				sleep(2000).then(() => {
+					document.getElementById(type+'_'+id+'_ip').value = old_ip;
+				})
+			}
+
+			if(response.mac != ""){	
+				document.getElementById(type+'_'+id+'_mac').value = response.mac;	
+			} else {
+				old_mac = document.getElementById(type+'_'+id+'_mac').value;
+				document.getElementById(type+'_'+id+'_mac').value = "##error##";
+				sleep(2000).then(() => {
+					document.getElementById(type+'_'+id+'_mac').value = old_mac;
+				})
+			}
+		      }
+   		});
+	}
+
+	// if input field is marked valid/invalid (green/red) after it will get into normal state after 5 seconds
+	function clear_input_feedback(){
+		setTimeout(function (){ alert("waiting"); }, 5000);
+	}
+
+	function timeout_clear(type, id){
+		setTimeout(function (){
+			if(type==="ext_host"){
+				document.getElementById("ext_host_ip").className = "form-control ip_addr";
+				document.getElementById("ext_host_ip_set").className = "";
+				document.getElementById("ext_host_ip_set").innerHTML = "";
+			} else {
+				document.getElementById(type+"_"+id+"_ip").className = "form-control ip_addr";
+				document.getElementById(type+"_"+id+"_ip_set").className = "";
+				document.getElementById(type+"_"+id+"_ip_set").innerHTML = "";
+				if(document.getElementById(type+"_"+id+"_namespace") != null){
+					document.getElementById(type+"_"+id+"_namespace").className = "form-control";
+					document.getElementById(type+"_"+id+"_namespace_up").className = "";
+					document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "";
+				}
+			}
+		}, 5000);
+	}
+	
+	function setIP(type, id){
+		ssh_ip = document.getElementById(type+'_'+id+'_ssh').value;
+		user = document.getElementById(type+'_'+id+'_user').value;
+		iface = document.getElementById(type+'_'+id+'_iface').value;
+		iface_ip = document.getElementById(type+'_'+id+'_ip').value;
+		
+		if (document.getElementById(type+'_'+id+'_namespace') !== null){
+			namespace = document.getElementById(type+'_'+id+'_namespace').value;
+		} else {
+			namespace = "";
+		}
+
+		// var el = document.getElementsByName("csrfmiddlewaretoken");
+		// csrf_value = el[0].getAttribute("value");
+		$.ajax({
+		      type: "POST",
+		      url: "/job_set_iface/",
+		      data: {
+				'csrfmiddlewaretoken': "{{csrf_token}}", //csrf_value,
+				'ssh_ip': ssh_ip,
+				'user': user,
+				'iface': iface,
+				'iface_ip': iface_ip,
+				'namespace': namespace
+		      },
+		      success: function (response) {
+				if (response.error){
+					document.getElementById(type+"_"+id+"_ip").className = "form-control is-invalid";
+					document.getElementById(type+"_"+id+"_ip_set").className = "invalid-feedback";
+					document.getElementById(type+"_"+id+"_ip_set").innerHTML = "IP set unsuccessfully";
+					if(document.getElementById(type+"_"+id+"_namespace") != null){
+						document.getElementById(type+"_"+id+"_namespace").className = "form-control is-invalid";
+						document.getElementById(type+"_"+id+"_namespace_up").className = "invalid-feedback order-last";
+						document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "netns set unsuccessfully";
+					}
+				} else {
+					document.getElementById(type+"_"+id+"_ip").className = "form-control is-valid";
+					document.getElementById(type+"_"+id+"_ip_set").className = "valid-feedback";
+					document.getElementById(type+"_"+id+"_ip_set").innerHTML = "IP set successfully";
+					if(document.getElementById(type+"_"+id+"_namespace") != null){
+						document.getElementById(type+"_"+id+"_namespace").className = "form-control is-valid";
+						document.getElementById(type+"_"+id+"_namespace_up").className = "valid-feedback order-last";
+						document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "netns set successfully";
+					}
+				}
+				timeout_clear(type, id);
+				retrieveIF(type, id);
+		      },
+		      error: function (response) {
+				document.getElementById(type+"_"+id+"_ip").className = "form-control is-invalid";
+				document.getElementById(type+"_"+id+"_ip_set").className = "invalid-feedback";
+				document.getElementById(type+"_"+id+"_ip_set").innerHTML = "IP set unsuccessfully";
+				if(document.getElementById(type+"_"+id+"_namespace") != null){
+					document.getElementById(type+"_"+id+"_namespace").className = "form-control is-invalid";
+					document.getElementById(type+"_"+id+"_namespace_up").className = "invalid-feedback order-last";
+					document.getElementById(type+"_"+id+"_namespace_up").innerHTML = "netns set unsuccessfully";
+				}
+				timeout_clear(type, id);
+		      },
+   		});
+	}
+
+	function setIPextHost(){
+		ssh_ip = document.getElementById('ext_host_ssh').value;
+		user = document.getElementById('ext_host_user').value;
+		iface = document.getElementById('ext_host_if').value;
+		iface_ip = document.getElementById('ext_host_ip').value;
+
+		// var el = document.getElementsByName("csrfmiddlewaretoken");
+		// csrf_value = el[0].getAttribute("value");
+		$.ajax({
+		      type: "POST",
+		      url: "/job_set_iface/",
+		      data: {
+				'csrfmiddlewaretoken': "{{csrf_token}}", //csrf_value,
+				'ssh_ip': ssh_ip,
+				'user': user,
+				'iface': iface,
+				'iface_ip': iface_ip,
+				'namespace': ""
+		      },
+		      success: function (response) {
+				if (response.error){
+					document.getElementById("ext_host_ip").className = "form-control is-invalid";
+					document.getElementById("ext_host_ip_set").className = "invalid-feedback";
+					document.getElementById("ext_host_ip_set").innerHTML = "IP set unsuccessfully";
+				} else {
+					document.getElementById("ext_host_ip").className = "form-control is-valid";
+					document.getElementById("ext_host_ip_set").className = "valid-feedback";
+					document.getElementById("ext_host_ip_set").innerHTML = "IP set successfully";
+				}
+				timeout_clear(type, id);
+				retrieveIF(type, id);
+		      },
+		      error: function (response) {
+				document.getElementById("ext_host_ip").className = "form-control is-invalid";
+				document.getElementById("ext_host_ip_set").className = "invalid-feedback";
+				document.getElementById("ext_host_ip_set").innerHTML = "IP set unsuccessfully";
+				timeout_clear("ext_host", 0);
+		      },
+   		});
+	}
+	
+	window.onload = function() {
+		window.setTimeout(fadeout, 5000); //5 seconds
+	}
+
+	function fadeout() {
+		f = document.getElementById('fade');
+		if(f!=null){
+			document.getElementById('fade').style.opacity = '0';
+		}
+	}
+
+	function load_status_overview() {
+		$("#status_overview").html('<p>Retrieving status ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+		$.get("/status_overview/", function(data) {
+			$("#status_overview").html(data);
+		}, "html");
+		document.getElementById("show_status").innerHTML = "Refresh";
+	}
+
+	function react_to_validity(valid, field){
+		if (!valid) {
+			var parent = field.parentNode;
+			var children = parent.childNodes;
+			if (children.length > 0) {
+				var last_child = children[children.length - 1];
+				// only add error message if it is not present
+				if (last_child !== undefined && last_child.className !== "invalid-feedback") {
+					var dv = document.createElement("div");
+					dv.innerHTML = "Please enter valid IPv4";
+					dv.className = "invalid-feedback";
+					parent.appendChild(dv);
+				}
+				field.classList.add("is-invalid");
+			}
+			return false
+		} else {
+			class_list = field.classList;
+			class_list.remove("is-invalid");
+			return true;
+		}
+	}
+
+	function check_all_fields(){
+		var exec_submit = true;
+
+		// check if loadgen target omits check (integrated generation doesn't need all fields)
+		var lgen_target = document.getElementById("selected_loadgen");
+		if (lgen_target !== null){
+			if(lgen_target.value === "Tofino Packet Generator"){
+				return true;
+			}
+		}
+		
+		// first validate IP input fields
+		ip_input_fields = document.getElementsByClassName("ip_addr");
+		for (var i = 0; i < ip_input_fields.length; i++) {
+			valid = IPV4validate(ip_input_fields[i].value);
+			if (!valid){
+				exec_submit = false;
+				var parent = ip_input_fields[i].parentNode;
+				var children = parent.childNodes;
+				if(children.length > 0){
+					var last_child = children[children.length-1];
+					// only add error message if it is not present
+					if(last_child !== undefined && last_child.className !== "invalid-feedback"){
+						var dv = document.createElement("div");  
+						dv.innerHTML = "Please enter valid IPv4";
+						dv.className = "invalid-feedback";
+						parent.appendChild(dv);
+					}
+					ip_input_fields[i].classList.add("is-invalid");
+				}
+			} else { // clear error field, if "is-invalid" is not present nothing happens
+				class_list = ip_input_fields[i].classList;
+				class_list.remove("is-invalid");
+			}
+		}
+		// next check MAC length, this is enough because only valid MAC addresses can be entered (managed by event listener)
+		mac_input_fields = document.getElementsByClassName("mac_addr");
+		for (var i = 0; i < mac_input_fields.length; i++) {
+			if(mac_input_fields[i].value.length !== 17){
+				exec_submit = false;
+				var parent = mac_input_fields[i].parentNode;
+				var children = parent.childNodes;
+				if(children.length > 0){
+					var last_child = children[children.length-1];
+					// only add error message if it is not present
+					if(last_child !== undefined && last_child.className !== "invalid-feedback"){
+						var dv = document.createElement("div");  
+						dv.innerHTML = "Please enter valid MAC-Address aa:bb:...";
+						dv.className = "invalid-feedback";
+						parent.appendChild(dv);
+					}
+					mac_input_fields[i].classList.add("is-invalid");
+				}
+			} else { // clear error field, if "is-invalid" is not present nothing happens
+				class_list = mac_input_fields[i].classList;
+				class_list.remove("is-invalid");	
+			}
+		}
+
+		var empty_checker = function(cls, message){
+			input_fields = document.getElementsByClassName(cls)
+			for (var i = 0; i < input_fields.length; i++) {
+				if(input_fields[i].value.length === 0){
+					exec_submit = false;
+					var parent = input_fields[i].parentNode;
+					var children = parent.childNodes;
+					if(children.length > 0){
+						var last_child = children[children.length-1];
+						// only add error message if it is not present
+						if(last_child !== undefined && last_child.className !== "invalid-feedback"){
+							var dv = document.createElement("div");  
+							dv.innerHTML = message;
+							dv.className = "invalid-feedback";
+							parent.appendChild(dv);
+						}
+						input_fields[i].classList.add("is-invalid");
+					}
+				} else { // clear error field, if "is-invalid" is not present nothing happens
+					class_list = input_fields[i].classList;
+					class_list.remove("is-invalid");	
+				}
+			}
+		}
+
+		// check ssh_user input fields
+		empty_checker("ssh_usr", "Please enter username");
+		// check interface input fields
+		empty_checker("iface_inp", "Please enter interface");
+		// check front port input fields
+		empty_checker("real_port_inp", "Please enter port");
+		// check front port input fields if Use Port checkbox is checked
+		{% for dut in dut_ports %}
+		{% if dut.id != 1 %}
+		if (document.getElementById("dut_{{dut.id}}_use_port") != null && document.getElementById("dut_{{dut.id}}_use_port").checked){
+			empty_checker("real_port_inp_check_before_dut{{dut.id}}", "Please enter port")
+		}
+		{% endif %}
+		{% endfor %}
+
+		return exec_submit;
+	}
+
+	var added_force_save_btn = false;
+
+	function submit_main_table(force=false){
+		var exec_submit = check_all_fields();
+		if(exec_submit){ // spawn warning if no duplication is selected
+		var all_checked = false;
+		{% for dut in dut_ports %}
+		all_checked = all_checked || document.getElementById("dut_{{dut.id}}_outgoing_stamp").checked;
+		{% endfor %}
+			if(!(all_checked) && !force){
+				$("#duplication_warning").modal();
+			} else {
+				document.getElementById("save_main_table").click();
+			}
+		} else {
+			console.log("aborted submit due to invalid fields.");
+			if (!added_force_save_btn){
+				var new_btn = document.createElement("BUTTON");
+				new_btn.innerHTML = "Force Save";
+				new_btn.className = "btn btn-danger";
+				new_btn.style = "margin-left: 5px;";
+				new_btn.onclick = function () { submit_main_table(true); };
+				document.getElementById("save_button_wrapper").appendChild(new_btn);
+				added_force_save_btn = true;
+			}
+		}
+		
+	}
+
+	// formats mac address from aabbccdd to aa:bb:cc... and filters not allowed chars
+	function MACformat(event) {
+		var reg = /([a-f0-9]{2})([a-f0-9]{2})/i;
+		var str = event.target.value.replace(/[^a-f0-9]/ig, "");
+
+		while (reg.test(str)) {
+			str = str.replace(reg, '$1' + ':' + '$2');
+		}
+		event.target.value = str.slice(0, 17);
+	}
+	
+	// filters not allowed chars (allowed: 0-9)
+	function IPV4format(e) {
+		var str = event.target.value.replace(/[^0-9./]/ig, "");
+		e.target.value = str;
+	}
+
+	function IPV4validate(input_ip){
+		if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(input_ip)) { 
+			return true;  
+		}  else {
+			// workaround for subnetmask, TODO: better regex
+			if (input_ip.search("/") > 0){
+				return true;
+			}
+			return false;
+		} 
+	}
+
+	// automatically adjust user inputs for MAC and IP addresses 
+	$(document).ready(function(){
+		mac_input_fields = document.getElementsByClassName("mac_addr");
+		for (var i = 0; i < mac_input_fields.length; i++) {
+			mac_input_fields[i].addEventListener("keyup", MACformat, false);
+		}
+		ip_input_fields = document.getElementsByClassName("ip_addr");
+		for (var i = 0; i < ip_input_fields.length; i++) {
+			ip_input_fields[i].addEventListener("keyup", IPV4format, false);
+		}
+	});
+
+	function add_namespace_input(id){
+		div = document.getElementById(id + "_div");
+		inp_html = '<div class="input-group mb-3">'
+		inp_html = inp_html + '<input id="' + id + '" type="text" class="form-control" name="' + id + '" />';
+		inp_html = inp_html + '<div class="input-group-append"><button type="button" class="btn btn-outline-secondary" onclick="delete_namespace_input(\'' + id + '\')"><i class="far fa-trash-alt"></i></button></div></div>';
+		div.innerHTML = inp_html;
+	}
+
+	function delete_namespace_input(id){
+		div = document.getElementById(id + "_div");
+		div.innerHTML = '<button type="button" style="margin:auto; display:block; font-size: 18pt" class="btn btn-default btn-sm" onclick="add_namespace_input(\'' + id + '\')"><i class="fa fa-plus"></i></button>';
+	}
+
+	function target_changed(){
+		var target = document.getElementById("target").value;
+		// var el = document.getElementsByName("csrfmiddlewaretoken");
+		// csrf_value = el[0].getAttribute("value");	
+		$.ajax({
+		      type: "POST",
+		      url: "/job_fetch_target/",
+		      data: {
+				'csrfmiddlewaretoken': "{{csrf_token}}", //csrf_value,
+				'target': target
+		      },
+		      success: function (response) {
+				if("target" in response){
+					// ensure no error at server side
+					if("target" in response.target){
+						var check = "inputs" in response.target && "input_individual" in response.target.inputs;
+						if(check){
+							response.target.inputs.input_individual.forEach(inp => {
+								if("target_key" in inp){
+									// we found the available p4sta versions for this target
+									if(inp.target_key === "p4sta_version"){ //"p4sta_version" is set as target key in some target_config.json
+										// now modify select field to the targets versions
+										var select = document.getElementById("p4sta_version");
+										if ("innerHTML" in select && "values" in inp){
+											// remove <option>..</option> in select
+											select.innerHTML = "";
+											// add <option>..</option> in select from fetched target
+											// first default option
+											var option = document.createElement("option");
+												option.value = inp.default_value;
+												option.innerHTML = inp.default_value;
+												select.appendChild(option);
+											// than all from list except default
+											inp.values.forEach(val => {
+												if(val !== inp.default_value){
+													var option = document.createElement("option");
+													option.value = val;
+													option.innerHTML = val;
+													select.appendChild(option);
+												}
+											});
+										}
+									}
+								}
+							});
+						}
+						if("supported_ext_hosts" in response.target) {
+							p4sta_version_changed()
+						}
+					}
+				}
+			  }
+			  });
+	}
+
+	function p4sta_version_changed(supported_ext_hosts=null){
+		var cur_selected_p4sta_version = null;
+		cur_selected_p4sta_version = document.getElementById("p4sta_version")
+
+		var target = document.getElementById("target").value;
+		
+		if(supported_ext_hosts==null){
+			// var el = document.getElementsByName("csrfmiddlewaretoken");
+			// csrf_value = el[0].getAttribute("value");
+			if(cur_selected_p4sta_version !== null){
+				ver = cur_selected_p4sta_version.value;
+			} else {
+				ver = null;
+			}
+			$.ajax({
+				type: "POST",
+				url: "/job_fetch_target/",
+				data: {
+					'csrfmiddlewaretoken': "{{csrf_token}}",//csrf_value,
+					'target': target,
+					'p4sta_version': ver
+				},
+				success: function (response) {
+					if("target" in response){
+						if("supported_ext_hosts" in response.target) {
+							supported_ext_hosts = response.target.supported_ext_hosts;
+							var select = document.getElementById("selected_extHost");
+							if ("innerHTML" in select){
+								// remove <option>..</option> in select
+								select.innerHTML = "";
+								// add <option>..</option> for all supported ext hosts
+								supported_ext_hosts.forEach(host => {
+									var option = document.createElement("option");
+									option.value = host;
+									option.innerHTML = host;
+									select.appendChild(option);
+								});
+							}
+						}
+					}
+				}
+			});
+		}
+	}
+
+
+    function loadgen_changed(loadgen_str=""){
+        var sel_loadgen = document.getElementById("selected_loadgen");
+        if(sel_loadgen !== null || loadgen_str !== ""){
+            if (loadgen_str === ""){
+                loadgen_str = sel_loadgen.value;
+            }
+
+            var needs_fields = loadgen_str !== "Tofino Packet Generator";
+
+			
+			// allow L1 only for tofino packet gen
+			forwarding_mode = document.getElementById("forwarding_mode");
+			if (forwarding_mode.value === "2" || forwarding_mode.value === "3"){
+				if(!needs_fields){ // if tofino 
+					info_div = document.getElementById("info_forwarding_mode")
+					info_div.style.width = "100%"
+					info_div.style.marginTop = ".25rem"
+					info_div.style.fontSize = "80%"
+					info_div.style.color = "green"
+
+					document.getElementById("info_forwarding_mode").innerHTML = "Tofino Packet Generator: Layer 1 forwarding set automatically.";
+				}
+			}
+			forwarding_mode.childNodes.forEach(node => {
+				if(node.value != undefined) {
+					if(!needs_fields && node.value === "1"){
+						forwarding_mode.value = "1"; // set L1 forwarding only when tofino generator
+					}
+					if(node.value === "2" || node.value === "3"){
+						if (!needs_fields){
+							node.disabled = true;
+						} else {
+							node.disabled = false;
+						}
+					}
+				}
+			});
+
+
+
+            // create generation port list
+            var generator_ports = [];
+            {% for port in target_cfg.packet_generator_ports %}
+            generator_ports.push("{{port}}")
+            {% endfor %}
+
+            {% for loadgen_grp in loadgen_groups %}
+
+                {# First disable disable plus button in loadgen groups #}
+                btn = document.getElementById("add_loadgen_to_grp_{{loadgen_grp.group}}")
+                if(btn !== null){
+                    if(needs_fields){
+                        btn.removeAttribute("disabled");
+                    } else {
+                        btn.setAttribute("disabled", "disabled");
+                    }
+                }
+                
+                {% for loadgen_server in loadgen_grp.loadgens %}
+                    {% if loadgen_server.id > 1 %}
+                        delServerfromLoadgenGroup({{loadgen_grp.group}}, {{loadgen_server.id}}, false);
+                    {% else %}
+                        var to_mod_elems = [
+                            "s{{loadgen_grp.group}}_{{loadgen_server.id}}_ssh",
+                            "s{{loadgen_grp.group}}_{{loadgen_server.id}}_user",
+                            "s{{loadgen_grp.group}}_{{loadgen_server.id}}_iface",
+                            "s{{loadgen_grp.group}}_{{loadgen_server.id}}_iface_retrieve_button",
+                            "s{{loadgen_grp.group}}_{{loadgen_server.id}}_mac",
+                            "s{{loadgen_grp.group}}_{{loadgen_server.id}}_ip",
+                            "s{{loadgen_grp.group}}_{{loadgen_server.id}}_iface_set_button"
+                        ]
+
+                        to_mod_elems.forEach(elem_str => {
+                            elem = document.getElementById(elem_str);
+                            if(elem !== null) {
+                                if(needs_fields){
+                                    elem.removeAttribute("disabled");
+                                } else {
+                                    elem.setAttribute("disabled", "disabled");
+                                    elem.value = "";
+                                }
+                            }
+                        });
+
+                        // special case namespace div
+                        var div = document.getElementById("s{{loadgen_grp.group}}_{{loadgen_server.id}}_namespace_div");
+                        if(!needs_fields){
+                            var insert = "disabled";
+                        } else {
+                            var insert = "";
+                        }
+                        div.innerHTML = '<button type="button" style="margin:auto; display:block; font-size: 18pt" class="btn btn-default btn-sm" onclick="add_namespace_input(\'s{{loadgen_grp.group}}_{{loadgen_server.id}}_namespace\')" ' + insert + '><i class="fa fa-plus"></i></button>';
+                        
+                        // set ports to tofino generation ports
+                        //if(generator_ports.length> x){}
+
+                        var real_port = document.getElementById("s{{loadgen_grp.group}}_{{loadgen_server.id}}_real_port");
+                        var p4_port = document.getElementById("s{{loadgen_grp.group}}_{{loadgen_server.id}}_internal_port");
+                        if(real_port !== null && p4_port !== null){
+                            if(!needs_fields){
+                                var grp = 0{{loadgen_grp.group}}; //little trick if no template string is added here
+                                indx = grp - 1;
+                                // for e.g. group 3: take 3rd value of generator_ports
+                                if (0 <= indx <= generator_ports.length){
+                                    real_port.setAttribute('value',generator_ports[indx]);
+                                    real_port.setAttribute("readonly", "readonly"); // not disabled as we want to see value in POST
+									if(generator_ports[indx] !== undefined){
+                                   		p4_port.innerHTML = "internal: " + generator_ports[indx].toString();
+									}
+                                }
+                            } else {
+                                real_port.value = "";
+                                real_port.removeAttribute("readonly");
+                                p4_port.innerHTML = "internal: -1";
+                            }
+                        }                            
+
+                        // target related inputs
+                        {% for entry in target_cfg.inputs.input_table %}
+                        {% if not entry.restrict or entry.restrict == "loadgen" %}
+                        {% if entry.type == "drop-down" or entry.type == "input" %}
+                            var elem = document.getElementById("s{{loadgen_grp.group}}_{{loadgen_server.id}}_{{entry.target_key}}");
+                            if(elem !== null){
+                                if(!needs_fields){
+                                    elem.setAttribute("disabled", "disabled");
+                                    elem.value = "";
+                                } else {
+                                    elem.removeAttribute("disabled");
+                                }
+                            } else {
+								console.log("s{{loadgen_grp.group}}_{{loadgen_server.id}}_{{entry.target_key}}  => null")
+							}
+                        {% endif %}
+                        {% endif %}
+                        {% endfor %}
+
+                    {% endif %}
+                {% endfor %}
+
+            {% endfor %}
+        }
+    }
+
+</script>

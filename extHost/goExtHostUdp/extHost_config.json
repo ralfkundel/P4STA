@@ -1,6 +1,7 @@
 {
    "name":"GoExtHostUdp",
    "driver":"goHostDriver.py",
+   "provides_status_api": true,
    "status_check":{
       "needed_sudos_to_add":[
          "/p4sta/externalHost/go/go/bin/go",
@@ -18,6 +19,7 @@
       }
    ],
    "compatible_p4sta_versions": [
-      "1.2.1"
+      "1.2.1",
+      "1.3.0"
    ]
 }

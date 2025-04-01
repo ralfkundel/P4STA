@@ -309,7 +309,7 @@ class TestP4staCore(unittest.TestCase):
                 extH_results["num_processed_packets"])
             core_conn.close()
         else:
-            print("Skipping test_external_results as v1.2.1 DPDK Ext Host is not working with BMV2.")
+            print("Skipping test_external_results as >=v1.2.1 DPDK Ext Host is not working with BMV2.")
 
     @ordered
     def test_getAllMeasurements(self):
@@ -322,7 +322,7 @@ class TestP4staCore(unittest.TestCase):
             self.assertEqual(last, TestP4staCore.file_id)
             core_conn.close()
         else:
-            print("Skipping test_getAllMeasurements as v1.2.1 DPDK Ext Host is not working with BMV2.")
+            print("Skipping test_getAllMeasurements as >=v1.2.1 DPDK Ext Host is not working with BMV2.")
 
     @ordered
     def test_process_loadgens(self):

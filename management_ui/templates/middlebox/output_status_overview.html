@@ -33,13 +33,13 @@
 </style>
 <script>
 	function delete_namespace(ns, user, ssh_ip){
-		var token = document.getElementsByName("csrfmiddlewaretoken");
-		csrf_value = token[0].getAttribute("value");
+		// var token = document.getElementsByName("csrfmiddlewaretoken");
+		// csrf_value = token[0].getAttribute("value");
 		$.ajax({
             type: "POST",
             url: "/job_delete_namespace/",
             data: {
-            	'csrfmiddlewaretoken': csrf_value,
+            	'csrfmiddlewaretoken': "{{csrf_token}}", //csrf_value,
             	'namespace': ns,
 				'user': user,
 				'ssh_ip': ssh_ip
@@ -107,6 +107,7 @@
 
 {% endif %}
 <hr/>
+
 
 {% for loadgen_grp in loadgen_groups %}
 {% if loadgen_grp.use_group == "checked" %}

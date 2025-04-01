@@ -29,8 +29,8 @@
 
 	<script type="text/javascript">
 		function exec_loadgens(){
-			var el = document.getElementsByName("csrfmiddlewaretoken");
-			csrf_value = el[0].getAttribute("value");
+			// var el = document.getElementsByName("csrfmiddlewaretoken");
+			// csrf_value = el[0].getAttribute("value");
 			var dur = document.getElementById("inputDuration").value;
 			var l4_selected = "";
 			if(document.getElementById("tcp_selected").checked){
@@ -77,7 +77,7 @@
 			      type: "POST",
 			      url: "/subpage_run_run_loadgens/",
 			      data: {
-					'csrfmiddlewaretoken': csrf_value,
+					'csrfmiddlewaretoken': "{{csrf_token}}", //csrf_value,
 					'duration': dur,
 					'l4_selected': l4_selected,
 					'packet_size_mtu': packet_size_mtu,
@@ -101,6 +101,80 @@
 		}, "html");
 		document.getElementById("show_status").innerHTML = "Refresh";
 	}
+
+	function fetch_ext_host_live_status(){
+		$.get("/subpage_run_ext_host_live_status/", function(data) {
+			data = JSON.parse(data)
+			if(data.hasOwnProperty("live_status")){
+				// {"live_status": {"current_run_state": "UP and listening", "start_time": "2025-03-14T15:53:50.941627623+01:00"}}
+				html_str = ''
+				if(data.live_status.hasOwnProperty("green_light")){
+					if(data.live_status.green_light){
+						html_str += 'State: <span class="dot_green"></span>'
+					} else {
+						html_str += 'State: <span class="dot_red"></span> DOWN'
+					}
+				}
+				if(data.live_status.hasOwnProperty("current_run_state")){
+					html_str += " <i>" + data.live_status.current_run_state + "</i>";
+				}
+
+				if(data.live_status.hasOwnProperty("start_time")){
+					html_str += "<br> Start time: <i>" + data.live_status.start_time + "</i>"
+				}
+				
+				if(data.live_status.hasOwnProperty("log_list")){
+					html_str += '<div style="height: 10px"></div>' //spacer div
+					html_str += '<div class="row">'
+					html_str += '<div class="col-md-3">Default Log from External Host:</div>'
+
+					if(data.live_status.log_list.length === 0){
+						html_str += '<div class="col-md-9">No log entries</div></div>' //close row div in this case
+					}
+					
+					counter = 0
+					data.live_status.log_list.forEach(log_line => {
+						// if first element close row 
+						if(counter === 0){
+							html_str += '<div class="col-md-9">' + counter.toString() + ': <i>' + log_line + '</i></div></div>'
+						} else {
+							html_str +=  '<div class="row"><div class="col-md-3"></div><div class="col-md-9">' + counter.toString() + ': <i>' + log_line + '</i></div></div>'
+						}
+						counter += 1
+					});
+				}
+
+				if(data.live_status.hasOwnProperty("error_list")){
+					html_str += '<div style="height: 10px"></div>' //spacer div
+					html_str += '<div class="row">'
+					html_str += '<div class="col-md-3">Error Log from External Host:</div>'
+
+					if(data.live_status.error_list.length === 0){
+						html_str += '<div class="col-md-9">No log entries</div></div>' //close row div in this case
+					}
+					
+					counter = 0
+					data.live_status.error_list.forEach(log_line => {
+						// if first element close row 
+						if(counter === 0){
+							html_str += '<div class="col-md-9">' + counter.toString() + ': <i>' + log_line + '</i></div></div>'
+						} else {
+							html_str +=  '<div class="row"><div class="col-md-3"></div><div class="col-md-9">' + counter.toString() + ': <i>' + log_line + '</i></div></div>'
+						}
+
+						counter += 1
+					});
+
+				}
+
+				$("#ext_host_live_status").html(html_str);
+			}
+		}, "html");
+	}
+
+	window.intervalId_ext = setInterval(function() {
+		fetch_ext_host_live_status();
+	  }, 3000)
 	</script> 
 
 <style>
@@ -124,9 +198,13 @@
 
 {% csrf_token %}
 {% if running == True and errors|length == 0 %}
-<p>External host started listening via multicast. Press the stop button to get the results.</p>
+{% if not skipped %}
+<p>Monitoring: External host started listening via multicast. Press the stop button to get the results.</p>
+{% else %}
+<p>Monitoring: External host <b>skipped</b>. Only measurements from stamper target are retrieved (min, max, avg), no plots and per packet analysis.</p>
+{% endif %}
 <p>You should reset the switch registers to get exact results.</p>
-<p>Results from external Host, P4 registers and iPerf3 get automaticly saved when you press stop!<p>
+<p>Results from external host, stamper and loadgens are automaticly saved when you press stop!<p>
 <div class="row">
 	<div class="col-md-2">
 	{% if running == True %}
@@ -138,10 +216,38 @@
 	</div>
 	<div class="col-md-10"><div id="output_reset"></div></div>
 </div>
+
+<div style="margin-top:10px;"></div>
+
+{% if ext_host_cfg.provides_status_api is True %}
+<hr/>
+<div style="margin-top:10px;"></div>
+
+<p>
+	<b>Live status of external monitoring host:</b> <div id="ext_host_live_status"></div>
+</p>
+<div style="margin-top:10px;"></div>
+{% endif %}
+
+<hr/>
+
+<div style="margin-top:10px;"></div>
+<p><b>P4STA configuration:</b></p>
+<div class="row">
+	<div class="col-md-3">The P4-Device is configured to stamp:</div>
+	<div class="col-md-9">
+		<p>TCP: <span class='{% if cfg.stamp_tcp == "checked" %}dot_green{% else %}dot_red{% endif %}'></span>
+			UDP: <span class='{% if cfg.stamp_udp == "checked" %}dot_green{% else %}dot_red{% endif %}'></span></p>
+	</div>
+</div>
+<hr/>
+
+
+
 <div style="margin-top:20px;"></div>
 <hr/>
 <div class="row">
-	<div class="col-md-12">Execute loadgens:</div>
+	<div class="col-md-12"><b>Execute loadgens:</b></div>
 </div>
 
 <div style="margin-top:20px;"></div>
@@ -150,15 +256,8 @@
 	<div class="col-md-3">Duration of test in seconds: </div>
 	<div class="col-md-9"><input type="number" class="form-control" id="inputDuration" value="10" placeholder="10"></div>
 </div>
-<hr/>	
-<div style="margin-top:10px;"></div>
-<div class="row">
-	<div class="col-md-3">The P4-Device is configured to stamp:</div>
-	<div class="col-md-9">
-		<p>TCP: <span class='{% if cfg.stamp_tcp == "checked" %}dot_green{% else %}dot_red{% endif %}'></span>
-			UDP: <span class='{% if cfg.stamp_udp == "checked" %}dot_green{% else %}dot_red{% endif %}'></span></p>
-	</div>
-</div>
+
+
 <hr/>
 <div style="margin-top:10px;"></div>
 <div class="row">
@@ -243,11 +342,11 @@
 
 <div style="margin-top:10px;"></div>
 <div class="row">
-	<div class="col-md-2"><button id="exec_loadgen" type="button" class="save btn btn-secondary" onclick="exec_loadgens()">Start iPerf3</button></div>
+	<div class="col-md-2"><button id="exec_loadgen" type="button" class="save btn btn-secondary" onclick="exec_loadgens()">Start</button></div>
 	<div class="col-md-10"><div id="output_loadgens" class="card card-body"></div></div>
 </div>
 {% elif running == False %}
-<span style="color: red">P4 device is not reachable. Please start it at <a href="/2/">Deploy</a></span>
+<span style="color: red">P4 device is not reachable. Please start it at <a href="/deplay/">Deploy</a></span>
 <button id="show_status" type="button" class="save btn btn-secondary" onclick="load_status_overview();">Show Status</button></h2> <div id="status_overview"></div>
 
 
@@ -255,5 +354,5 @@
 {% for error in errors %}
 <p>{{error}}</p>
 {% endfor %}
-<p>Aborted starting of external host. Please check your configuration at <a href="/">Configure</a></p>
+<p>Aborted starting of external host. Please check your configuration at <a href="/configuration">Configure</a></p>
 {% endif %}
