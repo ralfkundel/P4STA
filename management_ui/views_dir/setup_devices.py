@@ -94,30 +94,31 @@ def setup_devices(request):
                     cfg["selected_extHost"] = request.POST["selected_extHost"]
                 cfg["selected_loadgen"] = request.POST["selected_loadgen"]
 
+                # DEPRECATED: take loadgen cfg from stamper template
                 # add all loadgens to loadgen group 1 and 2
-                cfg["loadgen_groups"] = [
-                    {"group": 1, "loadgens": [], "use_group": "checked"},
-                    {"group": 2, "loadgens": [], "use_group": "checked"}]
-                grp1 = setup_devices_cfg["loadgens"][
-                       len(setup_devices_cfg["loadgens"]) // 2:]
-                grp2 = setup_devices_cfg["loadgens"][
-                       :len(setup_devices_cfg["loadgens"]) // 2]
-                id_c = 1
-                for loadgen in grp1:
-                    cfg["loadgen_groups"][0]["loadgens"].append(
-                        {"id": id_c, "loadgen_iface": "", "loadgen_ip": "",
-                         "loadgen_mac": "", "real_port": "",
-                         "p4_port": "", "ssh_ip": loadgen["loadgen_ssh_ip"],
-                         "ssh_user": loadgen["loadgen_user"]})
-                    id_c = id_c + 1
-                id_c = 1
-                for loadgen in grp2:
-                    cfg["loadgen_groups"][1]["loadgens"].append(
-                        {"id": id_c, "loadgen_iface": "", "loadgen_ip": "",
-                         "loadgen_mac": "", "real_port": "",
-                         "p4_port": "", "ssh_ip": loadgen["loadgen_ssh_ip"],
-                         "ssh_user": loadgen["loadgen_user"]})
-                    id_c = id_c + 1
+                # cfg["loadgen_groups"] = [
+                #     {"group": 1, "loadgens": [], "use_group": "checked"},
+                #     {"group": 2, "loadgens": [], "use_group": "checked"}]
+                # grp1 = setup_devices_cfg["loadgens"][
+                #        len(setup_devices_cfg["loadgens"]) // 2:]
+                # grp2 = setup_devices_cfg["loadgens"][
+                #        :len(setup_devices_cfg["loadgens"]) // 2]
+                # id_c = 1
+                # for loadgen in grp1:
+                #     cfg["loadgen_groups"][0]["loadgens"].append(
+                #         {"id": id_c, "loadgen_iface": "", "loadgen_ip": "",
+                #          "loadgen_mac": "", "real_port": "",
+                #          "p4_port": "", "ssh_ip": loadgen["loadgen_ssh_ip"],
+                #          "ssh_user": loadgen["loadgen_user"]})
+                #     id_c = id_c + 1
+                # id_c = 1
+                # for loadgen in grp2:
+                #     cfg["loadgen_groups"][1]["loadgens"].append(
+                #         {"id": id_c, "loadgen_iface": "", "loadgen_ip": "",
+                #          "loadgen_mac": "", "real_port": "",
+                #          "p4_port": "", "ssh_ip": loadgen["loadgen_ssh_ip"],
+                #          "ssh_user": loadgen["loadgen_user"]})
+                #     id_c = id_c + 1
 
                 if globals.core_conn.root.check_first_run():
                     # only overwrite when first run

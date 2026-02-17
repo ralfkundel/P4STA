@@ -27,8 +27,24 @@ class ExtHostImpl(AbstractExtHost):
         # dir name at the host the actual external host impl is running, .../p4sta_externalHost/ + self.path_on_exec_host
         super().__init__(host_cfg, "go", logger)
 
-    def start_external(self, file_id, multi=1, tsmax=(2 ** 32 - 1)):
         self.cfg = P4STA_utils.read_current_cfg()
+
+        # support for second ext host
+        if "second_ext_host_ssh" in self.cfg:
+            self.EXT_HOST_T1_DUPLICATION = True
+
+            # case with same iface for both ext host instances
+            # ensure consistent config
+            if self.cfg["second_ext_host_if"] == self.cfg["ext_host_if"]:
+                if self.cfg["second_ext_host_ssh"] == self.cfg["ext_host_ssh"]:
+                    self.cfg["second_ext_host_mac"] = self.cfg["ext_host_mac"]
+                    self.cfg["second_ext_host_ip"] = self.cfg["ext_host_ip"]
+                    self.cfg["second_ext_host_real"] = self.cfg["ext_host_real"]
+        else:
+            self.EXT_HOST_T1_DUPLICATION = False
+            
+    def start_external(self, file_id, multi=1, tsmax=(2 ** 32 - 1)):
+        # self.cfg = P4STA_utils.read_current_cfg()
 
         ext_dir = self.host_cfg["real_path"]
         errors = ()
@@ -84,6 +100,20 @@ class ExtHostImpl(AbstractExtHost):
         self.logger.debug(args)
         res = P4STA_utils.execute_ssh(self.cfg["ext_host_user"],
                                       self.cfg["ext_host_ssh"], args)
+        
+        if self.EXT_HOST_T1_DUPLICATION:
+            self.logger.info("start golang extHost timestamp 1 only")
+
+            call = "sudo /home/" + self.cfg["second_ext_host_user"] + \
+                "/p4sta/externalHost/go/go/bin/go run extHostHTTPServer.go goUdpSocketExtHost.go --name " + file_id + \
+                " --ip_port " + self.cfg["second_ext_host_ip"] + ":41112 --ip " + self.cfg["second_ext_host_ip"] + " --tstamp1only yes"
+            args = "cd /home/" + self.cfg["second_ext_host_user"] + \
+                "/p4sta/externalHost/go/; nohup " + call + \
+                " > log_tstamp1_only.out 2> log_tstamp1_only.err < /dev/null &"
+            self.logger.debug(args)
+            res = P4STA_utils.execute_ssh(self.cfg["second_ext_host_user"],
+                                        self.cfg["second_ext_host_ssh"], args)
+            
 
         # time.sleep(2)  # wait for the ext-host to succeed/fail
         # # check if interface is not found or other crash
@@ -111,10 +141,11 @@ class ExtHostImpl(AbstractExtHost):
         P4STA_utils.execute_ssh(self.cfg["ext_host_user"],
                                 self.cfg["ext_host_ssh"],
                                 "sudo pkill -15 go; sudo killall extHostHTTPServer") # send sigterm to allow writing of files in signal handler, TODO: kills all go applications
-        input = ["ssh", "-o ConnectTimeout=5",
+        input = ["ssh", "-o ConnectTimeout=3",
                  self.cfg["ext_host_user"] + "@" + self.cfg["ext_host_ssh"],
                  "cd /home/" + self.cfg["ext_host_user"] +
-                 "/p4sta/externalHost/go; ./check_extH_status.sh; exit"]
+                 "/p4sta/externalHost/go; ./check_extH_status.sh receiver_finished.log; exit"]
+
         time.sleep(0.2)
         c = 0
         while True:  # wait until exthost stopped
@@ -122,10 +153,21 @@ class ExtHostImpl(AbstractExtHost):
             c = c + 1
             res = subprocess.run(input, stdout=subprocess.PIPE).stdout
             result = res.decode()
-            if result.find("1") > -1 or c > 600:
+            if self.EXT_HOST_T1_DUPLICATION:
+                input2 = ["ssh", "-o ConnectTimeout=3",
+                    self.cfg["second_ext_host_user"] + "@" + self.cfg["second_ext_host_ssh"],
+                    "cd /home/" + self.cfg["second_ext_host_user"] +
+                    "/p4sta/externalHost/go; ./check_extH_status.sh receiver_finished_only_timestamp1.log; exit"]
+                res2 = subprocess.run(input2, stdout=subprocess.PIPE).stdout
+                result2 = res2.decode()
+                # self.logger.debug("Probing Ext host")
+            else:
+                result2 = "111111"
+            if (result.find("1") > -1 and result2.find("1") > -1) or c > 600:
                 # if 1 is found by check_extH_status.sh at external host
                 # external Host has finished saving csv files
                 break
+                
         subprocess.run(["scp", self.cfg["ext_host_user"] + "@" + self.cfg[
             "ext_host_ssh"] + ":/home/" + self.cfg["ext_host_user"] +
                         "/p4sta/externalHost/go/raw_packet_counter_" +
@@ -147,12 +189,31 @@ class ExtHostImpl(AbstractExtHost):
                         "/p4sta/externalHost/go/timestamp2_list_" +
                         file_id + ".csv",
                         P4STA_utils.get_results_path(file_id)])
+        
+        
+        if self.EXT_HOST_T1_DUPLICATION:
+            subprocess.run(["scp", self.cfg["second_ext_host_user"] + "@" + self.cfg[
+            "second_ext_host_ssh"] + ":/home/" + self.cfg["second_ext_host_user"] +
+                        "/p4sta/externalHost/go/only_tstamp1_raw_packet_counter_" +
+                        file_id + ".csv",
+                        P4STA_utils.get_results_path(file_id)])
+            subprocess.run(["scp", self.cfg["second_ext_host_user"] + "@" + self.cfg[
+            "second_ext_host_ssh"] + ":/home/" + self.cfg["second_ext_host_user"] +
+                        "/p4sta/externalHost/go/only_timestamp1_list_" +
+                        file_id + ".csv",
+                        P4STA_utils.get_results_path(file_id)])
+        
+            subprocess.run(["scp", self.cfg["second_ext_host_user"] + "@" + self.cfg[
+            "second_ext_host_ssh"] + ":/home/" + self.cfg["second_ext_host_user"] +
+                        "/p4sta/externalHost/go/only_tstamp1_packet_sizes_" +
+                        file_id + ".csv",
+                        P4STA_utils.get_results_path(file_id)])
 
         P4STA_utils.execute_ssh(self.cfg["ext_host_user"],
-                                self.cfg["ext_host_ssh"],
-                                "cd /home/" + self.cfg["ext_host_user"] +
-                                "/p4sta/externalHost/go; rm *.csv")
-
+                self.cfg["ext_host_ssh"],
+                "cd /home/" + self.cfg["ext_host_user"] +
+                "/p4sta/externalHost/go; rm *.csv")
+        
         return True
 
     def get_server_install_script(self, user_name, ip):
@@ -250,14 +311,21 @@ class ExtHostImpl(AbstractExtHost):
     def ext_host_live_status(self):
         cfg = P4STA_utils.read_current_cfg()
 
-        base_url = "http://" + str(cfg["ext_host_ssh"]) + ":8888"
-        try:
-            run_state = requests.get(base_url + "/run_state").json()
-        except requests.exceptions.ConnectionError:
-            self.logger.warning("HTTP API of GoLangExtHost not reachable.")
-            run_state = {}
-        except Exception as e:
-            self.logger.error(str(e))
-            run_state = {}
+        def query(port):
+            base_url = "http://" + str(cfg["ext_host_ssh"]) + ":" + str(port)
+            try:
+                return requests.get(base_url + "/run_state").json()
+            except requests.exceptions.ConnectionError:
+                self.logger.warning("HTTP API port " + str(port) + " of GoLangExtHost not reachable.")
+                return {}
+            except Exception as e:
+                self.logger.error(str(e))
+                return {}
+
+        run_state = query(8888)
+
+        if self.EXT_HOST_T1_DUPLICATION:
+            run2_state = query(8889)
+            run_state.update({"ext_host_2": run2_state})
 
         return run_state

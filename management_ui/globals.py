@@ -22,10 +22,15 @@ def main():
     global core_conn
     global project_path
     global logger
-    core_conn = rpyc.connect('localhost', 6789)
+    global current_live_stats
+    core_conn = rpyc.connect('localhost', 6789, config={'allow_public_attrs': True})
     project_path = core_conn.root.get_project_path()
     P4STA_utils.set_project_path(project_path)
     selected_run_id = core_conn.root.getLatestMeasurementId()
 
     logger = P4STA_logger.create_logger("#web")
     logger.info("Set up global variables.")
+
+    # list is filled with throughput etc during test run
+    # None => No run currently or stopped, [] = run started
+    current_live_stats = None

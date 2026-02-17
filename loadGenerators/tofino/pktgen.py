@@ -92,9 +92,12 @@ class TofinoPacketGenerator():
         if self.abort:
             self.logger.warning("Aborting packet generation.")
             return None
+        
+        self.logger.debug("len(packet_list) = "+str(len(packet_list))+" | len(self.libcfg['generator_ports']) = "+str(len(self.libcfg["generator_ports"])))
+        self.logger.debug("self.libcfg['use_gen_port_map'] = " + str(self.libcfg["use_gen_port_map"]))
 
-        if len(packet_list) != len(self.libcfg["generator_ports"]):
-            self.logger.warning("Passed argument packet_list must contain the same amount of packets as generator ports - one per port in the same order.")
+        if len(packet_list) > len(self.libcfg["generator_ports"]):
+            self.logger.warning("Passed argument packet_list must contain maximum the amount of packets as generator ports - one per port in the same order.")
             return None
         
         if tofino_grpc_obj != None:
@@ -184,51 +187,54 @@ class TofinoPacketGenerator():
         # not needed anymore # node_id = 4 # seems like max 19 mcast nodes possible
         for indx, port in enumerate(self.libcfg["generator_ports"]):
             try:
-                packet = packet_list[indx]
-                eg_port = self.libcfg["egress_ports"][indx]
-                mcast_multi = self.libcfg["mcast_duplication_multis"][indx]
+                # check if packet exists, do nothing if not
+                if len(packet_list)-1 >= indx:
+                    
+                    packet = packet_list[indx]
+                    eg_port = self.libcfg["egress_ports"][indx]
+                    mcast_multi = self.libcfg["mcast_duplication_multis"][indx]
 
-                # prepare multicasting groups for duplication to additional ports
-                # "egress_mcast_groups_map": [[1,2,3,4], [], [], []] # p4 ports!
-                if "egress_mcast_groups_map" in self.libcfg and len(self.libcfg["egress_mcast_groups_map"]) > 0:
-                    p4_ports = self.libcfg["egress_mcast_groups_map"][indx]
-                    if not DEBUG_disable_mcast:
-                        # apply mcast multiplicator
-                        multiplicated_p4_ports = p4_ports
-                        if mcast_multi > 1:
-                            multiplicated_p4_ports = []
-                            for i in range(mcast_multi):
-                                multiplicated_p4_ports.extend(p4_ports)
-                                # add eg_port only for multiplication, not in first round as the original packet egresses there
-                                if i > 0:
-                                    multiplicated_p4_ports.append(eg_port)
+                    # prepare multicasting groups for duplication to additional ports
+                    # "egress_mcast_groups_map": [[1,2,3,4], [], [], []] # p4 ports!
+                    if "egress_mcast_groups_map" in self.libcfg and len(self.libcfg["egress_mcast_groups_map"]) > 0:
+                        p4_ports = self.libcfg["egress_mcast_groups_map"][indx]
+                        if not DEBUG_disable_mcast:
+                            # apply mcast multiplicator
+                            multiplicated_p4_ports = p4_ports
+                            if mcast_multi > 1:
+                                multiplicated_p4_ports = []
+                                for i in range(mcast_multi):
+                                    multiplicated_p4_ports.extend(p4_ports)
+                                    # add eg_port only for multiplication, not in first round as the original packet egresses there
+                                    if i > 0:
+                                        multiplicated_p4_ports.append(eg_port)
 
-                        for p4_port in multiplicated_p4_ports:
-                            self.logger.debug("Adding P4 Port " + str(p4_port) + " to mcast group " + str(start_group))
-                            cfg = {"node_id": node_id, "group_id": start_group, "port": int(p4_port)}
-                            mcast_inp.append(cfg)
-                            node_id += 1
+                            for p4_port in multiplicated_p4_ports:
+                                self.logger.debug("Adding P4 Port " + str(p4_port) + " to mcast group " + str(start_group))
+                                cfg = {"node_id": node_id, "group_id": start_group, "port": int(p4_port)}
+                                mcast_inp.append(cfg)
+                                node_id += 1
 
-                        self.libcfg["mcast_grp_ids"][indx] = int(start_group)
-                        start_group += 1
+                            self.libcfg["mcast_grp_ids"][indx] = int(start_group)
+                            start_group += 1
 
-                if eg_port > 0 and "app_id" in packet:
-                    grp = self.libcfg["mcast_grp_ids"][indx]
+                    if eg_port > 0 and "app_id" in packet:
+                        grp = self.libcfg["mcast_grp_ids"][indx]
 
-                    interface.add_to_table(table_name="pipe.SwitchIngress.t_l1_forwarding_generation",
-                        keys=[["ig_intr_md.ingress_port", int(port)], ["hdr.pkg_gen_timer.app_id", packet["app_id"]]],
-                        datas=[["egress_port", eg_port]],
-                        action="SwitchIngress.send")
-                    self.logger.debug("Added pipe.SwitchIngress.t_l1_forwarding_generation => ingress_port " + str(port) + " => " + "eg_port " + str(eg_port))
+                        interface.add_to_table(table_name="pipe.SwitchIngress.t_l1_forwarding_generation",
+                            keys=[["ig_intr_md.ingress_port", int(port)], ["hdr.pkg_gen_timer.app_id", packet["app_id"]]],
+                            datas=[["egress_port", eg_port]],
+                            action="SwitchIngress.send")
+                        self.logger.debug("Added pipe.SwitchIngress.t_l1_forwarding_generation => ingress_port " + str(port) + " => " + "eg_port " + str(eg_port))
 
-                    t_duplicate_to_dut = "pipe.SwitchIngress.t_duplicate_to_dut"
-                    interface.add_to_table(
-                        t_duplicate_to_dut,
-                        [["ig_intr_tm_md.ucast_egress_port", int(eg_port)]],
-                        [["group", int(grp)]],
-                        "SwitchIngress.duplicate_to_dut",
-                    )
-                    self.logger.debug("Added pipe.SwitchIngress.t_duplicate_to_dut => ucast_egress_port " + str(eg_port) + " => " + "group " + str(grp))
+                        t_duplicate_to_dut = "pipe.SwitchIngress.t_duplicate_to_dut"
+                        interface.add_to_table(
+                            t_duplicate_to_dut,
+                            [["ig_intr_tm_md.ucast_egress_port", int(eg_port)]],
+                            [["group", int(grp)]],
+                            "SwitchIngress.duplicate_to_dut",
+                        )
+                        self.logger.debug("Added pipe.SwitchIngress.t_duplicate_to_dut => ucast_egress_port " + str(eg_port) + " => " + "group " + str(grp))
 
             except Exception as e:
                 self.logger.error(traceback.format_exc())
@@ -274,7 +280,7 @@ class TofinoPacketGenerator():
 
         for indx, port in enumerate(self.libcfg["generator_ports"]): 
             try:
-                if True: #len(packet_list) < indx: # was "<" not "<="
+                if len(packet_list)-1 >= indx: #if True: #len(packet_list) < indx: # was "<" not "<="
                     packet = packet_list[indx]
                     timer = self.get_timer(packet["rate_mbps"], len(packet["scapy_packet"]))
                     if self.libcfg["tofino_generation"] == '1':

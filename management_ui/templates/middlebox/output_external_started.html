@@ -105,6 +105,7 @@
 	function fetch_ext_host_live_status(){
 		$.get("/subpage_run_ext_host_live_status/", function(data) {
 			data = JSON.parse(data)
+			console.log(data)
 			if(data.hasOwnProperty("live_status")){
 				// {"live_status": {"current_run_state": "UP and listening", "start_time": "2025-03-14T15:53:50.941627623+01:00"}}
 				html_str = ''
@@ -254,7 +255,7 @@
 
 <div class="row">
 	<div class="col-md-3">Duration of test in seconds: </div>
-	<div class="col-md-9"><input type="number" class="form-control" id="inputDuration" value="10" placeholder="10"></div>
+	<div class="col-md-9"><input type="number" class="form-control" id="inputDuration" value="20" placeholder="20"></div>
 </div>
 
 

@@ -69,11 +69,18 @@ func runStateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func start_api() {
-	fmt.Println("Start HTTP Server at Port 8888")
+func start_api(tstamp1_only *string) {
 
-	server = &http.Server{
-		Addr: ":8888",
+	if *tstamp1_only == "yes" {
+		fmt.Println("Start HTTP Server at Port 8889")
+		server = &http.Server{
+			Addr: ":8889",
+		}
+	} else {
+		fmt.Println("Start HTTP Server at Port 8888")
+		server = &http.Server{
+			Addr: ":8888",
+		}
 	}
 
 	seqno = 0

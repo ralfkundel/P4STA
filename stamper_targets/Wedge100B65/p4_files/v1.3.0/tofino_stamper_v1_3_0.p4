@@ -1000,7 +1000,7 @@ control SwitchEgress(
 	Counter<bit<32>, PortId_t>(512, CounterType_t.PACKETS_AND_BYTES) egress_stamped_counter;
 
 	// is executed for UDP payload OR GTP-U packets which are encapsulated in UDP
-	action prepare_exthost_packet_udp(bit<48> dst, bit<32> dstip, bit<32> srcip) {
+	action prepare_exthost_packet_udp(bit<48> dst, bit<32> dstip, bit<32> srcip, bit<16> dstport) {
 		// src mac and ip doesnt matter for ext host
 		hdr.ethernet.dstAddr = dst;
 		// always set to IPv4 as possible PPPoE and VLAN header are removed in apply block later for ext host packets
@@ -1048,8 +1048,8 @@ control SwitchEgress(
 		// hdr.ipv4.paketlen = 46; // 20 byte IPV4 header + 8 byte UDP + 2 byte p4sta metrics + 16 byte timestamps
 
 		hdr.exthost_udp.setValid();
-		hdr.exthost_udp.srcPort = 41111; // just random sending port
-		hdr.exthost_udp.dstPort = 41111; // ext host listens to that port in UDP
+		hdr.exthost_udp.srcPort = dstport; // just random sending port
+		hdr.exthost_udp.dstPort = dstport; // ext host listens to that port in UDP
 		hdr.exthost_udp.checksum = 0;
 		//hdr.exthost_udp.len moved to apply block
 
@@ -1060,7 +1060,7 @@ control SwitchEgress(
 	}
 	
 	// can possibly also be used for icmp
-	action prepare_exthost_packet_tcp(bit<48> dst, bit<32> dstip, bit<32> srcip) {
+	action prepare_exthost_packet_tcp(bit<48> dst, bit<32> dstip, bit<32> srcip, bit<16> dstport) {
 		// src mac and ip doesnt matter for ext host
 		hdr.ethernet.dstAddr = dst;
 		// always set to IPv4, possible PPPoE and VLAN header are removed in apply block later
@@ -1088,8 +1088,8 @@ control SwitchEgress(
 		hdr.ipv4.paketlen = 46;  // 20 byte IPV4 header + 8 byte UDP + 2 byte p4sta metrics + 16 byte timestamps
 
 		hdr.exthost_udp.setValid();
-		hdr.exthost_udp.srcPort = 41111; // just random sending port
-		hdr.exthost_udp.dstPort = 41111; // ext host listens to that port in UDP
+		hdr.exthost_udp.srcPort = dstport; // just random sending port
+		hdr.exthost_udp.dstPort = dstport; // ext host listens to that port in UDP
 		hdr.exthost_udp.checksum = 0;
 		// vxlen_udp.len is set in apply block
 
@@ -1162,6 +1162,7 @@ control SwitchEgress(
 			eg_intr_md.egress_port : exact;
 			//hdr.ethernet.etherType : exact;
 			hdr.ipv4.protocol : exact;
+			hdr.tcp_options_128bit_custom.myType  : exact;
 		}
 		actions = {
 			prepare_exthost_packet_udp;
@@ -1175,6 +1176,7 @@ control SwitchEgress(
 			eg_intr_md.egress_port : exact;
 			//hdr.ethernet.etherType : exact;
 			hdr.outer_ipv4.protocol : exact;
+			hdr.tcp_options_128bit_custom.myType : exact;
 		}
 		actions = {
 			prepare_exthost_packet_udp;
@@ -1205,9 +1207,12 @@ control SwitchEgress(
 				hdr.ipv4.paketlen = hdr.ipv4.paketlen - 20; // -20 byte tcp header, if UDP header is present no sub. required as replaced by exthost_udp header
 			}
 
-			//broadcast_mac table prepares duplicated packets for external host
-			broadcast_mac.apply();
-			broadcast_mac_gtp.apply();
+			// broadcast_mac table prepares duplicated packets for external host
+			// important: apply here before later the indication (0x0f11 = tstamp header added in ingress) is overwritten
+			if(hdr.tcp_options_128bit_custom.isValid()){
+				broadcast_mac.apply();
+				broadcast_mac_gtp.apply();
+			}
 
 			#ifdef GTP_ENCAP
 			if(hdr.outer_ipv4.isValid()){

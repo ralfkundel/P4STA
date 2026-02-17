@@ -59,7 +59,7 @@ func overwrite_textfile(full_filename string, to_write string) {
 	}
 }
 
-func save_data() {
+func save_data(tstamp1_only *string) {
 	current_run_state = "Writing timestamp files ..."
 	fmt.Println("saving data ..")
 	fmt.Println("timestamp1 list length: ", len(timestamp1_list))
@@ -68,31 +68,59 @@ func save_data() {
 	fmt.Println("packet_counter: ", packet_counter)
 
 	if *save {
-		file, err := os.Create(fmt.Sprintf("raw_packet_counter_%s.csv", *name))
-		if err != nil {
-			panic(err)
-		}
-		w := csv.NewWriter(file)
-		var tmp [1]string
-		tmp[0] = strconv.FormatUint(packet_counter, 10)
-		if err := w.Write(tmp[0:1]); err != nil {
-			fmt.Println(err)
-		}
-		w.Flush()
-		if w.Error() != nil {
-			fmt.Println(err)
+
+		if *tstamp1_only == "yes" {
+			file, err := os.Create(fmt.Sprintf("only_tstamp1_raw_packet_counter_%s.csv", *name))
+			if err != nil {
+				panic(err)
+			}
+			w := csv.NewWriter(file)
+			var tmp [1]string
+			tmp[0] = strconv.FormatUint(packet_counter, 10)
+			if err := w.Write(tmp[0:1]); err != nil {
+				fmt.Println(err)
+			}
+			w.Flush()
+			if w.Error() != nil {
+				fmt.Println(err)
+			}
+
+			write_csv_uint_list("only_timestamp1_list", timestamp1_list)
+
+			var packet_size_list_64 []uint64
+			for i := 0; i < len(packet_size_list); i++ {
+				packet_size_list_64 = append(packet_size_list_64, uint64(packet_size_list[i]))
+			}
+			write_csv_uint_list("only_tstamp1_packet_sizes", packet_size_list_64)
+			overwrite_textfile("receiver_finished_only_timestamp1.log", "True")
+		} else {
+
+			file, err := os.Create(fmt.Sprintf("raw_packet_counter_%s.csv", *name))
+			if err != nil {
+				panic(err)
+			}
+			w := csv.NewWriter(file)
+			var tmp [1]string
+			tmp[0] = strconv.FormatUint(packet_counter, 10)
+			if err := w.Write(tmp[0:1]); err != nil {
+				fmt.Println(err)
+			}
+			w.Flush()
+			if w.Error() != nil {
+				fmt.Println(err)
+			}
+
+			write_csv_uint_list("timestamp1_list", timestamp1_list)
+			write_csv_uint_list("timestamp2_list", timestamp2_list)
+
+			var packet_size_list_64 []uint64
+			for i := 0; i < len(packet_size_list); i++ {
+				packet_size_list_64 = append(packet_size_list_64, uint64(packet_size_list[i]))
+			}
+			write_csv_uint_list("packet_sizes", packet_size_list_64)
+			overwrite_textfile("receiver_finished.log", "True")
 		}
 
-		write_csv_uint_list("timestamp1_list", timestamp1_list)
-		write_csv_uint_list("timestamp2_list", timestamp2_list)
-
-		var packet_size_list_64 []uint64
-		for i := 0; i < len(packet_size_list); i++ {
-			packet_size_list_64 = append(packet_size_list_64, uint64(packet_size_list[i]))
-		}
-		write_csv_uint_list("packet_sizes", packet_size_list_64)
-
-		overwrite_textfile("receiver_finished.log", "True")
 		fmt.Println("Finished writing")
 		current_run_state = "Finished writing timestamp files"
 	}
@@ -104,14 +132,32 @@ func save_data() {
 // }
 
 func main() {
+	// create and parse flags from bash call
+	name = flag.String("name", "no_name", "Name of generated files => test identification.")
+	var ip_port = flag.String("ip_port", "0.0.0.0:41111", "IP the UDP sockets binds to.")
+	var ip = flag.String("ip", "0.0.0.0", "IP the IP socket binds to")
+	var tstamp1_only = flag.String("tstamp1only", "no", "Set to yes if only tstamp1 should be captured")
+	save = flag.Bool("save", true, "(Default true): If set to false, no csv files will be stored after sniffing")
+	flag.Parse()
+
+	fmt.Println("name has value", *name)
+	fmt.Println("ip_port has value", *ip_port)
+	fmt.Println("ip has value", *ip)
+	fmt.Println("tstamp1_only has value", *tstamp1_only)
+
 	current_run_state = "Starting HTTP API ..."
 	// in extHostHTTPServer, use "go run extHostHTTPServer.go goUdpSocketExtHost.go"
-	go start_api()
+	go start_api(tstamp1_only)
 
 	start_time = time.Now()
 
-	overwrite_textfile("receiver_finished.log", "False")
-	overwrite_textfile("golangUdpSocketExtHost.log", "Started\n")
+	if *tstamp1_only == "yes" {
+		overwrite_textfile("receiver_finished_only_timestamp1.log", "False")
+		overwrite_textfile("golangUdpSocketExtHost_only_timestamp1.log", "Started\n")
+	} else {
+		overwrite_textfile("receiver_finished.log", "False")
+		overwrite_textfile("golangUdpSocketExtHost.log", "Started\n")
+	}
 
 	// signals handler for SIGTERM and SIGINT
 	c := make(chan os.Signal)
@@ -119,22 +165,11 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGINT)
 	go func() {
 		<-c
-		save_data()
+		save_data(tstamp1_only)
 		stop_api()
 		fmt.Println("GoLang Ext Host was running for ", time.Since(start_time), " seconds")
 		os.Exit(0) //success
 	}()
-
-	// create and parse flags from bash call
-	name = flag.String("name", "no_name", "Name of generated files => test identification.")
-	var ip_port = flag.String("ip_port", "0.0.0.0:41111", "IP the UDP sockets binds to.")
-	var ip = flag.String("ip", "0.0.0.0", "IP the IP socket binds to")
-	save = flag.Bool("save", true, "(Default true): If set to false, no csv files will be stored after sniffing")
-	flag.Parse()
-
-	fmt.Println("name has value", *name)
-	fmt.Println("ip_port has value", *ip_port)
-	fmt.Println("ip has value", *ip)
 
 	udp_addr, err := net.ResolveUDPAddr("udp", strings.ReplaceAll(*ip_port, " ", ""))
 
@@ -164,7 +199,12 @@ func main() {
 		_, _, err := conn.ReadFromUDP(buf[0:]) //_, addr
 		if err != nil {
 			fmt.Println(err)
-			overwrite_textfile("golangUdpSocketExtHost.log", err.Error())
+
+			if *tstamp1_only == "yes" {
+				overwrite_textfile("golangUdpSocketExtHost_only_timestamp1.log", err.Error())
+			} else {
+				overwrite_textfile("golangUdpSocketExtHost.log", err.Error())
+			}
 			return
 		}
 

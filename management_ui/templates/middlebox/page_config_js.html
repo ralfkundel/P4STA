@@ -40,31 +40,43 @@
 	});
 	
 	var del_id;
+	var max_loadgen_ports;
 	//$(document).ready(function(){
 	document.addEventListener("DOMContentLoaded", function() {
-		document.getElementById("add_new_loadgen_grp").addEventListener('click', function() {
-			document.getElementById("num_loadgen_groups").value ++;
-			// create hidden "num_grp_#" input for new group to trigger adding of group in backend
-			new_inp = document.createElement("INPUT");
-			new_inp.setAttribute("type", "hidden");
-			var len_loadgen_grps = {{loadgen_groups|length}};
-			len_loadgen_grps = len_loadgen_grps + 1;
-			new_inp.name="num_grp_" + len_loadgen_grps.toString();
-			new_inp.value = "0";
-			document.getElementById("add_loadgen_group_helper").appendChild(new_inp);
-			// now create add_to_grp_# for new added group to instantly add first entry in group in backend
-			new_inp2 = document.createElement("INPUT");
-			new_inp2.setAttribute("type", "hidden");
-			new_inp2.name="add_to_grp_" + len_loadgen_grps.toString();
-			new_inp2.value = "1";
-			document.getElementById("add_loadgen_group_helper").appendChild(new_inp2);
+		max_loadgen_ports = "{{max_loadgen_ports}}"
+		if (max_loadgen_ports !== ""){
+			max_loadgen_ports = Number(max_loadgen_ports);
+		} else {
+			console.log("max_loadgen_ports not set, allow infinite loadgen groups");
+		}
 
-			exec_submit = check_all_fields();
-			if(exec_submit){
-				document.getElementById("config_form").submit();
+		document.getElementById("add_new_loadgen_grp").addEventListener('click', function() {
+			if (document.getElementById("num_loadgen_groups").value < max_loadgen_ports){
+				document.getElementById("num_loadgen_groups").value ++;
+				// create hidden "num_grp_#" input for new group to trigger adding of group in backend
+				new_inp = document.createElement("INPUT");
+				new_inp.setAttribute("type", "hidden");
+				var len_loadgen_grps = {{loadgen_groups|length}};
+				len_loadgen_grps = len_loadgen_grps + 1;
+				new_inp.name="num_grp_" + len_loadgen_grps.toString();
+				new_inp.value = "0";
+				document.getElementById("add_loadgen_group_helper").appendChild(new_inp);
+				// now create add_to_grp_# for new added group to instantly add first entry in group in backend
+				new_inp2 = document.createElement("INPUT");
+				new_inp2.setAttribute("type", "hidden");
+				new_inp2.name="add_to_grp_" + len_loadgen_grps.toString();
+				new_inp2.value = "1";
+				document.getElementById("add_loadgen_group_helper").appendChild(new_inp2);
+
+				exec_submit = check_all_fields();
+				if(exec_submit){
+					document.getElementById("config_form").submit();
+				} else {
+					// because inputs are created already a second execution of "#add_new_loadgen_grp" would result in errors
+					document.getElementById("add_new_loadgen_grp").disabled = true;
+				}
 			} else {
-				// because inputs are created already a second execution of "#add_new_loadgen_grp" would result in errors
-				document.getElementById("add_new_loadgen_grp").disabled = true;
+				alert("Maximum number of loadgen groups reached. Consider configuring additional ports for duplication of load to more interfaces.");
 			}
 		});
 
@@ -268,6 +280,167 @@
 		}	
 	}
 
+
+	// second ext host
+	document.addEventListener("DOMContentLoaded", function() {
+
+		function _toggle_second_ext_host(){
+			const chk   = document.getElementById('second_ext_host');
+			const body  = document.getElementById('other_body');
+			const first = document.getElementById('default_ext_host_tr');
+			const extraRowId = 'second_ext_host_tr';
+			const current    = document.getElementById(extraRowId);
+
+			if (chk.checked && !current) {
+				const clone = first.cloneNode(true);
+				clone.id = extraRowId;
+
+				// remove checkbox from clone
+				const checkboxCell = clone.querySelector('.form-check');
+				if (checkboxCell) checkboxCell.remove();
+
+				// Make every id and name in the cloned row unique
+				clone.querySelectorAll('[id]').forEach(el => {
+					if (el !== clone) el.id = 'second_' + el.id;
+				});
+				clone.querySelectorAll('[name]').forEach(el => {
+					el.name = 'second_' + el.name;
+				});
+
+				// change tooltip
+				let cc = clone.querySelector("#second_ext_host_tooltip");
+				if (cc != null){
+					// cc.title = "Receives packets with timestamp 1 only, duplicated in stamper"
+					cc.setAttribute('title', 'Receives packets with timestamp 1 only, duplicated in stamper');
+				} else {
+					alarm();
+				}
+
+				body.insertBefore(clone, first.nextSibling);
+
+				add_event_second_ext_host();
+				add_event_ssh_second_ext_host();
+				_check_ext_host_if()
+				
+			} else if (!chk.checked && current) {
+				current.remove();
+			}
+		}
+
+		// document.getElementById("second_ext_host").addEventListener('click', function() {
+		// 	_toggle_second_ext_host();
+		// })
+
+
+		let ext_host_if = document.getElementById("ext_host_if")
+
+		function _set_td_second(bool_flag){
+			for (const x of Array(10).keys()) {
+				// start from td5 (magnifying glass button)
+				if(x >= 5){
+					td = document.getElementById("second_ext_td" + x.toString())
+					if (td !== null){
+						td.childNodes.forEach(node => {
+							node.disabled = bool_flag
+							node.childNodes.forEach(inner_node => {
+								inner_node.disabled = bool_flag
+								inner_node.childNodes.forEach(inner_inner_node => {
+									inner_inner_node.disabled = bool_flag
+							})
+							})
+						})
+					}
+				}
+			}
+		}
+
+		function _check_ext_host_if(){
+			let second_ext_host_if = document.getElementById("second_ext_host_if")
+			if(ext_host_if !== null && second_ext_host_if !== null){
+				let ext_host_ssh = document.getElementById("ext_host_ssh")
+				let second_ext_host_ssh = document.getElementById("second_ext_host_ssh")
+
+				// check if interface and ssh IP are the same for both ext hosts
+				check = ext_host_if.value === second_ext_host_if.value
+				check = check & (ext_host_ssh.value === second_ext_host_ssh.value)
+				if(check){
+					_set_td_second(true)
+				} else { // enable all fields
+					_set_td_second(false)
+				}
+			}
+		}
+
+		if(ext_host_if !== null){
+			ext_host_if.addEventListener('input', function() {
+				_check_ext_host_if()
+			})
+		}
+
+		const ext_host_ssh = document.getElementById("ext_host_ssh")
+		if(ext_host_ssh !== null){
+			ext_host_ssh.addEventListener('input', function() {
+				_check_ext_host_if()
+			})
+		}
+
+		function add_event_second_ext_host(){
+			let second_ext_host_if = document.getElementById("second_ext_host_if")
+			if(second_ext_host_if !== null){
+				second_ext_host_if.addEventListener('input', function() {
+					_check_ext_host_if()
+				})
+			}
+		}
+
+		function add_event_ssh_second_ext_host(){
+			let second_ext_host_ssh = document.getElementById("second_ext_host_ssh")
+			if(second_ext_host_ssh !== null){
+				second_ext_host_ssh.addEventListener('input', function() {
+					_check_ext_host_if()
+				})
+			}
+		}
+		
+
+		// only works when second ext host ist already configured, otherwise call when checkbox is checked
+		add_event_second_ext_host()
+		add_event_ssh_second_ext_host()
+
+		// when page is loaded check if second ext host is in config file
+		{% if second_ext_host_ssh %}
+			let scd = document.getElementById('second_ext_host')
+			if (scd != null){
+				scd.checked = true
+
+				_check_ext_host_if();
+				
+
+				// find and fill all second_ext_host fields
+				/*
+				const tr = document.getElementById("second_ext_host_tr")
+				if (tr != null){
+					tr.childNodes.forEach(child_layer0 =>{
+						if child_layer0.id.search("second_ext_host_td") > -1{
+							if(child_layer0 != null){
+								child_layer0.childNodes.forEach(child_layer1 => {
+									
+									
+							})}
+						}
+					})
+				} */
+
+			}
+
+
+
+
+		{% endif %}
+
+
+	})
+
 	function insertAfter(newNode, refNode) {
     	refNode.parentNode.insertBefore(newNode, refNode.nextSibling);
 	}
@@ -323,6 +496,7 @@
 		document.getElementById('dut_' + dut_id + '_outgoing_stamp').readOnly = disabled;
 		if(disabled){
 			document.getElementById('dut_' + dut_id + '_outgoing_stamp').checked = false;
+			document.getElementById('dut_' + dut_id + '_outgoing_stamp').value = "unchecked"; // does not appear in HTTP REQ
 		}
 		{% for entry in target_cfg.inputs.input_table %}
 		document.getElementById('dut' + dut_id + '_{{entry.target_key}}').disabled = disabled;
@@ -873,6 +1047,12 @@
 				if("target" in response){
 					// ensure no error at server side
 					if("target" in response.target){
+						// if tofino, set max loadgen ports depending on pipelines
+						if("packet_generator_ports" in response.target){
+							// global variable max_loadgen_ports
+							max_loadgen_ports = response.target.packet_generator_ports.length;
+						}
+
 						var check = "inputs" in response.target && "input_individual" in response.target.inputs;
 						if(check){
 							response.target.inputs.input_individual.forEach(inp => {
@@ -968,7 +1148,13 @@
 
             var needs_fields = loadgen_str !== "Tofino Packet Generator";
 
-			
+			// if loadgen is tofino check target change, e.g. to adapt max load generator ports
+			if(!needs_fields){
+				target_changed();
+			} else {
+				max_loadgen_ports = 75; // reset max loadgen ports for non-tofino generator
+			}
+
 			// allow L1 only for tofino packet gen
 			forwarding_mode = document.getElementById("forwarding_mode");
 			if (forwarding_mode.value === "2" || forwarding_mode.value === "3"){
@@ -996,8 +1182,6 @@
 					}
 				}
 			});
-
-
 
             // create generation port list
             var generator_ports = [];

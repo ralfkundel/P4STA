@@ -72,10 +72,10 @@ class AbstractExtHost:
             results[index] = res
 
     # for all ext host the same (if log and error stored in log.out and log.err)
-    def retrieve_current_logs(self):
+    def retrieve_current_logs(self, name_str_add=""):
         cfg = P4STA_utils.read_current_cfg()
-        args_log = 'echo Last modified: $(stat -c "%y" /home/' + cfg["ext_host_user"] + '/p4sta/externalHost/' + self.dir_on_exec_host + '/log.out); ' + 'cat /home/' + cfg["ext_host_user"] + '/p4sta/externalHost/' + self.dir_on_exec_host + '/log.out'
-        args_err = 'echo Last modified: $(stat -c "%y" /home/' + cfg["ext_host_user"] + '/p4sta/externalHost/' + self.dir_on_exec_host + '/log.err); ' + 'cat /home/' + cfg["ext_host_user"] + '/p4sta/externalHost/' + self.dir_on_exec_host + '/log.err'
+        args_log = 'echo Last modified: $(stat -c "%y" /home/' + cfg["ext_host_user"] + '/p4sta/externalHost/' + self.dir_on_exec_host + '/log' + name_str_add + '.out); ' + 'cat /home/' + cfg["ext_host_user"] + '/p4sta/externalHost/' + self.dir_on_exec_host + '/log' + name_str_add + '.out'
+        args_err = 'echo Last modified: $(stat -c "%y" /home/' + cfg["ext_host_user"] + '/p4sta/externalHost/' + self.dir_on_exec_host + '/log' + name_str_add + '.err); ' + 'cat /home/' + cfg["ext_host_user"] + '/p4sta/externalHost/' + self.dir_on_exec_host + '/log' + name_str_add + '.err'
         
         results = [None, None]
         def ssh_thread(args, res_indx):

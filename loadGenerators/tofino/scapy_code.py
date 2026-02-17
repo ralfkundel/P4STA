@@ -18,8 +18,8 @@ packets["udp_packet"] = add_payload_0(udp_packet_headers, 1500)
 udp_packet_headers = Ether(src="39:e9:0b:f1:20:7d")/IP(src="10.11.12.1")/UDP(dport=42424)
 packets["1024B_udp_packet"] = add_payload_0(udp_packet_headers, 1024)
 
-route_me_headers = Ether(src="6b:8c:9a:f8:54:35", dst="b4:96:91:b3:b0:51")/IP(src="10.10.20.42", dst="10.10.10.42")/TCP(dport=12345)
-packets["route_me"] = add_payload_0(route_me_headers, 1460)
+route_me_headers = Ether(src="6b:8c:9a:f8:54:35", dst="b4:96:91:a5:77:9a")/IP(src="10.42.10.11", dst="10.42.20.11")/TCP(dport=12345)
+packets["route_me"] = add_payload_0(route_me_headers, 1260)
 
 
 
@@ -42,14 +42,18 @@ packets["arp_packet"] = add_payload_0(arp_headers, 128)
 
 
 # GTP-U Packet
-udp_base = Ether(src="02:8c:9a:d8:24:35", dst="b4:96:91:b3:b0:51")/IP(src="10.99.99.199", dst="10.99.99.99")/UDP(sport=2152, dport=2152)
-gtp_base = gtp.GTPHeader(gtp_type=255, teid=846, E=1, next_ex=0x85)/gtp.GTPPDUSessionContainer(ExtHdrLen=1, type=1, QFI=1)
+udp_base = Ether(src="6b:8c:9a:f8:54:35", dst="b4:96:91:a5:77:9a")/IP(src="10.42.10.11", dst="10.42.10.1")/UDP(sport=2152, dport=2152)
+gtp_base = gtp.GTPHeader(gtp_type=255, teid=0x1, E=1, next_ex=0x85)/gtp.GTPPDUSessionContainer(ExtHdrLen=1, type=1, QFI=1)
 
-gtp_tcp_headers = udp_base/gtp_base/IP(src="10.45.0.2", dst="10.88.88.42")/TCP(sport=4242, dport=4242, flags="PA")
+gtp_tcp_headers = udp_base/gtp_base/IP(src="10.60.0.69", dst="10.42.20.11")/TCP(sport=4242, dport=4242, flags="PA")
 packets["gtpu_tcp"] = add_payload_0(gtp_tcp_headers,1444)
 
 gtp_udp_headers = udp_base/gtp_base/IP(src="10.45.0.2", dst="10.88.88.42")/UDP(sport=4242, dport=4242)
 packets["gtpu_udp"] = add_payload_0(gtp_udp_headers, 1460)
+
+
+route_me_headers = Ether(src="7b:8c:9a:f8:54:36", dst="b4:96:91:a5:77:9b")/IP(src="10.42.20.11", dst="10.60.0.69")/TCP(dport=12345)
+packets["send_to_ue_tcp"] = add_payload_0(route_me_headers, 1460)
 
 
 

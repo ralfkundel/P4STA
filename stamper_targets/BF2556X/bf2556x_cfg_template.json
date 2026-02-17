@@ -1,38 +1,45 @@
 {
-"dataplane_duplication": "0",
+  "additional_ports": [],
+  "custom_name": "",
+  "dataplane_duplication": "0",
   "dut_ports": [
     {
-      "an": "",
-      "fec": "",
+      "an": "default",
+      "dataplane_duplication": "0",
+      "fec": "RS",
       "id": 1,
-      "p4_port": "",
-      "real_port": "",
+      "p4_port": -1,
+      "real_port": "48/0",
       "shape": "",
-      "speed": "",
+      "speed": "25G",
       "stamp_outgoing": "checked",
       "use_port": "checked"
     },
     {
-      "an": "",
-      "fec": "",
+      "an": "default",
+      "dataplane_duplication": "0",
+      "fec": "RS",
       "id": 2,
-      "p4_port": "",
-      "real_port": "",
+      "p4_port": -1,
+      "real_port": "47/0",
       "shape": "",
-      "speed": "",
+      "speed": "25G",
       "stamp_outgoing": "checked",
       "use_port": "checked"
     }
   ],
-  "ext_host": "192",
+  "ext_host": -1,
   "ext_host_an": "default",
   "ext_host_fec": "NONE",
-  "ext_host_if": "ens1",
-  "ext_host_real": "bf_pci0",
+  "ext_host_if": "",
+  "ext_host_ip": "10.11.12.99",
+  "ext_host_mac": "",
+  "ext_host_real": "",
+  "ext_host_shape": "",
   "ext_host_speed": "10G",
   "ext_host_ssh": "",
-  "ext_host_user": "YOUR_USER_NAME",
-  "forwarding_mode": "2",
+  "ext_host_user": "",
+  "forwarding_mode": "1",
   "loadgen_groups": [
     {
       "group": 1,
@@ -44,11 +51,12 @@
           "loadgen_iface": "",
           "loadgen_ip": "",
           "loadgen_mac": "",
-          "p4_port": "",
-          "real_port": "",
-          "speed": "10G",
+          "p4_port": "68",
+          "real_port": "68",
+          "shape": "",
+          "speed": "",
           "ssh_ip": "",
-          "ssh_user": "YOUR_USER_NAME"
+          "ssh_user": ""
         }
       ],
       "use_group": "checked"
@@ -63,11 +71,12 @@
           "loadgen_iface": "",
           "loadgen_ip": "",
           "loadgen_mac": "",
-          "p4_port": "",
-          "real_port": "",
-          "speed": "10G",
+          "p4_port": "196",
+          "real_port": "196",
+          "shape": "",
+          "speed": "",
           "ssh_ip": "",
-          "ssh_user": "YOUR_USER_NAME"
+          "ssh_user": ""
         }
       ],
       "use_group": "checked"
@@ -77,11 +86,12 @@
   "p4sta_version": "1.3.0",
   "program": "tofino_stamper_v1_3_0",
   "sde": "/opt/bf-sde-9.13.0",
-  "selected_loadgen": "iperf3",
-  "selected_extHost": "GoExtHostUdp",
-  "selected_target": "Wedge100BF32X",
-  "stamper_ssh": "",
-  "stamper_user": "YOUR_USER_NAME",
+  "second_ext_host": -1,
+  "selected_extHost": "DpdkExtHost",
+  "selected_loadgen": "Tofino Packet Generator",
+  "selected_target": "BF2556X",
   "stamp_tcp": "checked",
-  "stamp_udp": "checked"
+  "stamp_udp": "checked",
+  "stamper_ssh": "",
+  "stamper_user": ""
 }
