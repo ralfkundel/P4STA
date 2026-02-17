@@ -250,6 +250,23 @@ def updateCfg(request):
                         and cfg["ext_host_" + t_inp["target_key"]] == "":
                     cfg["ext_host_" + t_inp["target_key"]] = \
                         t_inp["default_value"]
+                
+                # second ext host case
+                try:
+                    if "second_ext_host_" + t_inp["target_key"] in request.POST:
+                        cfg["second_ext_host_" + t_inp["target_key"]] = str(
+                            request.POST["second_ext_host_" + t_inp["target_key"]])
+                    elif "restrict" not in t_inp \
+                            or t_inp["restrict"] == "second_ext_host":
+                        cfg["second_ext_host_" + t_inp["target_key"]] = ""
+
+                    if "default_value" in t_inp \
+                            and ("second_ext_host_" + t_inp["target_key"]) in cfg \
+                            and cfg["second_ext_host_" + t_inp["target_key"]] == "":
+                        cfg["second_ext_host_" + t_inp["target_key"]] = \
+                            t_inp["default_value"]
+                except:
+                    globals.logger.warning(traceback.format_exc())
 
         except Exception as e:
             globals.logger.error(traceback.format_exc())
@@ -267,7 +284,7 @@ def updateCfg(request):
                         dut["use_port"] = request.POST[
                             "dut_" + str(dut["id"]) + "_use_port"]
                     else:
-                        dut["use_port"] = "checked"
+                        dut["use_port"] = "unchecked"
                 except Exception:
                     dut["use_port"] = "checked"
 
@@ -336,6 +353,30 @@ def updateCfg(request):
         cfg["ext_host_if"] = str(request.POST["ext_host_if"])
         cfg["ext_host_ip"] = str(request.POST["ext_host_ip"]).split(" ")[0].split("/")[0]
         cfg["ext_host_mac"] = str(request.POST["ext_host_mac"])
+
+        try:
+            print(request.POST)
+            if "second_ext_host_ssh" in request.POST:
+                cfg["second_ext_host"] = -1
+                cfg["second_ext_host_ssh"] = str(request.POST["second_ext_host_ssh"])
+                cfg["second_ext_host_user"] = str(request.POST["second_ext_host_user"])
+                cfg["second_ext_host_if"] = str(request.POST["second_ext_host_if"])
+                # only true if fields are not greyed out (same host/iface for second host)
+                if "ip" in request.POST:
+                    cfg["second_ext_host_ip"] = str(request.POST["second_ext_host_ip"]).split(" ")[0].split("/")[0]
+                    cfg["second_ext_host_mac"] = str(request.POST["second_ext_host_mac"])
+                    cfg["second_ext_host_real"] = str(request.POST["second_ext_host_real"])
+            else:
+                # explicitly remove second_ext_host config 
+                to_pop = []
+                for key, _value in cfg.items():
+                    if key.find("second_ext_host_") > -1:
+                        to_pop.append(key)
+                for key in to_pop:
+                    cfg.pop(key)
+        except:
+            globals.logger.warning(traceback.format_exc())
+
         cfg["program"] = str(request.POST["program"])
         cfg["forwarding_mode"] = str(request.POST["forwarding_mode"])
 
@@ -387,6 +428,15 @@ def configure_page(request):
     cfg["loadgen_cfg"] = P4STA_utils.flt(loadgen_obj.loadgen_cfg)
 
     # The following config updates are only for UI representation
+
+    if "packet_generator_ports" in target_cfg:
+        num_pipes = len(cfg["target_cfg"]["packet_generator_ports"])
+        if cfg["selected_loadgen"] != "Tofino Packet Generator":
+            num_pipes = 50 + num_pipes  # do not limit number of pipes (= max loagen ports) for non-tofino loadgens
+    else:
+        num_pipes = 99
+    cfg["max_loadgen_ports"] = num_pipes
+
     targets_without_selected = []
     all_targets = get_all_targets()
     for target in all_targets:
@@ -394,6 +444,12 @@ def configure_page(request):
             targets_without_selected.append(target)
     cfg["targets_without_selected"] = targets_without_selected
     cfg["all_available_targets"] = all_targets
+
+    # make all target configs available for javascript
+    # all_target_cfgs = []
+    # for t in all_targets:
+    #     all_target_cfgs.append(P4STA_utils.flt(globals.core_conn.root.get_target_cfg(t)))
+    # cfg["all_target_cfgs"] = all_target_cfgs
 
     available_cfg_files = P4STA_utils.flt(
         globals.core_conn.root.get_available_cfg_files())

@@ -252,6 +252,17 @@ def get_ext_host_zip_list():
                   "results/" + fid + "/raw_packet_counter_" + fid + ".csv"])
     files.append([folder + "/output_external_host_" + fid + ".txt",
                   "results/" + fid + "/output_external_host_" + fid + ".txt"])
+    
+    # only_timestamp1_list_xxx.csv
+    result_cfg = P4STA_utils.read_result_cfg(fid)
+    # check if second ext hos was configured
+    if "second_ext_host_ssh" in result_cfg:
+            try:
+                files.append([folder + "/only_timestamp1_list_" + fid + ".csv", "results/" + fid + "/only_timestamp1_list_" + fid + ".csv"])
+                files.append([folder + "/only_tstamp1_packet_sizes_" + fid + ".csv", "results/" + fid + "/only_tstamp1_packet_sizes_" + fid + ".csv"])
+                files.append([folder + "/only_tstamp1_raw_packet_counter_" + fid + ".csv", "results/" + fid + "/only_tstamp1_raw_packet_counter_" + fid + ".csv"])
+            except:
+                globals.logger.error(traceback.format_exc())
     files.append(["analytics/analytics.py", "analytics/analytics.py"])
     files.append(["analytics/README.MD", "analytics/README.MD"])
 
@@ -311,6 +322,7 @@ def download_all_zip(request):
                   "results/" + fid + "/stamper_" + fid + ".json"])
     files.append([folder + "/output_stamperice_" + fid + ".txt",
                   "results/" + fid + "/output_stamperice_" + fid + ".txt"])
+    files.append([folder + "/live_metrics_list.json", "results/" + fid + "/live_metrics_list.json"])
 
     # loadgen
     files.extend([
@@ -340,7 +352,8 @@ def download_stamper_results(request):
          "results/stamper_" + str(globals.selected_run_id) + ".json"],
         [folder + "/output_stamperice_" + str(
             globals.selected_run_id) + ".txt",
-         "results/output_stamperice_" + str(globals.selected_run_id) + ".txt"]
+         "results/output_stamperice_" + str(globals.selected_run_id) + ".txt"],
+        [folder + "/live_metrics_list.json", "results/live_metrics_list.json"]
     ]
 
     return pack_zip(files, str(globals.selected_run_id),

@@ -108,6 +108,7 @@
 	function fetch_ext_host_live_status(){
 		$.get("/subpage_run_ext_host_live_status/", function(data) {
 			data = JSON.parse(data)
+			console.log(data)
 			if(data.hasOwnProperty("live_status")){
 				// {"live_status": {"current_run_state": "UP and listening", "start_time": "2025-03-14T15:53:50.941627623+01:00"}}
 				html_str = ''
@@ -167,6 +168,66 @@
 
 						counter += 1
 					});
+				}
+
+
+				// second ext host instance for timestamp1 only:
+				if(data.live_status.hasOwnProperty("ext_host_2")){
+					
+					html_str += "<hr/> <p>Second External Host for duplicates of timestamp 1 packets:</p>"
+					
+					if(data.live_status.ext_host_2.hasOwnProperty("current_run_state")){
+						html_str += "State: <i>" + data.live_status.current_run_state + "</i>";
+					}
+
+					if(data.live_status.hasOwnProperty("start_time")){
+						html_str += "<br> Start time: <i>" + data.live_status.start_time + "</i>"
+					}
+				
+				}
+				
+				if(data.live_status.hasOwnProperty("log_list_timestamp1_only")){
+					html_str += '<div style="height: 10px"></div>' //spacer div
+					html_str += '<div class="row">'
+					html_str += '<div class="col-md-3">Default Log from External Host:</div>'
+
+					if(data.live_status.log_list_timestamp1_only.length === 0){
+						html_str += '<div class="col-md-9">No log entries</div></div>' //close row div in this case
+					}
+					
+					counter = 0
+					data.live_status.log_list_timestamp1_only.forEach(log_line => {
+						// if first element close row 
+						if(counter === 0){
+							html_str += '<div class="col-md-9">' + counter.toString() + ': <i>' + log_line + '</i></div></div>'
+						} else {
+							html_str +=  '<div class="row"><div class="col-md-3"></div><div class="col-md-9">' + counter.toString() + ': <i>' + log_line + '</i></div></div>'
+						}
+						counter += 1
+					});
+				}
+
+				if(data.live_status.hasOwnProperty("error_list_timestamp1_only")){
+					html_str += '<div style="height: 10px"></div>' //spacer div
+					html_str += '<div class="row">'
+					html_str += '<div class="col-md-3">Error Log from External Host:</div>'
+
+					if(data.live_status.error_list_timestamp1_only.length === 0){
+						html_str += '<div class="col-md-9">No log entries</div></div>' //close row div in this case
+					}
+					
+					counter = 0
+					data.live_status.error_list_timestamp1_only.forEach(log_line => {
+						// if first element close row 
+						if(counter === 0){
+							html_str += '<div class="col-md-9">' + counter.toString() + ': <i>' + log_line + '</i></div></div>'
+						} else {
+							html_str +=  '<div class="row"><div class="col-md-3"></div><div class="col-md-9">' + counter.toString() + ': <i>' + log_line + '</i></div></div>'
+						}
+
+						counter += 1
+					});
+						
 
 				}
 
@@ -527,7 +588,7 @@ function reset_template(){
 	
 <div class="row" style="margin-top:10px;">
 	<div class="col-md-3" id="inputDurationlabel">Duration of test in seconds: </div>
-	<div class="col-md-9"><input type="number" class="form-control" id="inputDuration" value="10" placeholder="10"></div>
+	<div class="col-md-9"><input type="number" class="form-control" id="inputDuration" value="20" placeholder="20"></div>
 </div>
 
 <hr/>	

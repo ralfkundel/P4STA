@@ -472,6 +472,39 @@ class TargetImpl(AbstractTarget):
         except Exception as e:
             self.logger.error(traceback.format_exc())
 
+
+        ##################################################################
+        # Add table entries for sending tstamp1 packets to external host #
+        ##################################################################
+        if "second_ext_host_ssh" in cfg:
+            DUPLICATE_WITH_FIRST_TSTAMP = True
+        else:
+            DUPLICATE_WITH_FIRST_TSTAMP = False
+        try:
+            if DUPLICATE_WITH_FIRST_TSTAMP:
+                # table name may misleading, can be used for any mc group
+                t_duplicate_to_dut = "pipe.SwitchIngress.t_duplicate_to_dut"
+
+                dut_egress_ports_to_use = []
+
+                for loadgen_grp in cfg["loadgen_groups"]:
+                    for dut in cfg["dut_ports"]:
+                        if loadgen_grp["group"] == dut["id"] and dut["use_port"] == "checked":
+                            for host in loadgen_grp["loadgens"]:
+                                port = int(dut["p4_port"])
+                                if port not in dut_egress_ports_to_use:
+                                    dut_egress_ports_to_use.append(int(dut["p4_port"]))
+                for eg_port in dut_egress_ports_to_use:
+                    # TODO: for now th same mcast group is used => only support for the same ext host
+                    interface.add_to_table(t_duplicate_to_dut,
+                                        [["ig_intr_tm_md.ucast_egress_port", eg_port]],
+                                        [["group", 1]], "SwitchIngress.duplicate_to_dut")
+        except Exception as e:
+            self.logger.error(traceback.format_exc())
+
+        # also table entries in broadcast_mac for sending tstamp1 packets to ext host
+
+
         try:
             #############################
             #broadcast_mac             #
@@ -502,14 +535,36 @@ class TargetImpl(AbstractTarget):
                     [
                         ["eg_intr_md.egress_port", int(cfg["ext_host"])],
                         ["hdr.ipv4.protocol", 17],  # UDP
+                        ["hdr.tcp_options_128bit_custom.myType", 0x0f10]
                     ],
                     [
                         ["dst", mac_str_to_int(cfg["ext_host_mac"])],
                         ["dstip", int(ipaddress.IPv4Address(cfg["ext_host_ip"]))],
                         ["srcip", src_ip],
+                        ["dstport", 41111]
                     ],
                     "SwitchEgress.prepare_exthost_packet_udp",
                 )
+            except:
+                self.logger.error(traceback.format_exc())
+
+            try:
+                if(DUPLICATE_WITH_FIRST_TSTAMP):
+                    interface.add_to_table(
+                        t_broadcast_mac,
+                        [
+                            ["eg_intr_md.egress_port", int(cfg["ext_host"])],
+                            ["hdr.ipv4.protocol", 17],  # UDP
+                            ["hdr.tcp_options_128bit_custom.myType", 0x0f11] # Other type than tstamp2 ext host
+                        ],
+                        [
+                            ["dst", mac_str_to_int(cfg["ext_host_mac"])],
+                            ["dstip", int(ipaddress.IPv4Address(cfg["ext_host_ip"]))],
+                            ["srcip", src_ip],
+                            ["dstport", 41112] # Other port than tstamp2 ext host
+                        ],
+                        "SwitchEgress.prepare_exthost_packet_udp",
+                    )
             except:
                 self.logger.error(traceback.format_exc())
 
@@ -519,16 +574,38 @@ class TargetImpl(AbstractTarget):
                     [
                         ["eg_intr_md.egress_port", int(cfg["ext_host"])],
                         ["hdr.outer_ipv4.protocol", 17],  # UDP
+                        ["hdr.tcp_options_128bit_custom.myType", 0x0f10]
                     ],
                     [
                         ["dst", mac_str_to_int(cfg["ext_host_mac"])],
                         ["dstip", int(ipaddress.IPv4Address(cfg["ext_host_ip"]))],
                         ["srcip", src_ip],
+                        ["dstport", 41111]
                     ],
                     "SwitchEgress.prepare_exthost_packet_udp",
                 )
             except Exception as e:
                 self.logger.warning("Deploying GTP table to Tofino error: If P4 not compiled for GTP ignore this warning: " + str(e))
+
+            try:
+                if(DUPLICATE_WITH_FIRST_TSTAMP):
+                    interface.add_to_table(
+                        t_broadcast_mac_gtp,
+                        [
+                            ["eg_intr_md.egress_port", int(cfg["ext_host"])],
+                            ["hdr.outer_ipv4.protocol", 17],  # UDP
+                            ["hdr.tcp_options_128bit_custom.myType", 0x0f11] # Other type than tstamp2 ext host
+                        ],
+                        [
+                            ["dst", mac_str_to_int(cfg["ext_host_mac"])],
+                            ["dstip", int(ipaddress.IPv4Address(cfg["ext_host_ip"]))],
+                            ["srcip", src_ip],
+                            ["dstport", 41112] # Other port than tstamp2 ext host
+                        ],
+                        "SwitchEgress.prepare_exthost_packet_udp",
+                    ) 
+            except:
+                self.logger.error(traceback.format_exc())
                 
             ### TCP
             try:
@@ -536,15 +613,37 @@ class TargetImpl(AbstractTarget):
                     t_broadcast_mac,
                     [
                         ["eg_intr_md.egress_port", int(cfg["ext_host"])],
-                        ["hdr.ipv4.protocol", 6] # TCP
+                        ["hdr.ipv4.protocol", 6], # TCP
+                        ["hdr.tcp_options_128bit_custom.myType", 0x0f10]
                     ],
                     [
                         ["dst", mac_str_to_int(cfg["ext_host_mac"])],
                         ["dstip", int(ipaddress.IPv4Address(cfg["ext_host_ip"]))],
                         ["srcip", src_ip],
+                        ["dstport", 41111]
                     ],
                     "SwitchEgress.prepare_exthost_packet_tcp",
                 )
+            except:
+                self.logger.error(traceback.format_exc())
+
+            try:
+                if(DUPLICATE_WITH_FIRST_TSTAMP):
+                    interface.add_to_table(
+                        t_broadcast_mac,
+                        [
+                            ["eg_intr_md.egress_port", int(cfg["ext_host"])],
+                            ["hdr.ipv4.protocol", 6],  # TCP
+                            ["hdr.tcp_options_128bit_custom.myType", 0x0f11] # Other type than tstamp2 ext host
+                        ],
+                        [
+                            ["dst", mac_str_to_int(cfg["ext_host_mac"])],
+                            ["dstip", int(ipaddress.IPv4Address(cfg["ext_host_ip"]))],
+                            ["srcip", src_ip],
+                            ["dstport", 41112] # Other port than tstamp2 ext host
+                        ],
+                        "SwitchEgress.prepare_exthost_packet_tcp",
+                    )
             except:
                 self.logger.error(traceback.format_exc())
             
@@ -553,17 +652,39 @@ class TargetImpl(AbstractTarget):
                     t_broadcast_mac_gtp,
                     [
                         ["eg_intr_md.egress_port", int(cfg["ext_host"])],
-                        ["hdr.outer_ipv4.protocol", 6] # TCP
+                        ["hdr.outer_ipv4.protocol", 6], # TCP
+                        ["hdr.tcp_options_128bit_custom.myType", 0x0f10]
                     ],
                     [
                         ["dst", mac_str_to_int(cfg["ext_host_mac"])],
                         ["dstip", int(ipaddress.IPv4Address(cfg["ext_host_ip"]))],
                         ["srcip", src_ip],
+                        ["dstport", 41111]
                     ],
                     "SwitchEgress.prepare_exthost_packet_tcp",
                 )
             except Exception as e:
                 self.logger.warning("Deploying GTP table to Tofino error: If P4 not compiled for GTP ignore this warning: " + str(e))
+
+            try:
+                if(DUPLICATE_WITH_FIRST_TSTAMP):
+                    interface.add_to_table(
+                        t_broadcast_mac_gtp,
+                        [
+                            ["eg_intr_md.egress_port", int(cfg["ext_host"])],
+                            ["hdr.outer_ipv4.protocol", 6],  # UDP
+                            ["hdr.tcp_options_128bit_custom.myType", 0x0f11] # Other type than tstamp2 ext host
+                        ],
+                        [
+                            ["dst", mac_str_to_int(cfg["ext_host_mac"])],
+                            ["dstip", int(ipaddress.IPv4Address(cfg["ext_host_ip"]))],
+                            ["srcip", src_ip],
+                            ["dstport", 41112] # Other port than tstamp2 ext host
+                        ],
+                        "SwitchEgress.prepare_exthost_packet_tcp",
+                    ) 
+            except:
+                self.logger.error(traceback.format_exc())
 
             ### ICMP
             try:
@@ -571,12 +692,35 @@ class TargetImpl(AbstractTarget):
                     t_broadcast_mac,
                     [
                         ["eg_intr_md.egress_port", int(cfg["ext_host"])],
-                        ["hdr.ipv4.protocol", 1] # ICMP
+                        ["hdr.ipv4.protocol", 1], # ICMP
+                        ["hdr.tcp_options_128bit_custom.myType", 0x0f10]
                     ],
                     [
                         ["dst", mac_str_to_int(cfg["ext_host_mac"])],
                         ["dstip", int(ipaddress.IPv4Address(cfg["ext_host_ip"]))],
                         ["srcip", src_ip],
+                        ["dstport", 41111]
+                    ],
+                    "SwitchEgress.prepare_exthost_packet_tcp",
+                )
+                # no GTP table for ICMP
+            except Exception as e:
+                # only warning as exception occurs in GTP compiled P4 
+                self.logger.warning("Deploying GTP table to Tofino error: If P4 not compiled for GTP ignore this warning: " + str(e))
+            
+            try:
+                interface.add_to_table(
+                    t_broadcast_mac,
+                    [
+                        ["eg_intr_md.egress_port", int(cfg["ext_host"])],
+                        ["hdr.ipv4.protocol", 1], # ICMP
+                        ["hdr.tcp_options_128bit_custom.myType", 0x0f11] # Other type than tstamp2 ext host
+                    ],
+                    [
+                        ["dst", mac_str_to_int(cfg["ext_host_mac"])],
+                        ["dstip", int(ipaddress.IPv4Address(cfg["ext_host_ip"]))],
+                        ["srcip", src_ip],
+                        ["dstport", 41112] # Other port than tstamp2 ext host
                     ],
                     "SwitchEgress.prepare_exthost_packet_tcp",
                 )

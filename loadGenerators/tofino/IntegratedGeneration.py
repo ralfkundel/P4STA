@@ -46,7 +46,7 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                 "generator_ports": stamper_cfg["packet_generator_ports"], 
                 "egress_ports": dut_ports,
                 "egress_mcast_groups_map": [[], [], [], []],
-                "use_gen_port_map": [True, True, True, True], # is updated when running
+                "use_gen_port_map": [False, False, False, False], # is updated when running
                 "mcast_duplication_multis": [1,1,1,1],        # is updated when running
                 "p4_program": cfg["program"],
                 "tofino_generation": str(stamper_cfg["tofino_generation"]),

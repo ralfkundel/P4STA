@@ -1,7 +1,7 @@
 {
    "target":"Wedge100BF32X",
    "tofino_generation": "1",
-   "cfg_template":"tofino_model_cfg_template.json",
+   "cfg_template":"wedge100bf32_cfg_template.json",
    "default_target_driver":"../Wedge100B65/tofino1_65p_stamper_v1_3_0.py",
    "available_target_drivers": [
       {"version": "1.2.0", "target_driver": "../Wedge100B65/tofino1_65p_stamper_v1_2_0.py"},

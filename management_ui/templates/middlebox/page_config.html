@@ -284,8 +284,8 @@
 			<th>Namespace</th>
 			<th data-toggle="tooltip" data-placement="top" title="Name of loadgen network interface connected to stamper, e.g. eth0"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Loadgen Interface</th>
 			<th data-toggle="tooltip" data-placement="top" title="Retrieve MAC and IP from host. SSH user, SSH ip and loadgen interface are needed!"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Fetch config</th>
-			<th>Loadgen MAC(e.g. ca:fe:..)</th>
-			<th>Loadgen IP(e.g. 10.0.0.1)</th>
+			<th>Load MAC Address</th>
+			<th>Load IP Address</th>
 			<!---<th>Namespace</th>-->
 			<th data-toggle="tooltip" data-placement="top" title="Set IP to given (namespace) interface. Use /netmask if necessary. SSH user, SSH ip and loadgen interface are needed and visudo must allow sudo for ifconfig!"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Set IP/Namespace</th>
 			<th data-toggle="tooltip" data-placement="top" title="Stamper front-panel port"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Stamper {% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
@@ -458,7 +458,7 @@
 
 				<th> 
 					<button type="button" id="add_additional" class="btn btn-default btn-sm">
-						<i class="fa fa-plus" style="font-size: 28pt; color:green" data-toggle="tooltip" data-placement="top" title="Add new line for additional Ports"></i>
+						<i class="fa fa-plus" style="font-size: 28pt; color:green"></i> <!-- data-toggle="tooltip" data-placement="top" title="Add new line for additional Ports">-->
 					</button>
 					<button type="button" id="del_additional" class="btn btn-default btn-sm">
 						<i class="fa fa-minus" style="font-size: 28pt; color:red" data-toggle="tooltip" data-placement="top" title="Remove last line of additional Ports"></i>
@@ -534,8 +534,8 @@
 					<th>SSH Username</th>
 					<th data-toggle="tooltip" data-placement="top" title="Name of network interface connected to stamper, e.g. eth0"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Interface (e.g. eth0)</th>
 					<th data-toggle="tooltip" data-placement="top" title="Retrieve MAC and IP from host. SSH user, SSH ip and interface name are needed!"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Fetch config</th>
-			<th>Loadgen MAC(e.g. ca:fe:..)</th>
-			<th>Loadgen IP(e.g. 10.0.0.1)</th>
+			<th>MAC Address</th>
+			<th>IP Address</th>
 			<!---<th>Namespace</th>-->
 			<th data-toggle="tooltip" data-placement="top" title="Set IP to given interface. Use /netmask if necessary. SSH user, SSH ip and interface name are needed and visudo must allow sudo for ifconfig!"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Set IP</th>
 					<th data-toggle="tooltip" data-placement="top" title="Choose Stamper front-panel port, e.g. 1/0 or bf_pci0"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Stamper {% if port_mapping %}Front Port (e.g. 1/0){% else %}Port{% endif %}</th>
@@ -546,17 +546,23 @@
 					{% endfor %}
 				</tr>
 			</thead>
-			<tbody>
-				<tr>
-					<td data-toggle="tooltip" data-placement="top" title="Receives packets with timestamps duplicated in stamper"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>External Host:</td>
-					<td><input id="ext_host_ssh" type="text" class="form-control ip_addr" name="ext_host_ssh" value="{{ext_host_ssh}}" /></td>
-					<td><input id="ext_host_user" type="text" class="form-control ssh_usr" name="ext_host_user" value="{{ ext_host_user }}" /></td>
-					<td><input id="ext_host_if" type="text" class="form-control iface_inp" name="ext_host_if" value="{{ext_host_if}}" /><div id="ext_host_if_up"></div></td>
-					<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveIFextHost();"><i class="fa fa-search"></button></td>
-					<td style="min-width: 160px"><input id="ext_host_mac" type="text" class="form-control mac_addr" name="ext_host_mac" value="{{ext_host_mac}}" /></td>
-					<td><input id="ext_host_ip" type="text" class="form-control ip_addr" name="ext_host_ip" value="{{ext_host_ip}}" /><div id="ext_host_ip_set"></div></td>
-					<td><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="setIPextHost();"><i class="fa fa-wrench"></button></td>
-					<td>
+			<tbody id="other_body">
+				<tr id="default_ext_host_tr">
+					<td data-toggle="tooltip" id="ext_host_tooltip" data-placement="top" title="Receives packets with both timestamps, duplicated in stamper"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>External Host:
+						<!-- Tstamp1 probing dropped -->  
+						<!-- <div class="form-group form-check">
+							<input type="checkbox" class="form-check-input" id="second_ext_host">
+							<label class="form-check-label" for="second_ext_host">Tstamp1 Probing</label>
+						</div> -->
+					</td>
+					<td id="ext_td2"><input id="ext_host_ssh" type="text" class="form-control ip_addr" name="ext_host_ssh" value="{{ext_host_ssh}}" /></td>
+					<td id="ext_td3"><input id="ext_host_user" type="text" class="form-control ssh_usr" name="ext_host_user" value="{{ ext_host_user }}" /></td>
+					<td id="ext_td4"><input id="ext_host_if" type="text" class="form-control iface_inp" name="ext_host_if" value="{{ext_host_if}}" /><div id="ext_host_if_up"></div></td>
+					<td id="ext_td5"><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveIFextHost();"><i class="fa fa-search"></button></td>
+					<td id="ext_td6" style="min-width: 160px"><input id="ext_host_mac" type="text" class="form-control mac_addr" name="ext_host_mac" value="{{ext_host_mac}}" /></td>
+					<td id="ext_td7"><input id="ext_host_ip" type="text" class="form-control ip_addr" name="ext_host_ip" value="{{ext_host_ip}}" /><div id="ext_host_ip_set"></div></td>
+					<td id="ext_td8"><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="setIPextHost();"><i class="fa fa-wrench"></button></td>
+					<td id="ext_td9">
 						<div class="input-group mb-3">
 							<input id="ext_host_real" type="text" class="form-control real_port_inp" aria-describedby="addon" name="ext_host_real" value="{{ ext_host_real }}" />
 							<div class="input-group-append">
@@ -566,10 +572,12 @@
 					</td>
 					{% for entry in target_cfg.inputs.input_table %}
 						{% if not entry.restrict or entry.restrict == "ext_host" %}
-						<td>
+						
 						{% with ext_host="ext_host_" %}
 						{% with key=ext_host|add:entry.target_key %}
 						{% with current=cfg|getkeyvalue:key %}
+
+						<td id="ext_td{{current}}">
 						
 						{% if entry.type == "drop-down" %}
 							<select class="form-control" id="{{key}}" name="{{key}}" width="20">
@@ -592,6 +600,58 @@
 						{% endif %}
 						{% endfor %}
 				</tr>
+				<!-- Second External Host  -->
+				{% if second_ext_host_ssh %}
+						<tr id="second_ext_host_tr">
+							<td data-toggle="tooltip" data-placement="top" id="second_ext_host_tooltip" title="Receives packets with timestamp 1 only, duplicated in stamper"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>External Host:</td>
+							<td id="second_ext_td2"><input id="second_ext_host_ssh" type="text" class="form-control ip_addr" name="second_ext_host_ssh" value="{{second_ext_host_ssh}}" /></td>
+							<td id="second_ext_td3"><input id="second_ext_host_user" type="text" class="form-control ssh_usr" name="second_ext_host_user" value="{{ second_ext_host_user }}" /></td>
+							<td id="second_ext_td4"><input id="second_ext_host_if" type="text" class="form-control iface_inp" name="second_ext_host_if" value="{{second_ext_host_if}}" /><div id="second_ext_host_if_up"></div></td>
+							<td id="second_ext_td5"><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveIFextHost();"><i class="fa fa-search"></button></td>
+							<td id="second_ext_td6" style="min-width: 160px"><input id="second_ext_host_mac" type="text" class="form-control mac_addr" name="second_ext_host_mac" value="{{second_ext_host_mac}}" /></td>
+							<td id="second_ext_td7"><input id="second_ext_host_ip" type="text" class="form-control ip_addr" name="second_ext_host_ip" value="{{second_ext_host_ip}}" /><div id="second_ext_host_ip_set"></div></td>
+							<td id="second_ext_td8"><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="setIPextHost();"><i class="fa fa-wrench"></button></td>
+							<td id="second_ext_td9">
+								<div class="input-group mb-3">
+									<input id="second_ext_host_real" type="text" class="form-control real_port_inp" aria-describedby="addon" name="second_ext_host_real" value="{{ second_ext_host_real }}" />
+									<div class="input-group-append">
+										<span class="input-group-text" id="addon" style="width: 120px;">internal: {{ ext_host }}</span>
+									</div>
+								</div>
+							</td>
+							{% for entry in target_cfg.inputs.input_table %}
+								{% if not entry.restrict or entry.restrict == "second_ext_host" %}
+								
+								{% with ext_host="second_ext_host_" %}
+								{% with key=ext_host|add:entry.target_key %}
+								{% with current=cfg|getkeyvalue:key %}
+
+								<td id="ext_td{{current}}">
+								
+								{% if entry.type == "drop-down" %}
+									<select class="form-control" id="{{key}}" name="{{key}}" width="20">
+									<option value="{{current}}">{{current}}</option>
+									{% for val in entry.values %}
+										{% if current != val %}
+										<option value="{{val}}">{{val}}</option>
+										{% endif %}
+									{% endfor %}
+									</select>
+								
+								
+								{% elif entry.type == "input" %}
+									<input id="{{key}}" type="text" class="form-control" name="{{key}}" value="{{current}}" />
+								{% endif %}
+								{% endwith %}
+								{% endwith %}
+								{% endwith %}
+								</td>
+								{% endif %}
+								{% endfor %}
+						</tr>
+
+				{% endif %}
+				<!-- Second External Host END -->
 				<tr>
 					<td>Stamper Device (for SSH):</td>
 					<td><input id="stamper_ssh" type="text" class="form-control ip_addr" name="stamper_ssh" value="{{stamper_ssh}}"/></td>

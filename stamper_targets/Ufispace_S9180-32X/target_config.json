@@ -16,9 +16,7 @@
    },
    "packet_generator_ports": [
       "68",
-      "196",
-      "324",
-      "452"
+      "196"
    ],
    "config":{
       "stamper_specific":[

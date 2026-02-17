@@ -17,6 +17,7 @@ import json
 import multiprocessing
 import os
 import rpyc
+from rpyc.utils.classic import obtain
 import shutil
 import subprocess
 import sys
@@ -1131,13 +1132,23 @@ class P4staCore(rpyc.Service):
 
         return stoppable
     
+    def write_live_stats_json(self, live_stats_list):
+        try:
+            path = P4STA_utils.get_results_path(P4staCore.measurement_id)
+            with open(path + "/live_metrics_list.json", "w") as f:
+                json.dump(P4STA_utils.flt(live_stats_list), f)
+            self.logger.info("Stored live_metrics_list.json with num elements: " + str(len(live_stats_list)))
+        except:
+            self.logger.error(traceback.format_exc())
+    
     # dynamic approach by retrieving results in background for non-blocking UI, current state can be retrieved with get_state_stop_external_background
-    def stop_external_background(self):
-        def stp_xtnrl(slf):
+    def stop_external_background(self, live_stats_list):
+        def stp_xtnrl(slf, live_stats_list):
             try:
                 slf.read_stamperice()
                 if int(P4staCore.measurement_id) == -1:
                     raise Exception("Measurement ID is -1.")
+                slf.write_live_stats_json(live_stats_list)
                 stoppable = slf.get_current_extHost_obj().stop_external(P4staCore.measurement_id)
             except Exception:
                 stoppable = False
@@ -1146,7 +1157,7 @@ class P4staCore(rpyc.Service):
             
         if self.stop_ext_bckgrd_thread == None or self.stop_ext_bckgrd_thread == True or self.stop_ext_bckgrd_thread == False:
             # x = multiprocessing.Process(target=stp_xtnrl, args=(self,))
-            x = threading.Thread(target=stp_xtnrl, args=(self,))
+            x = threading.Thread(target=stp_xtnrl, args=(self, live_stats_list))
             x.start()
             self.stop_ext_bckgrd_thread = x
 
@@ -1400,6 +1411,11 @@ class P4staCore(rpyc.Service):
         # retrieve current logs is threaded
         log_list, error_list = ext_host_obj.retrieve_current_logs()
         ret_dict = {"log_list": log_list, "error_list": error_list}
+
+        if hasattr(ext_host_obj, "EXT_HOST_T1_DUPLICATION"):
+            if ext_host_obj.EXT_HOST_T1_DUPLICATION:
+                log_list_tstamp1_only, error_list_tstamp1_only = ext_host_obj.retrieve_current_logs("_tstamp1_only")
+                ret_dict.update({"log_list_timestamp1_only": log_list_tstamp1_only, "error_list_timestamp1_only": error_list_tstamp1_only})
         
         if "provides_status_api" in ext_host_obj.host_cfg:
             if ext_host_obj.host_cfg["provides_status_api"]:

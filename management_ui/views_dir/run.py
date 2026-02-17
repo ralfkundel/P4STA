@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import copy
 import json
 import rpyc
 import time
@@ -171,6 +172,7 @@ def start_external(request):
                     }
                 )
             else:
+                globals.current_live_stats = []
                 lgen_obj = globals.core_conn.root.get_loadgen_obj(cfg["selected_loadgen"])
                 py_code = lgen_obj.read_python_packet_code()
                 packets = lgen_obj.exec_py_str(py_code)
@@ -234,6 +236,9 @@ def packet_templates_config(request):
 def live_metrics(request):
     metrics = P4STA_utils.flt(globals.core_conn.root.get_live_metrics())
 
+    if type(globals.current_live_stats) == list:
+        globals.current_live_stats.append({time.time(): metrics})
+
     ## DEBUGGING only
     if False:
         live_metrics=[]
@@ -296,13 +301,14 @@ def reset(request):
                  "error": ("reset stamper register error: " + str(e))})
 
 
-# stops last started instance of python receiver at external host
+# stops last started instance of receiver at external host
 # and starts reading p4 registers
 def stop_external(request, background=False):
     if P4STA_utils.is_ajax(request):
         try:
             if background:
-                stoppable = globals.core_conn.root.stop_external_background()
+                stoppable = globals.core_conn.root.stop_external_background(copy.deepcopy(globals.current_live_stats)) # copy so we can set globals var back to None
+                globals.current_live_stats = None
                 return render(
                     request, "middlebox/output_external_stopped.html", {"stoppable": stoppable})
             # Legacy (core_conn stop_external is blocking for many seconds)
