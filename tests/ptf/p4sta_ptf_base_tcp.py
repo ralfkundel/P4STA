@@ -94,8 +94,8 @@ class Dut1ToGroup1(BaseTest):
         # Ether() / IP () / remove 20 byte TCP header, add 8 byte UDP header() / 2 byte ext host header () / 14 byte timestamps()) / old tcp payload        
         exp_pkt_ext_host = (
             Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:01")
-            / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, src=100
-            / UDP(sport=41111, dport=41111, chksum=0, len=26)
+            / IP(src="10.11.12.100", dst="10.11.12.99", len=50) # len 50 as set in P4, src=100
+            / UDP(sport=41111, dport=41111, chksum=0, len=30)
             / Exthost(len=len(pkt)) 
             / Raw(load=b"\x0f\x10\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\xbb\xbb\xbb\xbb\xbb\xbb")
             / Raw(load=random_load)
@@ -114,7 +114,7 @@ class Dut1ToGroup1(BaseTest):
         m2.set_do_not_care_scapy(UDP, "len")
         # m2.set_do_not_care_scapy(TCP, "chksum")
         # timestamp2 is 6 byte long
-        m2.set_do_not_care(432, 48)
+        m2.set_do_not_care(432+4*8, 48)
         verify_packet(self, m2, port_id=5)
 
         pkt_dup = Ether(dst="22:22:22:22:22:22", src="aa:aa:aa:aa:ff:01") / IP(
@@ -241,8 +241,8 @@ class Dut2ToGroup2(BaseTest):
         # Same for both pkt1 and pk2      
         exp_pkt_ext_host = (
             Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:02")
-            / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, src IP .100
-            / UDP(sport=41111, dport=41111, chksum=0, len=26)
+            / IP(src="10.11.12.100", dst="10.11.12.99", len=50) # len 50 as set in P4, src IP .100
+            / UDP(sport=41111, dport=41111, chksum=0, len=30)
             / Exthost(len=len(pkt1)) 
             / Raw(load=b"\x0f\x10\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\xbb\xbb\xbb\xbb\xbb\xbb")
             / Raw(load=random_load)
@@ -259,7 +259,7 @@ class Dut2ToGroup2(BaseTest):
         m = Mask(exp_pkt_ext_host)
         m.set_do_not_care_scapy(UDP, "len")
         # timestamp2 is 6 byte long
-        m.set_do_not_care(432, 48)
+        m.set_do_not_care(432+4*8, 48)
         verify_packet(self, m, port_id=5)
 
         verify_no_other_packets(self)
@@ -275,7 +275,7 @@ class Dut2ToGroup2(BaseTest):
 
             m = Mask(exp_pkt_ext_host)
             # timestamp2 is 6 byte long
-            m.set_do_not_care(432, 48)
+            m.set_do_not_care(432+4*8, 48)
             verify_packet(self, m, port_id=5)
 
             verify_no_other_packets(self)
@@ -389,8 +389,8 @@ class Only1DUTDut1ToGroup1(BaseTest):
         
         exp_pkt_ext_host = (
             Ether(dst="55:14:df:9f:03:af", src="22:22:22:22:22:23")
-            / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, src = 100 
-            / UDP(sport=41111, dport=41111, chksum=0, len=26)
+            / IP(src="10.11.12.100", dst="10.11.12.99", len=50) # len 50 as set in P4, src = 100 
+            / UDP(sport=41111, dport=41111, chksum=0, len=30)
             / Exthost(len=len(pkt)) 
             / Raw(load=b"\x0f\x10\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\xbb\xbb\xbb\xbb\xbb\xbb")
             / Raw(load=random_load)
@@ -405,8 +405,8 @@ class Only1DUTDut1ToGroup1(BaseTest):
         
         exp_pkt_ext_host2 = (
             Ether(dst="55:14:df:9f:03:af", src="22:22:22:22:22:22")
-            / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, src=.100
-            / UDP(sport=41111, dport=41111, chksum=0, len=26)
+            / IP(src="10.11.12.100", dst="10.11.12.99", len=50) # len 50 as set in P4, src=.100
+            / UDP(sport=41111, dport=41111, chksum=0, len=30)
             / Exthost(len=len(pkt2)) 
             / Raw(load=b"\x0f\x10\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\xbb\xbb\xbb\xbb\xbb\xbb")
             / Raw(load=random_load)
@@ -424,7 +424,7 @@ class Only1DUTDut1ToGroup1(BaseTest):
         m2 = Mask(exp_pkt_ext_host)
         m2.set_do_not_care_scapy(UDP, "len")
         # timestamp2 is 6 byte long, starts at bit 512 (starting from Eth Hdr)
-        m2.set_do_not_care(432, 48)
+        m2.set_do_not_care(432+4*8, 48)
         verify_packet(self, m2, port_id=5)
 
         if not self.l1:
@@ -439,7 +439,7 @@ class Only1DUTDut1ToGroup1(BaseTest):
             m4 = Mask(exp_pkt_ext_host2)
             m4.set_do_not_care_scapy(UDP, "len")
             # timestamp2 is 6 byte long
-            m4.set_do_not_care(432, 48)
+            m4.set_do_not_care(432+4*8, 48)
             verify_packet(self, m4, port_id=5)
 
         verify_no_other_packets(self)

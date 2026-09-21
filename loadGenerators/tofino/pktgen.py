@@ -58,8 +58,14 @@ class TofinoPacketGenerator():
         self.logger = logger
 
     def set_connection(self):
-        interface = grpc_interface.TofinoInterface(self.libcfg["ssh_ip"], 0, self.logger)
-        interface.bind_p4_name(self.libcfg["p4_program"])
+        interface, created, error = \
+            grpc_interface.TofinoInterface.get_or_create_bound_instance(
+                self.libcfg["ssh_ip"], 0, self.logger,
+                self.libcfg["p4_program"])
+        if not created:
+            self.logger.debug("Reusing bound gRPC connection")
+        elif error != "":
+            self.logger.warning(error)
         self.open_connection = interface
         
         return interface
@@ -108,7 +114,7 @@ class TofinoPacketGenerator():
             self.logger.debug("Reusing open gRPC connection")
 
             if "tables" in self.open_connection.bfruntime_info:
-                self.logger.warning("key tables found in bfruntime_info")
+                self.logger.debug("key tables found in bfruntime_info")
                 interface = self.open_connection
             else:
                 try:
@@ -122,8 +128,6 @@ class TofinoPacketGenerator():
             interface = self.set_connection()
         
         interface.delete_table("pipe.SwitchIngress.t_l1_forwarding_generation")
-        interface.delete_table("pipe.SwitchIngress.t_duplicate_sniff_1")
-        interface.delete_table("pipe.SwitchIngress.t_duplicate_sniff_2")
 
         for indx, port in enumerate(self.libcfg["generator_ports"]):
             port_enb = self.libcfg["use_gen_port_map"][indx]
@@ -245,34 +249,34 @@ class TofinoPacketGenerator():
         # TYPE 1: duplicate of ingressing to DUT     TYPE 2: duplicate after egressing DUT
         # e.g. sniff_points = [{"type": 1, "duplicate_to_p4_ports": [123]}, {"type": 2, "duplicate_to_p4_ports": [123]}]
 
-        for point in self.libcfg["sniff_points"]:
-            for p4_port in point["duplicate_to_p4_ports"]:
-                cfg = {"node_id": node_id, "group_id": start_group, "port": int(p4_port)}
-                mcast_inp.append(cfg)
-                for indx, port in enumerate(self.libcfg["generator_ports"]):
-                    eg_port = self.libcfg["egress_ports"][indx]
+        # for point in self.libcfg["sniff_points"]:
+        #     for p4_port in point["duplicate_to_p4_ports"]:
+        #         cfg = {"node_id": node_id, "group_id": start_group, "port": int(p4_port)}
+        #         mcast_inp.append(cfg)
+        #         for indx, port in enumerate(self.libcfg["generator_ports"]):
+        #             eg_port = self.libcfg["egress_ports"][indx]
 
-                    if "type" in point and point["type"] == 2:
-                        interface.add_to_table(table_name="pipe.SwitchIngress.t_duplicate_sniff_2",
-                            keys=[["ig_intr_md.ingress_port", int(eg_port)]], # fine with egress ports as all DUT ports are duplicated
-                            datas=[["group", int(start_group)]], 
-                            action="SwitchIngress.duplicate_to_dut"
-                        ) # misleading action name as it is reused for sniffing
+        #             if "type" in point and point["type"] == 2:
+        #                 interface.add_to_table(table_name="pipe.SwitchIngress.t_duplicate_sniff_2",
+        #                     keys=[["ig_intr_md.ingress_port", int(eg_port)]], # fine with egress ports as all DUT ports are duplicated
+        #                     datas=[["group", int(start_group)]], 
+        #                     action="SwitchIngress.duplicate_to_dut"
+        #                 ) # misleading action name as it is reused for sniffing
 
-                        self.logger.debug("Added pipe.SwitchIngress.t_duplicate_sniff_2 => ingress_port " + str(eg_port) + " => " + "mcast grp " + str(start_group))
+        #                 self.logger.debug("Added pipe.SwitchIngress.t_duplicate_sniff_2 => ingress_port " + str(eg_port) + " => " + "mcast grp " + str(start_group))
 
-                    elif "type" in point and point["type"] == 1:
-                        t_duplicate_to_dut = "pipe.SwitchIngress.t_duplicate_sniff_1"
-                        interface.add_to_table(
-                            t_duplicate_to_dut,
-                            [["ig_intr_tm_md.ucast_egress_port", int(eg_port)]],
-                            [["group", int(start_group)]],
-                            "SwitchIngress.duplicate_to_dut",
-                        )
-                        self.logger.debug("Added pipe.SwitchIngress.t_duplicate_sniff_1 => egress_port " + str(eg_port) + " => " + "mcast group " + str(start_group))
+        #             elif "type" in point and point["type"] == 1:
+        #                 t_duplicate_to_dut = "pipe.SwitchIngress.t_duplicate_sniff_1"
+        #                 interface.add_to_table(
+        #                     t_duplicate_to_dut,
+        #                     [["ig_intr_tm_md.ucast_egress_port", int(eg_port)]],
+        #                     [["group", int(start_group)]],
+        #                     "SwitchIngress.duplicate_to_dut",
+        #                 )
+        #                 self.logger.debug("Added pipe.SwitchIngress.t_duplicate_sniff_1 => egress_port " + str(eg_port) + " => " + "mcast group " + str(start_group))
 
-                node_id += 1
-                start_group += 1
+        #         node_id += 1
+        #         start_group += 1
 
 
 
@@ -368,6 +372,4 @@ class TofinoPacketGenerator():
         self.open_connection = None
 
         return None
-
-
 

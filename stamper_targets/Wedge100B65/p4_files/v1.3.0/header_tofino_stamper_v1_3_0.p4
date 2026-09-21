@@ -155,6 +155,7 @@ header ptp_mac_hdr_t {
 // custom header after udp header with metadata
 header ext_host_stats_t {
 	bit<16> paket_len;
+	bit<32> sess_identifier; // can be e.g. teid if gtp-u, or other flow identifier
 	//bit<9> ingress_port;
 }
 
@@ -215,4 +216,5 @@ struct my_metadata_t {
 	l4_metadata_t l4_metadata;
 	timestamp_metadata_t timestamp_metadata;
 	bit<8> header_offset; //variable which describes additional offset to minimal packet, e.g. a VLAN header or IPv6 instead of IPv4
+	bit<32> session_identifier; // can be e.g. teid in gtp-u, if 0 = no identifier
 }

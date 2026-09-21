@@ -20,6 +20,7 @@ from random import randint
 import sys
 import threading
 import traceback
+import weakref
 
 
 
@@ -65,21 +66,73 @@ except ImportError:
 class TofinoInterface:
     # no effect when TofinoInterface obj is instanciated for each call
     used_client_ids = []
+    instances = weakref.WeakSet()
+    instances_lock = threading.RLock()
 
-    def __init__(self, grpc_addr, device_id, logger, client_id=randint(1, 100),
-                 is_master=False, print_errors=True):
+    @staticmethod
+    def normalize_grpc_addr(grpc_addr):
+        if grpc_addr is not None and grpc_addr.find(":") == -1:
+            return grpc_addr + ":50052"
+        return grpc_addr
+
+    @classmethod
+    def get_bound_instance(cls, grpc_addr=None, device_id=None, p4_program=None):
+        grpc_addr = cls.normalize_grpc_addr(grpc_addr)
+        with cls.instances_lock:
+            instances = list(cls.instances)
+        for instance in instances:
+            if getattr(instance, "closed", True) or \
+                    not getattr(instance, "connection_established", False):
+                continue
+            if not getattr(instance, "p4_connected", False):
+                continue
+            if grpc_addr is not None and \
+                    getattr(instance, "grpc_addr", None) != grpc_addr:
+                continue
+            if device_id is not None and \
+                    getattr(instance, "device_id", None) != device_id:
+                continue
+            if p4_program is not None and \
+                    getattr(instance, "p4_program", None) != p4_program:
+                continue
+            return instance
+        return None
+
+    @classmethod
+    def get_or_create_bound_instance(cls, grpc_addr, device_id, logger, p4_program, **kwargs):
+        with cls.instances_lock:
+            interface = cls.get_bound_instance(
+                grpc_addr, device_id, p4_program)
+            if interface is not None:
+                return interface, False, ""
+
+            cls.teardown_all()
+            interface = cls(grpc_addr, device_id, logger, **kwargs)
+            if not interface.connection_established:
+                return interface, True, "gRPC connection to Tofino failed."
+            return interface, True, interface.bind_p4_name(p4_program)
+
+    def __init__(self, grpc_addr, device_id, logger, client_id=None, is_master=False, print_errors=True):
         
         self.logger = logger
+        self.closed = False
+        self.client_id = None
+        with TofinoInterface.instances_lock:
+            TofinoInterface.instances.add(self)
 
         def f_stream_receive_thr(strm):
             try:
                 for inp in strm:
                     self.in_queue.put(inp)
             except grpc.RpcError as rpc_error:
+                if self.closed:
+                    return
                 if rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
                     self.logger.error("Tofino gRPC server unavailable")
                 else:
                     self.logger.error(traceback.format_exc())
+                self.p4_connected = False
+                self.teardown()
                 
 
         def stream_iter():
@@ -89,6 +142,8 @@ class TofinoInterface:
                     break
                 yield out
 
+        if client_id is None:
+            client_id = randint(1, 100)
         while client_id in TofinoInterface.used_client_ids:
             client_id = randint(1, 100)
         self.logger.debug("Selected client id: " + str(client_id))
@@ -104,9 +159,8 @@ class TofinoInterface:
         self.print_errors = print_errors
         opt_size = 1024 ** 3
 
-        if grpc_addr.find(":") == -1:
-            grpc_addr = grpc_addr + ":50052"
-        self.grpc_channel = grpc.insecure_channel(grpc_addr, options=[
+        self.grpc_addr = TofinoInterface.normalize_grpc_addr(grpc_addr)
+        self.grpc_channel = grpc.insecure_channel(self.grpc_addr, options=[
             ('grpc.max_send_message_length', opt_size),
             ('grpc.max_receive_message_length', opt_size),
             ('grpc.max_metadata_size', opt_size)])
@@ -172,19 +226,58 @@ class TofinoInterface:
         return ""
 
     def teardown(self):
+        if self.closed:
+            return
+
+        self.closed = True
         self.logger.debug("Teardown ...")
-        while self.client_id in TofinoInterface.used_client_ids:
+        client_id = getattr(self, "client_id", None)
+        while client_id in TofinoInterface.used_client_ids:
             try:
-                TofinoInterface.used_client_ids.remove(self.client_id)
+                TofinoInterface.used_client_ids.remove(client_id)
             except ValueError:
                 pass
-        self.out_queue.put(None)
-        self.stream_receive_thr.join()
-        self.grpc_channel.close()
+        try:
+            self.out_queue.put(None)
+        except Exception:
+            self.logger.debug(traceback.format_exc())
+        try:
+            self.stream.cancel()
+        except Exception:
+            self.logger.debug(traceback.format_exc())
+        try:
+            self.grpc_channel.close()
+        except Exception:
+            self.logger.debug(traceback.format_exc())
+        if hasattr(self, "stream_receive_thr") and \
+                self.stream_receive_thr.is_alive() and \
+                threading.current_thread() is not self.stream_receive_thr:
+            self.stream_receive_thr.join(timeout=3)
         self.p4_program = ""
+        self.bfruntime_info = dict()
+        self.non_p4_config = dict()
         self.connection_established = False
         self.p4_connected = False
+        with TofinoInterface.instances_lock:
+            TofinoInterface.instances.discard(self)
         self.logger.info("Tofino gRPC teardown finished.")
+
+    @classmethod
+    def teardown_all(cls):
+        with cls.instances_lock:
+            instances = list(cls.instances)
+        for instance in instances:
+            try:
+                instance.teardown()
+            except Exception:
+                instance.logger.debug(traceback.format_exc())
+
+    @classmethod
+    def test(cls):
+        with cls.instances_lock:
+            instances = list(cls.instances)
+        for instance in instances:
+            print(instance)
 
     # compatibility for code using table/key/data/action names without pipe.###
     def _get_full_name(self, name):
@@ -361,7 +454,7 @@ class TofinoInterface:
                                             table_name + " not determinable - "
                                                          "using 32 bit")
                                     return data["singleton"]["id"], bit_width
-                        elif table["table_type"] == "Register":
+                        elif table["table_type"] == "Register" or table["table_type"] == "RegisterParam":
                             for data in table["data"]:
                                 if data["singleton"]["name"] == data_name:
                                     return data["singleton"]["id"], \
@@ -397,7 +490,7 @@ class TofinoInterface:
     # [["ig_intr_md.ingress_port", int(dut["p4_port"])]],
     # [["egress_port", int(loadgen_grp["loadgens"][0]["p4_port"])]],
     # "SwitchIngress.send")
-    def add_to_table(self, table_name, keys=[], datas=[], action="",
+    def add_to_table(self, table_name, keys=[], datas=[], action="", default_entry=False,
                      mod=False, mod_inc=False, silent=False):
         def get_table_type(table_name):
             for table in self.bfruntime_info["tables"]:
@@ -420,6 +513,10 @@ class TofinoInterface:
             update.type = bfruntime_pb2.Update.INSERT
         tbl_entry = update.entity.table_entry
         tbl_entry.table_id = table_id
+
+        if(default_entry):
+            tbl_entry.is_default_entry = True
+
         for key_pair in keys:
             key_field = tbl_entry.key.fields.add()
             key_field.field_id, key_bit_width = self.get_key_id(key_pair[0], table_name)
@@ -463,7 +560,8 @@ class TofinoInterface:
 
         elif table_name.find("$") == 0 or get_table_type(
                 table_name) == "Counter" or get_table_type(
-                table_name) == "Register" or (table_name.find("tf1.pktgen") == 0) or (table_name.find("tf2.pktgen") == 0):
+                table_name) == "Register" or get_table_type(
+                table_name) == "RegisterParam" or (table_name.find("tf1.pktgen") == 0) or (table_name.find("tf2.pktgen") == 0):
             for data_pair in datas:
                 data_field = tbl_entry.data.fields.add()
                 data_field.field_id, data_bit_width = self.get_data_id(
@@ -748,7 +846,11 @@ class TofinoInterface:
             tbl_entry.table_read_flag.from_hw = True
             key_field = tbl_entry.key.fields.add()
             key_field.field_id, key_bit_width = self.get_key_id("$COUNTER_INDEX", table_name)
-            key_field.exact.value = port.to_bytes(math.ceil(key_bit_width / 8), "big")
+            try:
+                key_field.exact.value = port.to_bytes(math.ceil(key_bit_width / 8), "big")
+            except Exception as e:
+                self.logger.error(traceback.format_exc())
+                key_field.exact.value = b"" #port.to_bytes(0, "big")
         answers = self.grpc_stub.Read(read_request)
         counter_read_datas = []
         try:

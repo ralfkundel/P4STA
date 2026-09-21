@@ -10,10 +10,38 @@ packets = {}
 def add_payload_0(scapy_headers, total_paket_len):
 	return scapy_headers/Raw(load="0" * (total_paket_len - len(scapy_headers)))
 
+# pppoe access downstream packet
+sub_mac = "02:00:00:00:00:01"
+server_mac = "5c:07:58:e0:7a:55"
+server_mac_backbone = "5c:07:58:e0:7a:5d"
+
+sub_ip = "10.1.0.1"
+sess_id = 10
+
+header_down = Ether(src="22:E4:75:0D:2D:57", dst=server_mac_backbone)/IP(src="10.10.10.42", dst=sub_ip)/UDP(dport=42424)
+packets["p_down"] = add_payload_0(header_down, 1400)
+
+header_down_tcp = Ether(src="22:E4:75:0D:2D:57", dst=server_mac_backbone)/IP(src="10.10.10.42", dst=sub_ip)/TCP(dport=42424)
+packets["p_down_tcp"] = add_payload_0(header_down_tcp, 1400)
+
+header_up = Ether(src=sub_mac, dst=server_mac)/Dot1AD(vlan=111)/Dot1Q(vlan=7)/PPPoE(sessionid=sess_id)/PPP()/IP(src=sub_ip, dst="10.10.10.42")/UDP(dport=42424) #/Dot1AD(vlan=111)/
+packets["p_up"] = add_payload_0(header_up, 1400)
+
+header_up = Ether(src=sub_mac, dst=server_mac)/PPPoE(sessionid=sess_id)/PPP()/IP(src=sub_ip, dst="10.10.10.42")/UDP(dport=42424)
+packets["p_up_notag"] = add_payload_0(header_up, 1400)
+
+header_up2 = Ether(src=sub_mac, dst=server_mac)/Dot1AD(vlan=111)/Dot1Q(vlan=7)/PPPoE(sessionid=sess_id)/PPP()/IP(src=sub_ip, dst="10.10.10.42")/TCP(dport=42424)
+packets["p_up_tcp"] = add_payload_0(header_up2, 1400)
+
+header_up3 = Ether(src=sub_mac, dst=server_mac)/PPPoE(sessionid=sess_id)/PPP()/IP(src=sub_ip, dst="10.10.10.42")/TCP(dport=42424)
+packets["p_up_tcp_notag"] = add_payload_0(header_up3, 1400)
 
 # UDP Packet
 udp_packet_headers = Ether(src="22:E4:75:0D:2D:57")/IP(src="10.11.12.1")/UDP(dport=42424)
 packets["udp_packet"] = add_payload_0(udp_packet_headers, 1500)
+
+udp_packet_headers = Ether(src="22:E4:75:0D:2D:57")/IP(src="10.11.12.1")/UDP(dport=42424)
+packets["udp_packet72"] = add_payload_0(udp_packet_headers, 72)
 
 udp_packet_headers = Ether(src="39:e9:0b:f1:20:7d")/IP(src="10.11.12.1")/UDP(dport=42424)
 packets["1024B_udp_packet"] = add_payload_0(udp_packet_headers, 1024)

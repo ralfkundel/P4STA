@@ -53,12 +53,28 @@ add_sudo_rights() {
   fi
 }
 
-pub_key=$(cat ~/.ssh/id_rsa.pub)
-pub_key_length=`expr "$pub_key" : '.*'`
 
-if (( $pub_key_length < 50)); then
-	echo "It seems like there is no public key in your .ssh directory.";
-	ask_and_create_key
+# Prefer modern Ed25519 keys, fall back to RSA
+pub_key_file=""
+
+for key in "$HOME/.ssh/id_ed25519.pub" "$HOME/.ssh/id_rsa.pub"; do
+    if [ -s "$key" ]; then
+        pub_key_file="$key"
+        break
+    fi
+done
+
+if [ -z "$pub_key_file" ]; then
+    echo "It seems like there is no public key in your .ssh directory."
+    ask_and_create_key
+else
+    pub_key=$(cat "$pub_key_file")
+    pub_key_length=${#pub_key}
+
+    if (( pub_key_length < 50 )); then
+        echo "It seems like the public key in $pub_key_file is invalid."
+        ask_and_create_key
+    fi
 fi
 
 printf "Setting executeable bits for management server scripts...\n"

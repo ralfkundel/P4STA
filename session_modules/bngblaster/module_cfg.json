@@ -1,0 +1,98 @@
+{
+	"name": "BNGBlaster",
+	"driver": "BNGBlasterSessionDriver.py",
+	"status_check": {},
+	"compatible_p4sta_versions": [
+		"1.4.0"
+	],
+	"config": {
+		"setup_specific": [
+			{
+				"title": "Session module SSH IP ",
+				"type": "input",
+				"target_key": "session_cp_ssh",
+				"required": true,
+				"description": "SSH IP of the host running BNGBlaster and its controller."
+			},
+			{
+				"title": "Session module SSH username ",
+				"type": "input",
+				"target_key": "session_cp_user",
+				"required": true,
+				"description": "SSH username on the BNGBlaster host."
+			}
+		],
+		"runtime_specific": [
+			{
+				"title": "Session modification fields",
+				"type": "checkbox-group",
+				"values_to_select": [
+					[
+						"ethernet",
+						"srcAddr",
+						"bit\\<48\\>"
+					],
+					[
+						"ethernet",
+						"dstAddr",
+						"bit\\<48\\>"
+					],
+					[
+						"vlan",
+						"vid",
+						"bit\\<12\\>"
+					],
+					[
+						"vlan_qinq",
+						"vid",
+						"bit\\<12\\>"
+					],
+					[
+						"pppoe",
+						"sessionID",
+						"bit\\<16\\>"
+					],
+					[
+						"ipv4",
+						"srcAddr",
+						"bit\\<32\\>"
+					],
+					[
+						"ipv4",
+						"dstAddr",
+						"bit\\<32\\>"
+					]
+				],
+				"selected_values": [
+					[
+						"ethernet",
+						"srcAddr",
+						"bit\\<48\\>"
+					],
+					[
+						"ethernet",
+						"dstAddr",
+						"bit\\<48\\>"
+					],
+					[
+						"pppoe",
+						"sessionID",
+						"bit\\<16\\>"
+					],
+					[
+						"ipv4",
+						"srcAddr",
+						"bit\\<32\\>"
+					],
+					[
+						"ipv4",
+						"dstAddr",
+						"bit\\<32\\>"
+					]
+				],
+				"target_key": "dyn_cfg",
+				"description": "Packet fields modified by the session traffic profile."
+			}
+		]
+	}
+}

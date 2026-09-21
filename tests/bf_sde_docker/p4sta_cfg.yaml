@@ -5,7 +5,11 @@ features:
     bfrt: true
     grpc: true
     thrift-driver: true
-  p4-examples:
-    - p4-16-programs
+    kernel-modules: false
 architectures:
   - tofino
+#  - tofino2
+
+
+
+

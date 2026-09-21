@@ -652,6 +652,118 @@
 
 				{% endif %}
 				<!-- Second External Host END -->
+
+				<!-- Session control plane where e.g. BNGBlaster runs -->
+
+				<tr id="session_cp_tr" {% if p4sta_version and p4sta_version|version_gte:"1.4.0" %}{% else %}hidden{% endif %}> <!-- default_ext_host_tr -->
+					<td data-toggle="tooltip" id="session_cp_tooltip" data-placement="top" title="Host and interface session handshakes are initiated from by the session module"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Session Control Plane Access:
+						<!-- Tstamp1 probing dropped -->  
+						<!-- <div class="form-group form-check">
+							<input type="checkbox" class="form-check-input" id="second_session_cp">
+							<label class="form-check-label" for="second_session_cp">Tstamp1 Probing</label>
+						</div> -->
+					</td>
+					<td id="ext_td2"><input id="session_cp_ssh" type="text" class="form-control ip_addr" name="session_cp_ssh" value="{{session_cp_ssh}}" /></td>
+					<td id="ext_td3"><input id="session_cp_user" type="text" class="form-control ssh_usr" name="session_cp_user" value="{{ session_cp_user }}" /></td>
+					<td id="ext_td4"><input id="session_cp_if" type="text" class="form-control iface_inp" name="session_cp_if" value="{{session_cp_if}}" /><div id="session_cp_if_up"></div></td>
+					<td id="ext_td5"><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveHostIF('session_cp');"><i class="fa fa-search"></button></td>
+					<td id="ext_td6" style="min-width: 160px"><input id="session_cp_mac" type="text" class="form-control mac_addr" name="session_cp_mac" value="{{session_cp_mac}}" /></td>
+					<td id="ext_td7"><input id="session_cp_ip" type="text" class="form-control ip_addr" name="session_cp_ip" value="{{session_cp_ip}}" disabled /><div id="session_cp_ip_set"></div></td>
+					<td id="ext_td8"><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="setIPextHost();"><i class="fa fa-wrench"></button></td>
+					<td id="ext_td9">
+						<div class="input-group mb-3">
+							<input id="session_cp_real" type="text" class="form-control real_port_inp" aria-describedby="addon" name="session_cp_real" value="{{ session_cp_real }}" />
+							<div class="input-group-append">
+								  <span class="input-group-text" id="addon" style="width: 120px;">internal: {{ session_cp }}</span>
+							</div>
+						</div>
+					</td>
+					{% for entry in target_cfg.inputs.input_table %}
+						{% if not entry.restrict or entry.restrict == "session_cp" %}
+						
+						{% with session_cp="session_cp_" %}
+						{% with key=session_cp|add:entry.target_key %}
+						{% with current=cfg|getkeyvalue:key %}
+
+						<td id="ext_td{{current}}">
+						
+						{% if entry.type == "drop-down" %}
+							<select class="form-control" id="{{key}}" name="{{key}}" width="20">
+							<option value="{{current}}">{{current}}</option>
+							{% for val in entry.values %}
+								{% if current != val %}
+								<option value="{{val}}">{{val}}</option>
+								{% endif %}
+							{% endfor %}
+							</select>
+						
+						
+						{% elif entry.type == "input" %}
+							<input id="{{key}}" type="text" class="form-control" name="{{key}}" value="{{current}}" />
+						{% endif %}
+						{% endwith %}
+						{% endwith %}
+						{% endwith %}
+						</td>
+						{% endif %}
+						{% endfor %}
+				</tr>
+<!-- second session cp row -->
+				<tr id="session_cp2_tr" {% if p4sta_version and p4sta_version|version_gte:"1.4.0" %}{% else %}hidden{% endif %}> <!-- default_ext_host_tr -->
+					<td data-toggle="tooltip" id="session_cp2_tooltip" data-placement="top" title="Host and interface session handshakes are initiated from by the session module"><i class="fas fa-info-circle" style="font-size: 10pt; float: right;"></i>Session Control Plane Network:
+						<!-- Tstamp1 probing dropped -->  
+						<!-- <div class="form-group form-check">
+							<input type="checkbox" class="form-check-input" id="second_session_cp2">
+							<label class="form-check-label" for="second_session_cp2">Tstamp1 Probing</label>
+						</div> -->
+					</td>
+					<td id="ext_td2"><input id="session_cp2_ssh" type="text" class="form-control ip_addr" name="session_cp2_ssh" value="{{session_cp2_ssh}}" /></td>
+					<td id="ext_td3"><input id="session_cp2_user" type="text" class="form-control ssh_usr" name="session_cp2_user" value="{{ session_cp2_user }}" /></td>
+					<td id="ext_td4"><input id="session_cp2_if" type="text" class="form-control iface_inp" name="session_cp2_if" value="{{session_cp2_if}}" /><div id="session_cp2_if_up"></div></td>
+					<td id="ext_td5"><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="retrieveHostIF('session_cp2');"><i class="fa fa-search"></button></td>
+					<td id="ext_td6" style="min-width: 160px"><input id="session_cp2_mac" type="text" class="form-control mac_addr" name="session_cp2_mac" value="{{session_cp2_mac}}" /></td>
+					<td id="ext_td7"><input id="session_cp2_ip" type="text" class="form-control ip_addr" name="session_cp2_ip" value="{{session_cp2_ip}}" disabled /><div id="session_cp2_ip_set"></div></td>
+					<td id="ext_td8"><button type="button" class="btn btn-default btn-sm" style="margin:auto; display:block; font-size: 18pt" onclick="setIPextHost();"><i class="fa fa-wrench"></button></td>
+					<td id="ext_td9">
+						<div class="input-group mb-3">
+							<input id="session_cp2_real" type="text" class="form-control real_port_inp" aria-describedby="addon" name="session_cp2_real" value="{{ session_cp2_real }}" />
+							<div class="input-group-append">
+								  <span class="input-group-text" id="addon" style="width: 120px;">internal: {{ session_cp2 }}</span>
+							</div>
+						</div>
+					</td>
+					{% for entry in target_cfg.inputs.input_table %}
+						{% if not entry.restrict or entry.restrict == "session_cp2" %}
+						
+						{% with session_cp2="session_cp2_" %}
+						{% with key=session_cp2|add:entry.target_key %}
+						{% with current=cfg|getkeyvalue:key %}
+
+						<td id="ext_td{{current}}">
+						
+						{% if entry.type == "drop-down" %}
+							<select class="form-control" id="{{key}}" name="{{key}}" width="20">
+							<option value="{{current}}">{{current}}</option>
+							{% for val in entry.values %}
+								{% if current != val %}
+								<option value="{{val}}">{{val}}</option>
+								{% endif %}
+							{% endfor %}
+							</select>
+						
+						
+						{% elif entry.type == "input" %}
+							<input id="{{key}}" type="text" class="form-control" name="{{key}}" value="{{current}}" />
+						{% endif %}
+						{% endwith %}
+						{% endwith %}
+						{% endwith %}
+						</td>
+						{% endif %}
+						{% endfor %}
+				</tr>
+
+				<!-- session control plane end -->
 				<tr>
 					<td>Stamper Device (for SSH):</td>
 					<td><input id="stamper_ssh" type="text" class="form-control ip_addr" name="stamper_ssh" value="{{stamper_ssh}}"/></td>
@@ -731,4 +843,3 @@
 
 </body>
 </html>
-

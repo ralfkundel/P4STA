@@ -20,7 +20,7 @@
 	<script type="text/javascript">
 		$(document).ready(function(){ 
 			$("#reset").click(function() {
-				$("#output_reset").html('<img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$("#output_reset").html('<img src="{% static 'images/spinner.svg' %}" width="30" height="30" />');
 				$.get("/subpage_run_reset/", function(data) {
 					$("#output_reset").html(data);
 				}, "html");
@@ -98,7 +98,7 @@
 	}
 	
 	function load_status_overview() {
-		$("#status_overview").html('<p>Retrieving status ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+		$("#status_overview").html('<p>Retrieving status ...</p><img src="{% static 'images/spinner.svg' %}" width="50" height="50" />');
 		$.get("/status_overview/", function(data) {
 			$("#status_overview").html(data);
 		}, "html");
@@ -257,6 +257,9 @@
   border-radius: 50%;
   display: inline-block;
 }
+#output_reset:not(:empty) {
+  margin-top: 0.75rem;
+}
 </style>
 
 </head>
@@ -290,27 +293,311 @@
 
 <hr/>
 
-{% if not skipped %}
+{% comment %} {% if not skipped %}
 <p>Monitoring: External host started listening via multicast. Press the stop button to get the results.</p>
 {% else %}
 <p>Monitoring: External host <b>skipped</b>. Only measurements from stamper target are retrieved (min, max, avg), no plots and per packet analysis.</p>
 {% endif %}
 <p>You should reset the switch registers to get exact results.</p>
 <p>Results from external host, stamper and loadgens are automaticly saved when you press <i>Stop Monitoring</i><p>
+ {% endcomment %}
 
-
-
-<div class="row">
-	<div class="col-md-2">
-	{% if running == True %}
-		<button id="reset" type="button" class="btn btn-danger">Reset P4 registers</button>
-	{% else %}
-		<span style="color:red;">P4 device is not reachable. Please start it at <a href="/2/">Deploy</a>
-	{% endif %}
-	
-	</div>
-	<div class="col-md-10"><div id="output_reset"></div></div>
+ {% if not skipped %}
+<div class="alert alert-success shadow-sm mb-3" role="alert">
+    <h6 class="alert-heading mb-1">Monitoring active</h6>
+    <p class="mb-0">
+        External monitoring host is configured to receive packets. Press
+        <strong>Stop Monitoring</strong> to collect results.
+    </p>
 </div>
+{% else %}
+<div class="alert alert-warning shadow-sm mb-3" role="alert">
+    <h6 class="alert-heading mb-1">External monitoring host skipped</h6>
+    <p class="mb-0">
+        Stamper-only latency results available:
+        <span class="badge badge-secondary ml-1">min</span>
+        <span class="badge badge-secondary ml-1">max</span>
+        <span class="badge badge-secondary ml-1">avg</span>
+    </p>
+    <small class="text-muted">
+        &gt; No plots or per-packet analysis.
+    </small>
+	<p class="mb-0">
+        Results are saved automatically when <strong>Stop</strong> is pressed.
+    </p>
+</div>
+{% endif %}
+
+
+
+
+	<div class="row">
+		<div class="col-md-12">
+		
+			<div class="alert alert-info mb-0">
+				{% if running == True %}
+				<div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between">
+					<span class="mb-2 mb-sm-0 mr-sm-3">
+						Reset switch registers before collecting results.
+					</span>
+					<button id="reset" type="button" class="btn btn-outline-danger btn-sm flex-shrink-0 text-nowrap">
+						<i class="fas fa-undo-alt mr-1" aria-hidden="true"></i> Reset P4 registers
+					</button>
+				</div>
+				<div id="output_reset" class="small" role="status" aria-live="polite"></div>
+				{% else %}
+				<span class="text-danger">P4 device is not reachable. Please start it at <a href="/2/">Deploy</a></span>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+
+
+
+<div style="margin-top:10px;"></div>
+
+<hr/>
+
+
+
+
+
+ {% if check_ver_min_140 %}
+
+ <!--
+ Check established sessions:
+<span id="session_established_count">{{ num_established_sessions }}</span> -->
+
+
+<!--<div class="row mt-3">
+    <div class="col-md-3">
+        <h6 class="font-weight-bold mb-1">Session Traffic:</h6>
+        <small class="text-muted">
+            Configure how traffic is distributed across established sessions.
+        </small>
+    </div>
+
+    <div class="col-md-9">-->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <strong>Session Traffic Profile</strong>
+            </div>
+
+            <div class="card-body">
+
+
+                <fieldset id="session_modification_fields" class="mb-3">
+                    <legend class="h6 font-weight-bold">Session modification fields</legend>
+                    <div class="d-flex flex-wrap">
+                        {% for field in session_field_options %}
+                        <div class="form-check mr-4 mb-2">
+                            <input class="form-check-input session-modification-field" type="checkbox"
+                                   id="session_field_{{ forloop.counter }}" value="{{ field.name }}"
+                                   {% if field.selected %}checked{% endif %}
+                                   onchange="updateSessionFieldSelection()">
+                            <label class="form-check-label" for="session_field_{{ forloop.counter }}">
+                                <code>{{ field.name }}</code>
+                            </label>
+                        </div>
+                        {% empty %}
+                        <span class="text-danger">Session modification fields unavailable.</span>
+                        {% endfor %}
+                    </div>
+                    <div class="small">Direction: <strong id="session_field_direction"></strong></div>
+                    <div id="session_field_error" class="small text-danger" role="alert"></div>
+                </fieldset>
+
+
+				<div class="mt-2">
+					<span class="font-weight-bold mb-3">DUT port configuration</span>
+
+					<div class="table-responsive mt-2">
+						<table class="table table-sm align-middle mb-0 small">
+						<thead class="table-light">
+							<tr>
+							<th class="py-1">ID</th>
+							<th class="py-1">Port</th>
+							<th class="py-1">Link</th>
+							<th class="py-1">Shape</th>
+							<th class="py-1">Type</th>
+							</tr>
+						</thead>
+
+						<tbody>
+							{% for dut in cfg.dut_ports %}
+							<tr>
+							<td class="py-1 text-muted">{{ dut.id }}</td>
+							<td class="py-1"><code>{{ dut.real_port }}</code></td>
+							<td class="py-1"><code>{{ dut.speed }}</code></td>
+							<td class="py-1"><code>{{ dut.shape }}</code></td>
+							<td class="py-1"><b>{{ dut.session_port_type }}</b></td>
+							</tr>
+							{% endfor %}
+						</tbody>
+						</table>
+					</div>
+				</div>
+
+				<hr/>
+
+				<div class="mt-3">
+					<span class="font-weight-bold mb-3">Flow load distribution</span>
+					<span id="session_custom_allocation" class="small text-muted ml-2 d-none" role="status">Custom allocation</span>
+
+					<div class="row mt-2">
+						<div class="col-md-4">
+							<select class="form-control form-control-sm" id="session_distribution_algorithm" onchange="updateSessionBurstControls()">
+								<option value="interleaved" selected>Interleaved</option>
+								<option value="burst">Burst all flows</option>
+							</select>
+						</div>
+						<div class="col-md-8 mt-2 mt-md-0 small align-self-center" id="session_pattern_status" role="status" aria-live="polite">
+							Pattern entries: <strong id="session_pattern_entries">-</strong>
+							<span id="session_pattern_limit"></span>
+							<div id="session_pattern_error" class="text-danger"></div>
+						</div>
+					</div>
+
+					<ul class="nav nav-tabs mt-3" role="tablist">
+						<li class="nav-item">
+							<a class="nav-link active" id="session-quick-tab" data-toggle="tab" href="#session-quick" role="tab" aria-controls="session-quick" aria-selected="true">Quick setup</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link" id="session-flows-tab" data-toggle="tab" href="#session-flows" role="tab" aria-controls="session-flows" aria-selected="false">Per-flow</a>
+						</li>
+					</ul>
+					<div class="tab-content pt-3">
+						<div class="tab-pane fade show active" id="session-quick" role="tabpanel" aria-labelledby="session-quick-tab">
+							<div class="row">
+								<div class="col-md-4 mb-3">
+									<label for="session_share_preset" class="small">Load allocation</label>
+									<select id="session_share_preset" class="form-control form-control-sm" onchange="applySessionTrafficPreset()">
+										<option value="equal">Equal shares</option>
+										<option value="alternating">Alternating A/B</option>
+										<option value="priority">Priority group</option>
+										<option value="" hidden>Choose preset</option>
+									</select>
+								</div>
+							</div>
+							<div id="session_preset_alternating" class="row d-none">
+								<div class="col-md-4 mb-3">
+									<label for="session_share_a" class="small" data-toggle="tooltip" title="Relative weight for flows 0, 2, 4, ...">Share A (weight)</label>
+									<input id="session_share_a" type="number" class="form-control form-control-sm" value="2" min="0" step="any" required oninput="applySessionTrafficPreset()">
+								</div>
+								<div class="col-md-4 mb-3">
+									<label for="session_share_b" class="small" data-toggle="tooltip" title="Relative weight for flows 1, 3, 5, ...">Share B (weight)</label>
+									<input id="session_share_b" type="number" class="form-control form-control-sm" value="1" min="0" step="any" required oninput="applySessionTrafficPreset()">
+								</div>
+							</div>
+							<div id="session_preset_priority" class="row d-none">
+								<div class="col-md-4 mb-3">
+									<label for="session_priority_count" class="small">First N flows</label>
+									<input id="session_priority_count" type="number" class="form-control form-control-sm" value="1" min="1" step="1" required oninput="applySessionTrafficPreset()">
+								</div>
+								<div class="col-md-4 mb-3">
+									<label for="session_priority_share" class="small" data-toggle="tooltip" title="Total load shared equally by the first N flows. Remaining flows share the rest equally.">Group load [%]</label>
+									<input id="session_priority_share" type="number" class="form-control form-control-sm" value="80" min="0" max="100" step="any" required oninput="applySessionTrafficPreset()">
+								</div>
+							</div>
+						</div>
+						<div class="tab-pane fade" id="session-flows" role="tabpanel" aria-labelledby="session-flows-tab">
+							<div class="table-responsive" style="max-height: 24rem; overflow-y: auto;">
+								<table class="table table-sm align-middle mb-0 small">
+									<thead class="thead-light" style="position: sticky; top: 0; z-index: 1;">
+										<tr>
+											<th class="py-1">Flow</th>
+											<th class="py-1">Session</th>
+											<th class="py-1">IPv4</th>
+											<th class="py-1">Load [%]</th>
+											<th class="py-1 text-center"><span id="session_burst_heading" tabindex="0" data-toggle="tooltip" title="Send a flow's packets consecutively in each repeating pattern. Its load share stays unchanged. Burst all flows applies this to every flow.">Burst</span></th>
+										</tr>
+									</thead>
+									<tbody id="session_flow_distribution_rows"></tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+
+
+
+
+				<div class="mt-3">
+					<span class="font-weight-bold mb-3">Misc</span>
+					<div class="row g-3">
+
+						<div class="col-md-6">
+						<div class="border rounded-3 p-3 h-100 bg-light">
+							<label for="backbone_mac" class="form-label fw-semibold mb-1">
+							Termination Node: Uplink interface to backbone
+							</label>
+
+							<div class="text-muted small mb-2">
+							Retrieve the MAC address manually from, e.g., the BNG vendor CLI.
+							</div>
+
+							<div class="input-group input-group-sm">
+								<span class="input-group-text">MAC</span>
+								<input type="text" class="form-control font-monospace" id="backbone_mac" name="backbone_mac" placeholder="00:11:22:33:44:55" value="{{cfg.session_config.session_server_backbone_mac}}">
+								
+								</input>
+							</div>
+						</div>
+						</div>
+
+						<div class="col-md-6">
+						<div class="border rounded-3 p-3 h-100 bg-light">
+							<label for="backbone_dst_ip" class="form-label fw-semibold mb-1">
+							Backbone: Network IP address as destination (up) or source (down)
+							</label>
+
+							<div class="text-muted small mb-2">
+							Caution: Be consistent with the session module network configuraton above.
+							</div>
+
+							<div class="input-group input-group-sm">
+								<span class="input-group-text">IP</span>
+								<input type="text" class="form-control font-monospace" id="backbone_dst_ip" name="backbone_dst_ip" placeholder="172.0.2.1" value="{{cfg.session_config.session_backbone_dst_ip}}">
+								</input>
+							</div>
+						</div>
+						</div>
+
+					</div>
+					</div>
+
+
+
+                
+
+				<div class="alert alert-warning mb-4" style="margin-top: 10px;">
+					<button id="deploy_session_traffic_profile" type="button" class="btn btn-secondary" onclick="submit_sess_traffic_profile()" style="margin-right: 5px; ">
+                    	Set Session Traffic Profile
+                	</button>
+                    If no traffic profile is set, packets are sent as configured in the packet template without session mapping.
+                </div>
+				<div id="session_traffic_profile_result" class="alert d-none mb-4" role="alert"></div>
+
+
+            </div>
+        </div>
+    </div>
+<!--</div>-->
+
+
+{% endif %}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 <div style="margin-top:10px;"></div>
@@ -364,6 +651,9 @@
 
 <div id="packet_editor">
 </div>
+
+<!-- insert json session data -->
+{{ session_data_unified|json_script:"session-data-unified" }}
 
 <script>
     var editor = ace.edit("packet_editor");
@@ -483,6 +773,381 @@ function reset_template(){
   });
 
 }
+
+
+// session related code
+
+var sessionDataElement = document.getElementById("session-data-unified");
+var sessionData = sessionDataElement ? JSON.parse(sessionDataElement.textContent) || [] : [];
+var sessionPatternTimer = null;
+var sessionPatternRequest = null;
+var sessionPatternRevision = 0;
+var sessionPatternValid = false;
+var sessionProfileSubmitting = false;
+var sessionStatusPending = false;
+var sessionFlowSettings = new Map();
+
+function invalidateSessionPattern(){
+	sessionPatternRevision += 1;
+	clearTimeout(sessionPatternTimer);
+	if(sessionPatternRequest !== null){
+		sessionPatternRequest.abort();
+		sessionPatternRequest = null;
+	}
+	sessionPatternValid = false;
+	updateSessionProfileButton();
+}
+
+function syncSessionTrafficProfile(event, status){
+	if(status.module_name !== "{{current_session_module|escapejs}}" ||
+			document.getElementById("session_flow_distribution_rows") === null){
+		return;
+	}
+	sessionStatusPending = Boolean(status.pending || status.error);
+	if(sessionStatusPending){
+		invalidateSessionPattern();
+		document.getElementById("session_pattern_entries").textContent = "...";
+		document.getElementById("session_pattern_error").textContent = status.error || "";
+		return;
+	}
+	let sessions = status.sessions.map((session) => ({
+		flow_id: session["session-id"],
+		state: String(session["session-state"] || "").toLowerCase(),
+		session_id: session["pppoe-session-id"],
+		ipv4_address: session["ipv4-address"],
+		sub_mac: session.mac
+	}));
+	renderSessionTrafficDistributionRows(sessions);
+}
+
+function updateSessionBurstControls(){
+	let algorithm = document.getElementById("session_distribution_algorithm");
+	let burstAll = algorithm !== null && algorithm.value === "burst";
+	document.querySelectorAll(".session-flow-burst").forEach((input) => {
+		input.disabled = burstAll;
+		input.style.opacity = burstAll ? "0.4" : "";
+		input.style.cursor = burstAll ? "not-allowed" : "";
+		input.style.pointerEvents = burstAll ? "none" : "";
+	});
+}
+
+function getSessionFlowPercentage(input){
+	return input.dataset.exactPercentage === undefined ? input.value.trim() : input.dataset.exactPercentage;
+}
+
+function updateSessionPresetFields(){
+	let mode = document.getElementById("session_share_preset").value || "custom";
+	document.getElementById("session_custom_allocation").classList.toggle("d-none", mode !== "custom");
+	document.getElementById("session_preset_alternating").classList.toggle("d-none", mode !== "alternating");
+	document.getElementById("session_preset_priority").classList.toggle("d-none", mode !== "priority");
+	return mode;
+}
+
+function applySessionTrafficPreset(){
+	let mode = updateSessionPresetFields();
+	if(mode === "custom"){
+		updateSessionPatternCount();
+		return;
+	}
+	let preset = {mode: mode};
+	let fields = [];
+	if(mode === "alternating"){
+		fields = ["session_share_a", "session_share_b"];
+		preset.share_a = document.getElementById(fields[0]).value;
+		preset.share_b = document.getElementById(fields[1]).value;
+	} else if(mode === "priority"){
+		fields = ["session_priority_count", "session_priority_share"];
+		preset.group_count = document.getElementById(fields[0]).value;
+		preset.group_share = document.getElementById(fields[1]).value;
+	}
+	let invalid = fields.some((id) => !document.getElementById(id).validity.valid);
+	updateSessionPatternCount(preset, invalid ? "Enter valid values for the selected allocation." : "");
+}
+
+function updateSessionProfileButton(){
+	let button = document.getElementById("deploy_session_traffic_profile");
+	if(button !== null){
+		button.disabled = sessionProfileSubmitting || sessionStatusPending || !sessionPatternValid || !!getSessionFieldError();
+	}
+	let fields = document.getElementById("session_modification_fields");
+	if(fields !== null){
+		fields.disabled = sessionProfileSubmitting;
+	}
+}
+
+function getSessionFieldSelection(){
+	return Array.from(document.querySelectorAll(".session-modification-field:checked"), input => input.value);
+}
+
+function getSessionFieldError(){
+	let names = getSessionFieldSelection();
+	let required = ["ethernet.srcAddr", "ethernet.dstAddr", "ipv4.srcAddr", "ipv4.dstAddr"];
+	if(!required.every(name => names.includes(name))){
+		return "Session mapping requires both Ethernet and both IPv4 fields.";
+	}
+	if(names.includes("pppoe.sessionID") && names.includes("vlan_qinq.vid") && !names.includes("vlan.vid")){
+		return "Upstream QinQ requires vlan.vid as well as vlan_qinq.vid.";
+	}
+	return "";
+}
+
+function updateSessionFieldSelection(){
+	let direction = document.getElementById("session_field_direction");
+	if(direction === null){
+		return;
+	}
+	direction.textContent = getSessionFieldSelection().includes("pppoe.sessionID") ? "Upstream (access)" : "Downstream (backbone)";
+	document.getElementById("session_field_error").textContent = getSessionFieldError();
+	updateSessionProfileButton();
+}
+
+$(updateSessionFieldSelection);
+
+function updateSessionPatternCount(preset = null, presetError = ""){
+	let count = document.getElementById("session_pattern_entries");
+	if(count === null){
+		return;
+	}
+	let limit = document.getElementById("session_pattern_limit");
+	let error = document.getElementById("session_pattern_error");
+	invalidateSessionPattern();
+	let revision = sessionPatternRevision;
+	count.textContent = "...";
+	count.classList.remove("text-danger");
+	error.textContent = "";
+	let inputs = Array.from(document.querySelectorAll(".session-flow-percentage"));
+	if(presetError || (!preset && inputs.some((input) => !input.validity.valid))){
+		count.textContent = "-";
+		error.textContent = presetError || "Enter percentages between 0 and 100.";
+		return;
+	}
+	if(inputs.length === 0){
+		count.textContent = "0";
+		error.textContent = "No established flows.";
+		return;
+	}
+	let payload = {flow_percentages: inputs.map(getSessionFlowPercentage)};
+	if(preset !== null){
+		payload.preset = preset;
+	}
+
+	// Debounce edits and discard stale responses while percentages are changing.
+	sessionPatternTimer = setTimeout(() => {
+		sessionPatternRequest = $.ajax({
+			type: "POST",
+			url: "/api/session/trafficprofile/preview/",
+			contentType: "application/json",
+			headers: {"X-CSRFToken": "{{csrf_token}}"},
+			data: JSON.stringify(payload),
+			success: function(response){
+				if(revision !== sessionPatternRevision){ return; }
+				if(response.flow_percentages){
+					inputs.forEach((input, index) => {
+						// Keep exact fractions for deployment; round only the displayed value.
+						input.dataset.exactPercentage = response.flow_percentages[index];
+						input.value = response.display_percentages[index];
+						input.title = "Exact load: " + response.flow_percentages[index] + "%";
+					});
+				}
+				count.textContent = response.pattern_entries;
+				limit.textContent = response.entry_limit === null ? "(limit unavailable)" :
+					"/ " + response.entry_limit.toLocaleString() + " (" + response.architecture + ")";
+				sessionPatternValid = response.within_limit;
+				count.classList.toggle("text-danger", !sessionPatternValid);
+				error.textContent = sessionPatternValid ? "" : "Pattern exceeds the table-entry limit.";
+				updateSessionProfileButton();
+			},
+			error: function(response, status){
+				if(status === "abort" || revision !== sessionPatternRevision){ return; }
+				count.textContent = "-";
+				error.textContent = response.responseJSON && response.responseJSON.error ||
+					"Could not calculate pattern entries.";
+			}
+		});
+	}, 150);
+}
+
+function renderSessionTrafficDistributionRows(sessions = sessionData){
+	let tbody = document.getElementById("session_flow_distribution_rows");
+	if(tbody === null){
+		return;
+	}
+	tbody.querySelectorAll("tr").forEach((row) => {
+		let percentage = row.querySelector(".session-flow-percentage");
+		let burst = row.querySelector(".session-flow-burst");
+		sessionFlowSettings.set(row.dataset.flowKey, {
+			value: percentage.value,
+			exact: percentage.dataset.exactPercentage,
+			burst: burst.checked
+		});
+	});
+	sessionData = sessions;
+
+	tbody.innerHTML = "";
+	let establishedIndex = 0;
+	sessionData.forEach((session) => {
+		if(session.state !== "established"){
+			return;
+		}
+
+		let row = document.createElement("tr");
+		row.dataset.flowKey = String(session.flow_id ?? session.sub_mac ?? session.session_id ?? session.ipv4_address);
+		let saved = sessionFlowSettings.get(row.dataset.flowKey);
+
+		let flowCell = document.createElement("td");
+		flowCell.textContent = establishedIndex;
+		row.appendChild(flowCell);
+
+		let idCell = document.createElement("td");
+		idCell.innerHTML = "<code>" + (session.session_id || establishedIndex) + "</code>";
+		row.appendChild(idCell);
+
+		let ipCell = document.createElement("td");
+		ipCell.innerHTML = "<code>" + (session.ipv4_address || "") + "</code>";
+		row.appendChild(ipCell);
+
+		let percentageCell = document.createElement("td");
+		let percentageInput = document.createElement("input");
+		percentageInput.type = "number";
+		percentageInput.min = "0";
+		percentageInput.max = "100";
+		percentageInput.step = "any";
+		percentageInput.className = "form-control form-control-sm session-flow-percentage";
+		percentageInput.dataset.flowIndex = establishedIndex;
+		percentageInput.placeholder = "auto";
+		if(saved){
+			percentageInput.value = saved.value;
+			if(saved.exact !== undefined){
+				percentageInput.dataset.exactPercentage = saved.exact;
+				percentageInput.title = "Exact load: " + saved.exact + "%";
+			}
+		}
+		percentageInput.setAttribute("aria-label", "Load percentage for flow " + establishedIndex);
+		percentageInput.addEventListener("input", () => {
+			delete percentageInput.dataset.exactPercentage;
+			percentageInput.removeAttribute("title");
+			document.getElementById("session_share_preset").value = "";
+			updateSessionPresetFields();
+			updateSessionPatternCount();
+		});
+		percentageCell.appendChild(percentageInput);
+		row.appendChild(percentageCell);
+
+		let burstCell = document.createElement("td");
+		burstCell.className = "text-center";
+		let burstLabel = document.createElement("label");
+		burstLabel.className = "d-inline-flex align-items-center justify-content-center mb-0 p-2";
+		let burstInput = document.createElement("input");
+		burstInput.type = "checkbox";
+		burstInput.className = "form-check-input position-static m-0 session-flow-burst";
+		burstInput.dataset.flowIndex = establishedIndex;
+		burstInput.checked = saved ? saved.burst : false;
+		burstInput.setAttribute("aria-label", "Burst flow " + establishedIndex);
+		burstLabel.appendChild(burstInput);
+		burstCell.appendChild(burstLabel);
+		row.appendChild(burstCell);
+
+		tbody.appendChild(row);
+		establishedIndex += 1;
+	});
+	let establishedCount = document.getElementById("session_established_count");
+	if(establishedCount !== null){
+		establishedCount.textContent = establishedIndex;
+	}
+	document.getElementById("session_priority_count").max = Math.max(1, establishedIndex - 1);
+	document.querySelector('#session_share_preset option[value="priority"]').disabled = establishedIndex < 2;
+	$('#session_burst_heading').tooltip({container: "body"});
+	$('#session-quick [data-toggle="tooltip"]').tooltip({container: "body"});
+	updateSessionBurstControls();
+	if(updateSessionPresetFields() === "custom"){
+		updateSessionPatternCount();
+	} else {
+		applySessionTrafficPreset();
+	}
+}
+
+function getSessionTrafficDistributionConfig(){
+	let algorithmElement = document.getElementById("session_distribution_algorithm");
+	let trafficDistribution = {
+		"algorithm": algorithmElement ? algorithmElement.value : "interleaved",
+		"flow_percentages": {},
+		"burst_flows": []
+	};
+
+	document.querySelectorAll(".session-flow-percentage").forEach((input) => {
+		let value = getSessionFlowPercentage(input);
+		if(value !== ""){
+			trafficDistribution.flow_percentages["index:" + input.dataset.flowIndex] = value;
+		}
+	});
+
+	document.querySelectorAll(".session-flow-burst").forEach((input) => {
+		if(input.checked){
+			trafficDistribution.burst_flows.push("index:" + input.dataset.flowIndex);
+		}
+	});
+
+	return trafficDistribution;
+}
+
+function submit_sess_traffic_profile(){
+	if(!sessionPatternValid || sessionProfileSubmitting || sessionStatusPending || getSessionFieldError()){
+		return;
+	}
+
+	let backbone_dst_ip = document.getElementById("backbone_dst_ip").value;
+	let backbone_mac = document.getElementById("backbone_mac").value;
+	let result = document.getElementById("session_traffic_profile_result");
+
+	result.className = "alert alert-info mb-4";
+	result.textContent = "Setting session traffic profile...";
+	sessionProfileSubmitting = true;
+	updateSessionProfileButton();
+
+	$.ajax({
+		type: "POST",
+		url: "/api/session/trafficprofile/set/",
+		data: {
+		  'csrfmiddlewaretoken': "{{csrf_token}}", //csrf_value,
+		  'module_name': "{{current_session_module}}",
+		  'traffic_config': JSON.stringify( {
+			"backbone_dst_ip": backbone_dst_ip,
+			"backbone_mac": backbone_mac,
+			"session_fields": getSessionFieldSelection(),
+			"traffic_distribution": getSessionTrafficDistributionConfig()
+			}
+		)},
+		success: function (response) {
+			if (response.ok === true) {
+				result.className = "alert alert-success mb-4";
+				result.textContent = "Session traffic profile was set successfully.";
+			} else {
+				result.className = "alert alert-danger mb-4";
+				result.textContent = response.error || "Setting session traffic profile failed.";
+			}
+		},
+		error: function (response) {
+			let errorMessage = "Setting session traffic profile failed.";
+			if (response.responseJSON && response.responseJSON.error) {
+				errorMessage = response.responseJSON.error;
+			}
+			result.className = "alert alert-danger mb-4";
+			result.textContent = errorMessage;
+		},
+		complete: function () {
+			sessionProfileSubmitting = false;
+			updateSessionProfileButton();
+		}
+  });
+
+}
+
+
+
+$(document).off("sessionStatusUpdated.sessionTrafficProfile")
+	.on("sessionStatusUpdated.sessionTrafficProfile", syncSessionTrafficProfile);
+renderSessionTrafficDistributionRows();
+
 </script>
 
 <div class="row">
@@ -508,6 +1173,9 @@ function reset_template(){
 
 		{% for dut_port in cfg.dut_ports %}
 		<div class="col-md-2">
+			{% if dut_port.session_port_type %}
+			<small class="form-text text-muted text-capitalize">{{dut_port.session_port_type}}</small>
+			{% endif %}
 			<input class="form-control" id="egress_port_{{dut_port.id}}" name="{{dut_port.p4_port}}" value="{{dut_port.real_port}} | {{dut_port.speed}}" disabled />
 		</div>
 		{% endfor %}
@@ -585,6 +1253,10 @@ function reset_template(){
 
 		{% endfor %}
 	</div>
+
+
+
+
 	
 <div class="row" style="margin-top:10px;">
 	<div class="col-md-3" id="inputDurationlabel">Duration of test in seconds: </div>

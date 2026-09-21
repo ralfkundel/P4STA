@@ -27,3 +27,22 @@ def getkeyvalue(dict, key):
 @register.filter
 def getbyindex(indexable, i):
     return indexable[i]
+
+
+def parse_version(v):
+    return [int(x) for x in v.split(".")]
+
+
+def normalize(v1, v2):
+    l = max(len(v1), len(v2))
+    v1 += [0] * (l - len(v1))
+    v2 += [0] * (l - len(v2))
+    return v1, v2
+
+
+@register.filter
+def version_gte(v1, v2):
+    p1 = parse_version(v1)
+    p2 = parse_version(v2)
+    p1, p2 = normalize(p1, p2)
+    return p1 >= p2

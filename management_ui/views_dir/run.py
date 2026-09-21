@@ -16,6 +16,7 @@ import json
 import rpyc
 import time
 import traceback
+from packaging.version import InvalidVersion, Version
 
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -34,10 +35,76 @@ from core import P4STA_utils
 from management_ui import globals
 
 
+def get_session_field_options(module_name):
+    if module_name is None:
+        return []
+    try:
+        session_module_obj = globals.core_conn.root.get_sessionModule_obj(module_name)
+        return P4STA_utils.flt(
+            session_module_obj.get_session_field_options())
+    except Exception:
+        globals.logger.error(traceback.format_exc())
+    return []
+
+
+def session_version_supported(cfg):
+    try:
+        return Version(cfg.get("p4sta_version", "0")) >= Version("1.4.0")
+    except (InvalidVersion, TypeError):
+        globals.logger.warning("Invalid P4STA version; disabling session controls.")
+        return False
+
+
+def get_run_session_context(cfg):
+    supported = session_version_supported(cfg)
+    module = globals.current_session_module if supported else None
+    sessions = []
+    if module is not None:
+        sessions = P4STA_utils.flt(globals.core_conn.root.get_session_data_unified(
+            {"module_name": module})) or []
+    return {"check_ver_min_140": supported,
+            "current_session_module": module,
+            "session_data_unified": sessions,
+            "num_established_sessions": sum(session.get("state") == "established"
+                                            for session in sessions),
+            "session_field_options": get_session_field_options(module)}
+
+
+def get_min_loadgen_mtu(cfg):
+    # Integrated generation has no remote load-generator interfaces to query.
+    if cfg["selected_loadgen"] == "Tofino Packet Generator":
+        return None
+    mtu_list = []
+    for group in cfg["loadgen_groups"]:
+        if group["use_group"] == "checked":
+            for host in group["loadgens"]:
+                host["mtu"] = globals.core_conn.root.fetch_mtu(
+                    host["ssh_user"], host["ssh_ip"], host["loadgen_iface"],
+                    host.get("namespace_id", ""))
+                mtu_list.append(int(host["mtu"]))
+    return min(mtu_list)
+
+
 def page_run(request):
     cfg = P4STA_utils.read_current_cfg()
     ext_host_obj = globals.core_conn.root.get_current_extHost_obj()
     cfg["ext_host_cfg"] = P4STA_utils.flt(ext_host_obj.host_cfg)
+
+    # session configuration
+    all_session_modules = []
+    if session_version_supported(cfg):
+        all_session_modules = P4STA_utils.flt(globals.core_conn.root.get_all_sessionModules())
+    cfg["all_session_modules"] = all_session_modules
+    cfg["session_modules"] = {}
+    for module in all_session_modules:
+        # cfg["session_modules"][module] = P4STA_utils.flt(globals.core_conn.root.get_sessionModule_obj(module)) #legacy
+        cfg["session_modules"][module] = {"obj": P4STA_utils.flt(globals.core_conn.root.get_sessionModule_obj(module))} # new with session module refactor, for easier access in template
+        try:
+            json_str = cfg["session_modules"][module]["obj"].read_config_json()
+            cfg["session_modules"][module]["json_str"] = json_str
+        except Exception as e:
+            globals.logger.error(traceback.format_exc())
+    print(cfg)
     return render(request, "middlebox/page_run.html", cfg)
 
 
@@ -64,26 +131,13 @@ def skip_external(request):
         # explicitly call copy cfg to results, for normal ext host its called in core
         globals.core_conn.root.copy_cfg_to_results()
 
-        mtu_list = []
-        for loadgen_grp in cfg["loadgen_groups"]:
-            if loadgen_grp["use_group"] == "checked":
-                for host in loadgen_grp["loadgens"]:
-                    if "namespace_id" in host \
-                            and host["namespace_id"] != "":
-                        host["mtu"] = globals.core_conn.root.fetch_mtu(
-                            host['ssh_user'], host['ssh_ip'],
-                            host['loadgen_iface'], host["namespace_id"])
-                    else:
-                        host["mtu"] = globals.core_conn.root.fetch_mtu(
-                            host['ssh_user'], host['ssh_ip'],
-                            host['loadgen_iface'])
-                    mtu_list.append(int(host["mtu"]))
+        min_mtu = get_min_loadgen_mtu(cfg)
 
         if cfg["selected_loadgen"] != "Tofino Packet Generator":
             return render(
                 request,
                 "middlebox/output_external_started.html",
-                {"running": True, "errors": [], "cfg": cfg, "min_mtu": min(mtu_list), "skipped": 1},
+                {"running": True, "errors": [], "cfg": cfg, "min_mtu": min_mtu, "skipped": 1},
             )
         else:
             lgen_obj = globals.core_conn.root.get_loadgen_obj(cfg["selected_loadgen"])
@@ -91,10 +145,22 @@ def skip_external(request):
             py_code = lgen_obj.read_python_packet_code()
             packets = lgen_obj.exec_py_str(py_code)
             packet_names = [name for name in packets.keys()]
+
+            session_context = get_run_session_context(cfg)
             return render(
                 request,
                 "middlebox/output_external_started_integrated_generation.html",
-                {"running": True, "errors": [], "cfg": cfg, "py_code": py_code, "packet_names":packet_names, "min_mtu": min(mtu_list), "skipped": 1, "ext_host_cfg": P4STA_utils.flt(ext_host_obj.host_cfg)},
+                {
+                    "running": True,
+                    "errors": [],
+                    "cfg": cfg,
+                    "py_code": py_code,
+                    "packet_names": packet_names,
+                    "min_mtu": min_mtu,
+                    "skipped": 1,
+                    "ext_host_cfg": P4STA_utils.flt(ext_host_obj.host_cfg),
+                    **session_context,
+                },
             )
         
 
@@ -141,20 +207,7 @@ def start_external(request):
             globals.logger.info("Set new measurement ID: " + str(new_id))
 
             stamper_running, errors = globals.core_conn.root.start_external()
-            mtu_list = []
-            for loadgen_grp in cfg["loadgen_groups"]:
-                if loadgen_grp["use_group"] == "checked":
-                    for host in loadgen_grp["loadgens"]:
-                        if "namespace_id" in host \
-                                and host["namespace_id"] != "":
-                            host["mtu"] = globals.core_conn.root.fetch_mtu(
-                                host['ssh_user'], host['ssh_ip'],
-                                host['loadgen_iface'], host["namespace_id"])
-                        else:
-                            host["mtu"] = globals.core_conn.root.fetch_mtu(
-                                host['ssh_user'], host['ssh_ip'],
-                                host['loadgen_iface'])
-                        mtu_list.append(int(host["mtu"]))
+            min_mtu = get_min_loadgen_mtu(cfg)
 
             ext_host_obj = globals.core_conn.root.get_current_extHost_obj()
             if cfg["selected_loadgen"] != "Tofino Packet Generator":
@@ -165,7 +218,7 @@ def start_external(request):
                         "running": stamper_running,
                         "errors": list(errors),
                         "cfg": cfg,
-                        "min_mtu": min(mtu_list),
+                        "min_mtu": min_mtu,
                         "skipped": 0,
                         "ext_host_cfg": P4STA_utils.flt(ext_host_obj.host_cfg),
                         "new_run_id": new_id,
@@ -178,21 +231,23 @@ def start_external(request):
                 packets = lgen_obj.exec_py_str(py_code)
                 packet_names = [name for name in packets.keys()]
 
-                return render(
-                    request,
-                    "middlebox/output_external_started_integrated_generation.html",
-                    {
-                        "running": True,
-                        "errors": [],
-                        "cfg": cfg,
-                        "py_code": py_code,
-                        "packet_names": packet_names,
-                        "min_mtu": min(mtu_list),
-                        "skipped": 0,
-                        "ext_host_cfg": P4STA_utils.flt(ext_host_obj.host_cfg),
-                        "new_run_id": new_id,
-                    },
-                )
+            session_context = get_run_session_context(cfg)
+            return render(
+                request,
+                "middlebox/output_external_started_integrated_generation.html",
+                {
+                    "running": stamper_running,
+                    "errors": list(errors),
+                    "cfg": cfg,
+                    "py_code": py_code,
+                    "packet_names": packet_names,
+                    "min_mtu": min_mtu,
+                    "skipped": 0,
+                    "ext_host_cfg": P4STA_utils.flt(ext_host_obj.host_cfg),
+                    "new_run_id": new_id,
+                    **session_context,
+                },
+            )
 
         except Exception as e:
             globals.logger.error(traceback.format_exc())

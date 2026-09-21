@@ -70,7 +70,7 @@ def write_config(cfg, file_name="config.json"):
         json.dump(cfg, write_json, indent=2, sort_keys=True)
 
 
-def execute_ssh(user, ip_address, arg):
+def execute_ssh(user, ip_address, arg, logger=None):
     if isinstance(arg, list):
         input = ["ssh", "-o ConnectTimeout=5", "-o BatchMode=yes",
              "-o StrictHostKeyChecking=no", user + "@" + ip_address]
@@ -80,13 +80,46 @@ def execute_ssh(user, ip_address, arg):
                 "-o StrictHostKeyChecking=no", user + "@" + ip_address, arg]
     # print("EXECUTE_SSH:")
     # print(input)
+    if logger is not None:
+        logger.info("Executing SSH command on " + user + "@" + ip_address
+                    + ": " + str(arg))
+        try:
+            res = subprocess.run(input, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        except Exception:
+            logger.error("SSH execution failed: " + traceback.format_exc())
+            raise
+        stdout = res.stdout.decode("utf-8", errors="replace")
+        stderr = res.stderr.decode("utf-8", errors="replace")
+        message = "SSH exit code: " + str(res.returncode)
+        if res.returncode != 0:
+            logger.error(message)
+        else:
+            logger.info(message)
+        logger.info("SSH stdout: " + (stdout.strip() or "(empty)"))
+        if stderr.strip():
+            logger.warning("SSH stderr: " + stderr.strip())
+        else:
+            logger.info("SSH stderr: (empty)")
+        return stdout.split("\n")
+    res = subprocess.run(input, stdout=subprocess.PIPE).stdout
+    return res.decode().split("\n")
+
+def execute_scp_to(user, ip_address, local_path, remote_path):
+    input = ["scp", "-o ConnectTimeout=5", "-o StrictHostKeyChecking=no", local_path, user + "@" + ip_address + ":" + remote_path]
+    # print("EXECUTE_SCP_TO:")
+    # print(input)
     res = subprocess.run(input, stdout=subprocess.PIPE).stdout
     return res.decode().split("\n")
 
 
 # replaces request.is_ajax() from Django < v3.1
 def is_ajax(request):
-    return request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+    try:
+        return request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+    except:
+        globals.log_error("Error checking if request is ajax: " + str(traceback.format_exc()))
+        return
 
 
 # Logging

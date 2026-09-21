@@ -22,6 +22,7 @@ struct packet_data {
 	uint64_t t_stamp1;
 	uint64_t t_stamp2;
 	uint16_t packet_size;
+	uint32_t session_identifier;
 	struct packet_data *next;
 };
 
@@ -31,6 +32,7 @@ static int checkStopFlag(void){
 	if(stop_cntr != 0)
 		return 0;
 	if( access( "receiver_stop", F_OK ) != -1 ) {
+		printf("stop flag is 1 \n");
 		return 1;
 	}
 		return 0;
@@ -160,8 +162,10 @@ static void lcore_main(void) {
 
 	/* Run until the application is quit or killed. */
 	for (;;) {
-
-		if(checkStopFlag()) break; //TODO
+		if(checkStopFlag()){
+			printf("Stopping");
+			break; //TODO
+		}
 
 		/* Get burst of RX packets, from first port of pair. */
 		struct rte_mbuf *bufs[BURST_SIZE];
@@ -205,10 +209,11 @@ static void lcore_main(void) {
 
 
 				if (ipv4_protocol == 17) {
-					// l4_start + 10: 8 byte udp header and 2 byte ext host stats header
-                    memcpy(&opt_type, &start[l4_start + 10], 2);
+					// l4_start + 14: 8 byte udp header and 6 byte ext host stats header
+                    memcpy(&opt_type, &start[l4_start + 14], 2);
                     opt_type = ntohs(opt_type);
-					memcpy(&empty_option_field, &start[l4_start + 10 + 8], 2);
+					memcpy(&empty_option_field, &start[l4_start + 14 + 8], 2);
+					empty_option_field = ntohs(empty_option_field);
                     #ifdef DEBUG
 				    printf("PARSED UDP PACKET:\n");
 			        printf("opt_type %02x \n", opt_type);
@@ -225,9 +230,12 @@ static void lcore_main(void) {
 					// start at byte 0 for ext host stats => original packet size as 2byte value
 					memcpy( &(p->packet_size), &start[opt_pos], 2);
 					p->packet_size = be16toh(p->packet_size);
-					// start at byte 4 with tstamp 1: 2 byte ext host stats, 2 byte 0x0f10
-				    memcpy( &(p->t_stamp1), &start[opt_pos+2+2], 6);
-				    memcpy( &(p->t_stamp2), &start[opt_pos+10+2], 6);
+					memcpy( &(p->session_identifier), &start[opt_pos+2], 4);
+					p->session_identifier = be32toh(p->session_identifier);
+					
+					// start at byte 4 with tstamp 1: 6 byte ext host stats, 2 byte 0x0f10
+				    memcpy( &(p->t_stamp1), &start[opt_pos+8], 6);
+				    memcpy( &(p->t_stamp2), &start[opt_pos+16], 6);
 				    p->t_stamp1 = be64toh(p->t_stamp1);
 				    p->t_stamp2 = be64toh(p->t_stamp2);
 				    p->t_stamp1 = (p->t_stamp1 >> 16) & 0x0000ffffffffffff;
@@ -242,9 +250,10 @@ static void lcore_main(void) {
 				    last = p;
 
                     #ifdef DEBUG
-					printf("ext host statistics packet size: %d\n", p->ext_host_header);
+					printf("ext host statistics packet size: %d\n", p->packet_size);
 				    printf("tstamp1: 0x%"PRIx64"\n", p->t_stamp1);
 				    printf("tstamp2: 0x%"PRIx64"\n", p->t_stamp2);
+					printf("session id: 0x%"PRIx32"\n", p->session_identifier);
                     #endif
 			    }//else no P4STA option found
 		    
@@ -285,10 +294,16 @@ static void lcore_main(void) {
 		strcat(filename, ".csv");
 		FILE *timestamp2_list = fopen(filename, "w");
 
+		strcpy(filename, "session_identifier_list_");
+		strcat(filename, fname);
+		strcat(filename, ".csv");
+		FILE *session_identifier_list = fopen(filename, "w");
+
 		struct packet_data *iter = first;
 		do {
 			fprintf(timestamp1_list, "%"PRIu64"\n", iter->t_stamp1);
 			fprintf(timestamp2_list, "%"PRIu64"\n", iter->t_stamp2);
+			fprintf(session_identifier_list, "%"PRIu32"\n", iter->session_identifier);
 			fprintf(packet_sizes, "%"PRIu16"\n", iter->packet_size);
 			struct packet_data *current = iter;
 			iter = iter->next;

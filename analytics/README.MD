@@ -35,4 +35,19 @@ The graphs will be saved to analytics.
 
 You need to install matplotlib. "python -m pip install -U matplotlib"
 
+For large session measurements, developers can enable parallel figure generation
+in `analytics.py` with `SESSION_PARALLEL_PLOTS = True`. It defaults to `True` but
+can be set to `False` to reduce memory usage. `SESSION_MAX_PLOT_WORKERS` defaults to 4;
+small selections below `SESSION_PARALLEL_THRESHOLD` (100000 captured packets) still render in the current process.
+These options apply to the session related calculations.
+The classic figures already use their existing multiprocessing implementation.
+
+Workers read temporary NumPy files through read-only memory mappings rather than
+receiving full packet arrays for every figure. Matplotlib still needs memory in
+each worker, so the worker limit should suit the host. Temporary files are removed
+after rendering, including after a worker error. Cached figures are reused in
+either mode, and switching the flag does not invalidate a cache. All packets and
+statistics are retained; plots are not downsampled. Unit selection uses NumPy and
+legends have fixed positions to avoid repeatedly scanning large traces.
+
 To execute the script just call "python analytics.py" but if you want a different id than the one in data/name_external.config use the --id flag to pass the id of the csv files (e.g. 15495 ...)

@@ -16,6 +16,7 @@
 <!DOCTYPE html>
 <html lang="en">
 {% load static %}
+{% load management_ui %}
 <head>
 	{% include "middlebox/includes.html"%}
 	<script type="text/javascript">
@@ -88,18 +89,26 @@
 			}, "html");
 		}
 
-		$(document).ready(function(){ 
+		$(document).ready(function(){
+			let monitoringMode = null;
+			function setMonitoringMode(mode){
+				monitoringMode = mode;
+				$("#stop_external").prop("disabled", mode !== "monitoring");
+				$("#stop_without_external").prop("disabled", mode !== "skipped");
+			}
+
 			$("#ping").click(function() {
-				$("#output_ping").html('<p>Retrieving ping results ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$("#output_ping").html('<p>Retrieving ping results ...</p><img src="{% static 'images/spinner.svg' %}" width="50" height="50" />');
 				$.get("/subpage_run_ping/", function(data) {
 					$("#output_ping").html(data);
 				}, "html");
 			});
 
 			$("#start_external").click(function() {
+				setMonitoringMode("monitoring");
 				clearInterval(window.intervalId_ext_stop);
 				$("#output_stop_external").empty();
-				$("#output_start_external").html('<p>Starting external host ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$("#output_start_external").html('<p>Starting external host ...</p><img src="{% static 'images/spinner.svg' %}" width="50" height="50" />');
 				$.get("/subpage_run_start_external/", function(data) {
 					$("#output_start_external").html(data);
 					$("#output_stop_external").empty(); // if ext stop intervall takes longer to clear
@@ -107,6 +116,7 @@
 			});
 
 			$("#skip_external").click(function() {
+				setMonitoringMode("skipped");
 				$("#output_stop_external").empty();
 				$.get("/subpage_run_skip_external/", function(data) {
 					$("#output_start_external").html(data);
@@ -114,6 +124,9 @@
 			});
  
 			$("#stop_external").click(function() {
+				if(monitoringMode !== "monitoring"){
+					return;
+				}
 				//stop polling of live ext host in output_external_started_integrated_generation.html
 				clearInterval(window.intervalId_ext);
 				// stop polling of live troughput metrics
@@ -134,12 +147,15 @@
 			});
 
 			$("#stop_without_external").click(function() {
+				if(monitoringMode !== "skipped"){
+					return;
+				}
 				//stop polling of live ext host in output_external_started_integrated_generation.html
 				clearInterval(window.intervalId_ext);
 				$("#output_start_external").empty();
 				// stop polling of live troughput metrics
 				clearInterval(window.intervalId_live_metrics);
-				$("#output_stop_external").html('<p>Reading counters from Stamper. Can take up to 1 Minute...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$("#output_stop_external").html('<p>Reading counters from Stamper. Can take up to 1 Minute...</p><img src="{% static 'images/spinner.svg' %}" width="50" height="50" />');
 				$.get("/subpage_run_stop_without_external/", function(data) {
 					$("#output_stop_external").html(data);
 				}, "html");
@@ -170,7 +186,6 @@
 
 {% if selected_loadgen != "Tofino Packet Generator" %}
 
-
 <div class="row">
 	<div class="col-md-4">Execute Ping Test:</div>
 </div>
@@ -182,9 +197,67 @@
 
 {% endif %}
 
+
+<!-- enable only for P4STA 1.4.0 or newer -->
+{% if p4sta_version|version_gte:"1.4.0" %}
+  <div class="row">
+	<!--<div class="col-md-2">
+		<button id="ping" type="button" class="save btn btn-secondary">Start Ping</button>
+		Sessions
+	</div> -->
+	<div class="col-md-12">
+		<!--<div id="output_sessions" class="card card-body"></div>-->
+	
+		<div> 
+			<h3 class="mb-4">Session Establishment</h3>
+
+			<!-- Tabs -->
+			<ul class="nav nav-tabs" id="sessionTabs" role="tablist">
+			<li class="nav-item">
+				<a
+				class="nav-link active"
+				id="bng-tab"
+				data-toggle="tab"
+				href="#bng"
+				role="tab"
+				aria-controls="bng"
+				aria-selected="true"
+				>
+				BNG Session Establishment
+				</a>
+			</li>
+			</ul>
+
+			<!-- Tab content -->
+			<div class="tab-content border border-top-0 p-4" id="sessionTabsContent">
+			<div
+				class="tab-pane fade show active"
+				id="bng"
+				role="tabpanel"
+				aria-labelledby="bng-tab"
+			>
+			
+			{% include "middlebox/output_bngblaster.html" %}
+
+
+			</div>
+
+			</div>
+		</div>
+	
+	
+	</div>
+</div>
+<hr/>
+{% endif %}
+
+
 <div style="margin-top:20px;"></div>
 <div class="row">
-	<div class="col-md-4">Start listening at external host and execute Loadgenerator (<b>{{selected_loadgen}}</b>):</div>
+	<div class="col-md-4">
+		<!--Start listening at external host and execute Loadgenerator (<b>{{selected_loadgen}}</b>): -->
+		<h3 class="">Configure Testrun with {{selected_loadgen}}:</h3>
+	</div>
 </div>
 <div class="row">
 	<div class="col-md-2">
@@ -196,8 +269,8 @@
 <div style="margin-top:20px;"></div>
 <div class="row">
 	<div class="col-md-2">
-		<button id="stop_external" type="button" class="save btn btn-primary">Stop Monitoring</button>
-		<button id="stop_without_external" type="button" class="save btn btn-secondary">Stop</button>
+		<button id="stop_external" type="button" class="save btn btn-primary" disabled>Stop Monitoring</button>
+		<button id="stop_without_external" type="button" class="save btn btn-secondary" disabled>Stop</button>
 	</div>
 	<div class="col-md-8"><div id="output_stop_external" class="card card-body"></div></div>
 </div>

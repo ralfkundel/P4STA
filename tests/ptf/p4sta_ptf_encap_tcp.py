@@ -1,3 +1,5 @@
+import ipaddress
+
 from ptf.base_tests import BaseTest
 from ptf.mask import Mask
 from ptf.testutils import *
@@ -113,9 +115,9 @@ class Encap_Dut1ToGroup1(BaseTest):
             
             exp_pkt_pppoe_ext_host = (
                 Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:01")
-                / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, src is set as dst x.y.z.100 always
-                / UDP(sport=41111, dport=41111, chksum=0, len=26)
-                / Exthost(len=len(pppoe1))
+                / IP(src="10.11.12.100", dst="10.11.12.99", len=50) # len 50 as set in P4, src is set as dst x.y.z.100 always
+                / UDP(sport=41111, dport=41111, chksum=0, len=30)
+                / Exthost(len=len(pppoe1), session_id=42)
                 / Raw(load=b"\x0f\x10\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\xbb\xbb\xbb\xbb\xbb\xbb")
                 / Raw(load=random_load)
             )
@@ -135,7 +137,7 @@ class Encap_Dut1ToGroup1(BaseTest):
                 m2 = Mask(exp_pkt_pppoe_ext_host)
                 m2.set_do_not_care_scapy(UDP, "len")
                 # timestamp2 is 6 byte long
-                m2.set_do_not_care(432, 48)
+                m2.set_do_not_care(432+4*8, 48)
                 verify_packet(self, m2, port_id=5)
 
             # verify_no_other_packets(self)
@@ -163,9 +165,9 @@ class Encap_Dut1ToGroup1(BaseTest):
             
             exp_pkt_gtpu_ext_host = (
                 Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:01")
-                / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, src is set as dst x.y.z.100 always
-                / UDP(sport=41111, dport=41111, chksum=0, len=26)
-                / Exthost(len=len(gtpu1)) 
+                / IP(src="10.11.12.100", dst="10.11.12.99", len=50) # len 50 as set in P4, src is set as dst x.y.z.100 always
+                / UDP(sport=41111, dport=41111, chksum=0, len=30)
+                / Exthost(len=len(gtpu1), session_id=1) 
                 / Raw(load=b"\x0f\x10\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\xbb\xbb\xbb\xbb\xbb\xbb")
                 / Raw(load=random_load)
             )
@@ -185,7 +187,7 @@ class Encap_Dut1ToGroup1(BaseTest):
                 m4 = Mask(exp_pkt_gtpu_ext_host)
                 m4.set_do_not_care_scapy(UDP, "len")
                 # timestamp2 is 6 byte long, starts at bit 512 (starting from Eth Hdr)
-                m4.set_do_not_care(432, 48)
+                m4.set_do_not_care(432+4*8, 48)
                 verify_packet(self, m4, port_id=5)
 
                 verify_no_other_packets(self)
@@ -295,9 +297,9 @@ class Encap_IPonly_Dut2ToGroup2(BaseTest):
         # Same for both pkt1 and pk2      
         exp_pkt_ext_host = (
             Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:02")
-            / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, src IP .100
-            / UDP(sport=41111, dport=41111, chksum=0, len=26)
-            / Exthost(len=len(pkt1)) 
+            / IP(src="10.11.12.100", dst="10.11.12.99", len=50) # len 50 as set in P4, src IP .100
+            / UDP(sport=41111, dport=41111, chksum=0, len=30)
+            / Exthost(len=len(pkt1), session_id=int(ipaddress.IPv4Address("10.0.1.3"))) 
             / Raw(load=b"\x0f\x10\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\xbb\xbb\xbb\xbb\xbb\xbb")
             / Raw(load=random_load)
         )
@@ -313,7 +315,7 @@ class Encap_IPonly_Dut2ToGroup2(BaseTest):
         m = Mask(exp_pkt_ext_host)
         m.set_do_not_care_scapy(UDP, "len")
         # timestamp2 is 6 byte long
-        m.set_do_not_care(432, 48)
+        m.set_do_not_care(432+4*8, 48)
         verify_packet(self, m, port_id=5)
 
         verify_no_other_packets(self)
@@ -329,7 +331,7 @@ class Encap_IPonly_Dut2ToGroup2(BaseTest):
 
             m = Mask(exp_pkt_ext_host)
             # timestamp2 is 6 byte long
-            m.set_do_not_care(432, 48)
+            m.set_do_not_care(432+4*8, 48)
             verify_packet(self, m, port_id=5)
 
             verify_no_other_packets(self)

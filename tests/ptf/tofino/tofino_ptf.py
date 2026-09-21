@@ -17,9 +17,8 @@ sys.path.append("tests/ptf")
 sys.path.append("stamper_targets/Wedge100B65/")
 sys.path.append("core/")
 try:
-    from cfg import cfg
     # import tofino1_65p_stamper_v1_2_1 as stamper
-    import tofino1_65p_stamper_v1_3_0 as stamper
+    import tofino1_65p_stamper_v1_4_0 as stamper
     import p4sta_ptf_base_tcp
     import p4sta_ptf_base_udp
     import p4sta_ptf_encap_tcp
@@ -138,11 +137,33 @@ cfg = {
     "multicast": "1",
     "stamper_ssh": "0.0.0.0",
     "stamper_user": "root",
-    "program": "tofino_stamper_v1_3_0",
-    "sde": "/opt/bf-sde-9.13.0",
+    "program": "tofino_stamper_v1_4_0",
+    "sde": "/opt/bf-sde-9.13.4",
     "selected_extHost": "GoExtHostUdp",
     "selected_loadgen": "iperf3",
     "selected_target": "tofino_model",
+    "session_cp": 7, #TODO: for later, port 7 is not added yet
+    "session_cp_an": "default",
+    "session_cp_fec": "NONE",
+    "session_cp_if": "",
+    "session_cp_ip": "",
+    "session_cp_mac": "",
+    "session_cp_real": "",
+    "session_cp_shape": "",
+    "session_cp_speed": "10G",
+    "session_cp_ssh": "0.0.0.0",
+    "session_cp_user": "root",
+    "session_cp2": 7, #TODO: for later, port 7 is not added yet
+    "session_cp2_an": "default",
+    "session_cp2_fec": "NONE",
+    "session_cp2_if": "",
+    "session_cp2_ip": "",
+    "session_cp2_mac": "",
+    "session_cp2_real": "",
+    "session_cp2_shape": "",
+    "session_cp2_speed": "10G",
+    "session_cp2_ssh": "0.0.0.0",
+    "session_cp2_user": "root",
     "stamp_tcp": "checked",
     "stamp_udp": "checked"
 }
@@ -401,8 +422,8 @@ class TOF_L2_Dut2ToGroup2_TCP_multicast_thresh_5(p4sta_ptf_base_tcp.
         
         exp_pkt_ext_host_1 = (
             Ether(dst="55:14:df:9f:03:af", src="aa:aa:aa:aa:ff:02")
-            / IP(src="10.11.12.100", dst="10.11.12.99", len=46) # len 46 as set in P4, .100 src set by stamper
-            / UDP(sport=41111, dport=41111, chksum=0, len=26)
+            / IP(src="10.11.12.100", dst="10.11.12.99", len=50) # len 50 as set in P4, .100 src set by stamper
+            / UDP(sport=41111, dport=41111, chksum=0, len=30)
             / Exthost(len=len(pkt1)) 
             / Raw(load=b"\x0f\x10\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\xbb\xbb\xbb\xbb\xbb\xbb")
             / Raw(load=random_load)
@@ -423,7 +444,7 @@ class TOF_L2_Dut2ToGroup2_TCP_multicast_thresh_5(p4sta_ptf_base_tcp.
         m = Mask(exp_pkt_ext_host_1)
         m.set_do_not_care_scapy(UDP, "len")
         # timestamp2 is 6 byte long
-        m.set_do_not_care(432, 48)
+        m.set_do_not_care(432+4*8, 48)
         verify_packet(self, m, port_id=5)
 
         verify_no_other_packets(self)

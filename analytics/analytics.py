@@ -22,12 +22,16 @@
 ###############################################
 import argparse
 import csv
+from concurrent.futures import ProcessPoolExecutor
+import hashlib
 import json
 import logging
 import multiprocessing
 import numpy as np
 import os
+import re
 import sys
+import tempfile
 import threading
 import time
 
@@ -345,6 +349,445 @@ def main(file_id, multicast, results_path, logger=None):
     return results
 
 
+# Session figures have their own cache, so older classic caches remain usable.
+SESSION_CACHE_VERSION = 6
+SESSION_PLOT_LIMIT = 12
+# Developer option: extra plotting processes trade RAM for faster cold loads.
+# Keep disabled on small hosts. Existing cached SVGs are reused in either mode.
+SESSION_PARALLEL_PLOTS = True
+SESSION_PARALLEL_THRESHOLD = 100000
+SESSION_MAX_PLOT_WORKERS = 4
+
+
+def read_session_packets(file_id, results_path):
+    values = {}
+    for name in ("session_identifier_list", "timestamp1_list",
+                 "timestamp2_list", "packet_sizes"):
+        values[name] = []
+        with open(os.path.join(results_path, name + "_" + str(file_id)
+                               + ".csv"), "r", encoding="utf-8") as csv_input:
+            for row in csv.reader(csv_input):
+                if len(row) != 1 or not row[0].strip():
+                    raise ValueError("Invalid row in " + name + ".csv.")
+                if name == "session_identifier_list":
+                    # Identifiers are opaque labels, including zero and IPs.
+                    values[name].append(row[0])
+                else:
+                    values[name].append(int(row[0]))
+    lengths = [len(value) for value in values.values()]
+    if len(set(lengths)) != 1:
+        raise ValueError("The session identifier, timestamp and packet-size "
+                         "CSV files have different row counts. Packets cannot "
+                         "be matched to session identifiers.")
+    if not lengths[0]:
+        raise ValueError("No timestamped packets are available for session analysis.")
+    if any(value < 0 for name in ("timestamp1_list", "timestamp2_list", "packet_sizes")
+           for value in values[name]):
+        raise ValueError("Timestamps and packet sizes must not be negative.")
+    return values
+
+
+def calculate_session_results(values):
+    sessions = {}
+    origin = min(values["timestamp2_list"])
+    for index, identifier in enumerate(values["session_identifier_list"]):
+        if identifier not in sessions:
+            sessions[identifier] = {"identifier": identifier, "latency": [],
+                                    "packets": [], "time": [], "sizes": [],
+                                    "bins": []}
+        session = sessions[identifier]
+        session["latency"].append(values["timestamp2_list"][index]
+                                  - values["timestamp1_list"][index])
+        session["packets"].append(index)
+        elapsed = values["timestamp2_list"][index] - origin
+        session["time"].append(elapsed / 1000000000)
+        session["bins"].append(elapsed // 100000000)
+        session["sizes"].append(values["packet_sizes"][index])
+
+    summaries = []
+    for color_index, identifier in enumerate(sorted(sessions)):
+        session = sessions[identifier]
+        session["color_index"] = color_index
+        latency = session["latency"]
+        minimum = min(latency)
+        average = sum(latency) / len(latency)
+        # Match the classic convention: the first IPDV sample is zero.
+        session["ipdv"] = [0] + [latency[i] - latency[i - 1]
+                                   for i in range(1, len(latency))]
+        session["pdv"] = [value - minimum for value in latency]
+        summaries.append({
+            "identifier": identifier, "num_packets": len(latency),
+            "total_bytes": sum(session["sizes"]),
+            "min_latency": minimum, "max_latency": max(latency),
+            "avg_latency": round(average, 2),
+            "latency_std_deviation": (sum((value - average)**2
+                                           for value in latency) / len(latency))**0.5,
+            "avg_abs_ipdv": sum(abs(value) for value in session["ipdv"]) / len(latency),
+            "avg_pdv": sum(session["pdv"]) / len(latency),
+        })
+    return sessions, summaries
+
+
+def session_main(file_id, multicast, results_path, logger=None,
+                 session_identifier=None):
+    if logger is None:
+        logger = get_fallback_logger()
+    identifier_path = os.path.join(results_path, "session_identifier_list_"
+                                   + str(file_id) + ".csv")
+    if not os.path.isfile(identifier_path):
+        return {"available": False,
+                "message": "No session identifier CSV is available for this measurement."}
+
+    # Include source timestamps/sizes, sampling factor and format version. A
+    # replaced CSV or changed sampling factor must not reuse an old figure.
+    try:
+        sources = []
+        for name in ("session_identifier_list", "timestamp1_list",
+                     "timestamp2_list", "packet_sizes"):
+            stat = os.stat(os.path.join(results_path, name + "_" + str(file_id) + ".csv"))
+            sources.append([name, stat.st_size, stat.st_mtime_ns])
+        factor = int(multicast)
+        if factor < 1:
+            raise ValueError("The sampling factor must be at least one.")
+    except (OSError, ValueError, TypeError) as exc:
+        return {"available": False, "message": "Session analysis unavailable: " + str(exc)}
+    signature = json.dumps([SESSION_CACHE_VERSION, SESSION_PLOT_LIMIT,
+                            factor, sources]).encode("utf-8")
+    cache_name = "sessions_" + hashlib.sha256(signature).hexdigest()[:16]
+    cache_path = os.path.join(results_path, "generated", cache_name)
+    summary_path = os.path.join(cache_path, "summary.json")
+    sessions = None
+    with lock:
+        if os.path.isfile(summary_path):
+            with open(summary_path, "r", encoding="utf-8") as f:
+                summaries = json.load(f)
+        else:
+            try:
+                values = read_session_packets(file_id, results_path)
+                sessions, summaries = calculate_session_results(values)
+            except (OSError, ValueError) as exc:
+                logger.warning("Session analysis unavailable: " + str(exc))
+                return {"available": False, "message": str(exc)}
+            os.makedirs(cache_path, exist_ok=True)
+            with open(summary_path, "w", encoding="utf-8") as f:
+                json.dump(summaries, f, indent=4)
+
+        identifiers = [session["identifier"] for session in summaries]
+        if session_identifier is None:
+            selected = identifiers[:SESSION_PLOT_LIMIT]
+            prefix = "all"
+        elif session_identifier in identifiers:
+            selected = [session_identifier]
+            # Never use a raw identifier in a file path.
+            prefix = "session_" + str(identifiers.index(session_identifier))
+        else:
+            return {"available": False, "message": "Unknown session identifier."}
+
+        fpath = os.path.join(cache_path, prefix + "_results.json")
+        if os.path.isfile(fpath):
+            with open(fpath, "r", encoding="utf-8") as f:
+                results = json.load(f)
+            if all(os.path.isfile(os.path.join(results_path, "generated", plot["filename"]))
+                   for figure in results["figures"] for plot in figure["plots"]):
+                logger.info("Using cached version of " + fpath)
+                return results
+
+        if sessions is None:
+            values = read_session_packets(file_id, results_path)
+            sessions, _ = calculate_session_results(values)
+        selected_sessions = [sessions[identifier] for identifier in selected]
+        # All sessions share 100 ms bins; include the final partial bin and
+        # quiet periods, so adding the traces gives the captured aggregate.
+        bin_count = (max(values["timestamp2_list"]) - min(values["timestamp2_list"])) // 100000000 + 1
+        for session in selected_sessions:
+            packets = np.bincount(session["bins"], minlength=bin_count)
+            sizes = np.bincount(session["bins"], weights=session["sizes"], minlength=bin_count)
+            session["rate_time"] = list(np.arange(bin_count + 1) / 10)
+            session["packet_rate"] = list(packets * 10) + [0]
+            session["speed"] = list(sizes * 8 / 100000) + [0]
+            session["packet_rate_upscaled"] = [value * factor for value in session["packet_rate"]]
+            session["speed_upscaled"] = [value * factor for value in session["speed"]]
+
+        figures = []
+        plot_jobs = []
+        definitions = [
+            ("Latency", "latency", "Latency", True, False),
+            ("Latency with Y Start 0", "latency", "Latency", True, True),
+            ("IPDV", "ipdv", "IPDV", True, False),
+            ("PDV", "pdv", "PDV", True, False),
+        ]
+        for title, metric, label, adjust_unit, adjust_y_ax in definitions:
+            plots = []
+            for x_key, suffix, x_label in (("packets", "", "Captured packet index"),
+                                            ("time", "_sec", "t[s]")):
+                name = prefix + "_" + metric + suffix + ("_y0" if adjust_y_ax else "") + ".svg"
+                plot_jobs.append((metric, x_key, title, x_label, label,
+                                  os.path.join(cache_path, name), adjust_unit,
+                                  adjust_y_ax, False, False))
+                plots.append({"filename": cache_name + "/" + name,
+                              "title": title + " / " + x_label})
+            figures.append({"title": title, "plots": plots})
+
+        name = prefix + "_latency_bar.svg"
+        plot_jobs.append(("latency", "packets", "Latency distribution", "Latency",
+                          "Packets", os.path.join(cache_path, name), True, False, True, False))
+        figures.insert(2, {"title": "Latency distribution", "plots": [
+            {"filename": cache_name + "/" + name, "title": "Latency distribution"}]})
+
+        for upscaled in (False, True):
+            plots = []
+            suffix = "_upscaled" if upscaled else ""
+            for metric, label in (("speed", "Megabit/s"), ("packet_rate", "Packet/s")):
+                name = prefix + "_" + metric + suffix + ".svg"
+                plot_jobs.append((metric + suffix, "rate_time",
+                                  ("Upscaled " if upscaled else "Captured ") + label,
+                                  "t[s]", label, os.path.join(cache_path, name),
+                                  False, False, False, True))
+                plots.append({"filename": cache_name + "/" + name, "title": label})
+            figures.append({"title": "Upscaled throughput and packet rate" if upscaled
+                            else "Captured throughput and packet rate", "plots": plots})
+
+        render_session_plots(selected_sessions, plot_jobs, cache_path, logger)
+
+        name = "session_mean_std.svg" if session_identifier is None else prefix + "_mean_std.svg"
+        overview = calculate_session_overview(sessions, values, factor)
+        plot_session_overview(overview, file_id, os.path.join(cache_path, name),
+                              session_identifier=session_identifier)
+        figures.insert(0, {
+            "title": "Mean latency across all sessions", "full_width": True,
+            "description": "All sessions are shown; a selected session is highlighted in orange. "
+                           "The line shows mean latency; the band shows ± one sample "
+                           "standard deviation (zero for a single packet). "
+                           "Session indices start at zero and follow sorted identifiers. "
+                           "Average throughput uses captured bytes over the time between "
+                           "the first and last timestamp 2; the estimate applies the sampling factor.",
+            "plots": [{"filename": cache_name + "/" + name,
+                       "title": "Mean latency and standard deviation across all sessions"}]})
+
+        results = {"available": True, "identifiers": identifiers,
+                   "selected_identifier": session_identifier,
+                   "shown_identifiers": selected,
+                   "limited": len(selected) < len(identifiers) and session_identifier is None,
+                   "summaries": [session for session in summaries if session["identifier"] in selected],
+                   "figures": figures, "cache_dir": cache_name, "threshold": factor}
+        with open(fpath, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=4)
+        return results
+
+
+def session_identifier_sort_key(identifier):
+    # Match the evaluation script: numeric identifiers first, then labels by
+    # their final number, with a lexical fallback for arbitrary identifiers.
+    try:
+        return (0, int(identifier), identifier)
+    except ValueError:
+        numbers = re.findall(r"\d+", identifier)
+        return (0, int(numbers[-1]), identifier) if numbers else (1, identifier)
+
+
+def calculate_session_overview(sessions, values, factor):
+    identifiers = sorted(sessions, key=session_identifier_sort_key)
+    means = []
+    deviations = []
+    for identifier in identifiers:
+        latency = sessions[identifier]["latency"]
+        means.append(float(np.mean(latency)))
+        deviations.append(float(np.std(latency, ddof=1)) if len(latency) > 1 else 0.0)
+    duration = max(values["timestamp2_list"]) - min(values["timestamp2_list"])
+    # Bits/ns equals Gbit/s. A single timestamp cannot give a measured rate.
+    captured = sum(values["packet_sizes"]) * 8 / duration if duration > 0 else None
+    return {"identifiers": identifiers, "mean": means, "std": deviations,
+            "captured_gbps": captured,
+            "estimated_gbps": captured * factor if captured is not None else None,
+            "factor": factor}
+
+
+def plot_session_overview(overview, file_id, fpath, session_identifier=None):
+    if os.path.isfile(fpath):
+        return
+    with lock:
+        x = np.arange(len(overview["identifiers"]))
+        _, unit = find_unit(overview["mean"])
+        divisor = {"nanoseconds": 1, "microseconds": 1000,
+                   "milliseconds": 1000000}[unit]
+        mean = np.asarray(overview["mean"]) / divisor
+        deviation = np.asarray(overview["std"]) / divisor
+        lower = mean - deviation
+        upper = mean + deviation
+        logarithmic = bool(np.all(mean > 0))
+        clipped = logarithmic and bool(np.any(lower <= 0))
+        if clipped:
+            # Keep the positive mean visible even when its band crosses zero.
+            floor = min(mean) / 10
+            lower = np.maximum(lower, floor)
+        rate = overview["captured_gbps"]
+        if rate is None:
+            rate_label = "Average throughput unavailable (zero capture duration)"
+        else:
+            rate_label = "Average throughput: {:.4g} Gbit/s captured".format(rate)
+            if overview["factor"] > 1:
+                rate_label += "; {:.4g} Gbit/s estimated (sampling ×{})".format(
+                    overview["estimated_gbps"], overview["factor"])
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        try:
+            ax.plot(x, mean, linewidth=1.8, color="tab:blue", label="Mean latency",
+                    marker="." if len(x) < 20 else None)
+            ax.fill_between(x, lower, upper, color="tab:blue", alpha=0.2,
+                            linewidth=0, label="± StdDev (sample)")
+            if len(x) == 1:
+                ax.vlines(x, lower, upper, color="tab:blue", alpha=0.4, linewidth=3)
+            if session_identifier is not None:
+                index = overview["identifiers"].index(session_identifier)
+                ax.axvline(index, color="tab:orange", linestyle="--", linewidth=1.5,
+                           zorder=4, clip_on=False)
+                ax.plot([index], [mean[index]], marker="o", markersize=8,
+                        linestyle="None", color="tab:orange", markeredgecolor="white",
+                        label="Selected: " + session_identifier, zorder=5, clip_on=False)
+            ax.set_title("Run " + str(file_id) + " — all sessions\n" + rate_label, fontsize=11)
+            ax.set_xlabel("Session index (sorted by session identifier)")
+            ax.set_ylabel("Packet latency [" + unit + "]")
+            ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+            if len(x) > 1:
+                ax.set_xlim(0, len(x) - 1)
+            else:
+                ax.set_xlim(-0.5, 0.5)
+            if logarithmic:
+                ax.set_yscale("log")
+                if clipped:
+                    ax.set_ylim(bottom=floor)
+                for which in ("major", "minor"):
+                    formatter = matplotlib.ticker.ScalarFormatter()
+                    formatter.set_scientific(False)
+                    formatter.set_useOffset(False)
+                    if which == "major":
+                        ax.yaxis.set_major_formatter(formatter)
+                    else:
+                        ax.yaxis.set_minor_formatter(formatter)
+            notes = "Band clipped at the positive axis floor." if clipped else ""
+            if not logarithmic:
+                notes = "Linear scale: non-positive mean latency is present."
+            ax.grid(True, which="both", linestyle="--", alpha=0.45)
+            legend = ax.legend(loc="best")
+            for text in legend.get_texts():
+                text.set_parse_math(False)
+            if notes:
+                fig.text(0.5, 0.01, notes, ha="center", fontsize=8)
+            fig.tight_layout(rect=(0, 0.04 if notes else 0, 1, 1))
+            fig.savefig(fpath, format="svg")
+        finally:
+            plt.close(fig)
+
+
+def init_session_plot_worker(metadata):
+    global session_plot_data
+    # Read-only mappings share the OS page cache without pickling the packet
+    # arrays for every plot or copying the complete run into every worker.
+    session_plot_data = []
+    for entry in metadata:
+        session = {"identifier": entry["identifier"], "color_index": entry["color_index"]}
+        for key, path in entry["arrays"].items():
+            session[key] = np.load(path, mmap_mode="r", allow_pickle=False)
+        session_plot_data.append(session)
+
+
+def run_session_plot_job(job):
+    plot_session_graph(session_plot_data, *job)
+
+
+def render_session_plots(sessions, jobs, cache_path, logger):
+    jobs = [job for job in jobs if not os.path.isfile(job[5])]
+    if not jobs:
+        return
+    cpu_count = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 1)
+    workers = min(SESSION_MAX_PLOT_WORKERS, cpu_count, len(jobs))
+    if (not SESSION_PARALLEL_PLOTS or workers < 2
+            or sum(len(session["latency"]) for session in sessions) < SESSION_PARALLEL_THRESHOLD):
+        for job in jobs:
+            plot_session_graph(sessions, *job)
+        return
+
+    logger.info("Rendering session figures with " + str(workers) + " worker processes.")
+    with tempfile.TemporaryDirectory(prefix="plot_data_", dir=cache_path) as folder:
+        keys = {key for job in jobs for key in job[:2]}
+        metadata = []
+        for index, session in enumerate(sessions):
+            entry = {"identifier": session["identifier"],
+                     "color_index": session["color_index"], "arrays": {}}
+            for key in keys:
+                path = os.path.join(folder, str(index) + "_" + key + ".npy")
+                np.save(path, np.asarray(session[key]), allow_pickle=False)
+                entry["arrays"][key] = path
+            metadata.append(entry)
+        # Spawn avoids inheriting a locked Matplotlib/threading state from
+        # Django. Each process has its own plotting lock and pyplot state.
+        with ProcessPoolExecutor(max_workers=workers,
+                                 mp_context=multiprocessing.get_context("spawn"),
+                                 initializer=init_session_plot_worker,
+                                 initargs=(metadata,)) as pool:
+            # Consume results so worker failures reach the view; a failed run
+            # must not be recorded as a successfully generated result cache.
+            list(pool.map(run_session_plot_job, jobs))
+
+
+def session_plot_unit(arrays):
+    count = sum(len(values) for values in arrays)
+    if count:
+        if sum(np.count_nonzero(np.abs(values) >= 1000000) for values in arrays) > 0.95 * count:
+            return 1000000, "milliseconds"
+        if sum(np.count_nonzero(np.abs(values) >= 1000) for values in arrays) > 0.95 * count:
+            return 1000, "microseconds"
+    return 1, "nanoseconds"
+
+
+def plot_session_graph(sessions, metric, x_key, title, x_label, y_label,
+                       fpath, adjust_unit, adjust_y_ax, histogram=False, rate=False):
+    if os.path.isfile(fpath):
+        return
+    with lock:
+        arrays = [np.asarray(session[metric]) for session in sessions]
+        divisor = 1
+        unit = ""
+        if adjust_unit:
+            divisor, unit = session_plot_unit(arrays)
+        fig, ax = plt.subplots()
+        try:
+            if histogram:
+                minimum = min(values.min() for values in arrays) / divisor
+                maximum = max(values.max() for values in arrays) / divisor
+                bins = np.histogram_bin_edges([minimum, maximum], bins=10)
+            for session, array in zip(sessions, arrays):
+                values = array / divisor
+                color_index = session["color_index"] % 20
+                color = plt.get_cmap("tab20")((color_index % 10) * 2 + color_index // 10)
+                label = "ID " + session["identifier"]
+                if histogram:
+                    ax.hist(values, bins=bins, histtype="step", linewidth=1.5,
+                            label=label, color=color)
+                elif rate:
+                    ax.step(session[x_key], values, where="post", label=label, color=color)
+                else:
+                    ax.plot(session[x_key], values, marker="." if len(values) == 1 else None,
+                            label=label, color=color)
+            ax.set_title(title + " by session identifier")
+            ax.set_xlabel(x_label + (" [" + unit + "]" if histogram else ""))
+            ax.set_ylabel(y_label + (" [" + unit + "]" if adjust_unit and not histogram else ""))
+            if adjust_y_ax:
+                maximum = max(values.max() for values in arrays) / divisor
+                minimum = min(0, min(values.min() for values in arrays) / divisor)
+                margin = max((maximum - minimum) * 0.075, 0.1)
+                ax.set_ylim(minimum - margin, maximum + margin)
+            legend = ax.legend(title="Session identifier", fontsize=8,
+                               loc="upper right" if len(sessions) <= 4 else "upper left",
+                               bbox_to_anchor=None if len(sessions) <= 4 else (1, 1))
+            for text in legend.get_texts():
+                text.set_parse_math(False)
+            fig.tight_layout()
+            fig.savefig(fpath, format="svg")
+        finally:
+            plt.close(fig)
+
+
 # plots the line charts
 def plot_graph(value_list_input, index_list, titel, x_label, y_label,
                filename, adjust_unit, adjust_y_ax, file_id):
@@ -587,5 +1030,6 @@ if __name__ == "__main__":
         if len(id) > 0 and len(multicast) > 0:
             path = dir_path[0:dir_path.find("analytics")]+"results/"+str(id)
             results = main(id, multicast, path, logger)
+            session_main(id, multicast, path, logger)
         else:
             logger.error("Aborted execution.")

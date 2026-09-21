@@ -2,11 +2,12 @@
    "target":"Wedge100BF32X",
    "tofino_generation": "1",
    "cfg_template":"wedge100bf32_cfg_template.json",
-   "default_target_driver":"../Wedge100B65/tofino1_65p_stamper_v1_3_0.py",
+   "default_target_driver":"../Wedge100B65/tofino1_65p_stamper_v1_4_0.py",
    "available_target_drivers": [
       {"version": "1.2.0", "target_driver": "../Wedge100B65/tofino1_65p_stamper_v1_2_0.py"},
       {"version": "1.2.1", "target_driver": "../Wedge100B65/tofino1_65p_stamper_v1_2_1.py"},
-      {"version": "1.3.0", "target_driver": "../Wedge100B65/tofino1_65p_stamper_v1_3_0.py"}
+      {"version": "1.3.0", "target_driver": "../Wedge100B65/tofino1_65p_stamper_v1_3_0.py"},
+      {"version": "1.4.0", "target_driver": "../Wedge100B65/tofino1_65p_stamper_v1_4_0.py"}
    ],
    "stamping_capabilities":{
       "tcp":true,
@@ -32,9 +33,11 @@
             "values":[
                "1.2.0",
                "1.2.1",
-               "1.3.0"
+               "1.3.0",
+               "1.4.0"
             ],
-            "default_value":"1.3.0",
+            "default_value":"1.4.0",
+            "onchange_func": "function(){var s = document.getElementById('session_module'); this.value.startsWith('1.4') ? s.disabled = false : s.disabled = true;}",
             "target_key":"p4sta_version",
             "description":"P4sta Version to use, e.g. 1.2.1 or 1.2.0"
          },
@@ -49,6 +52,17 @@
             "default_value":"NONE",
             "target_key":"compile_flag",
             "description":"Flag enabling GTP-U or PPPOE support in P4 file before compilation."
+         },
+         {
+            "title":"Session Module",
+            "type":"drop-down",
+            "values":[
+               "BNGBlaster",
+               "NONE"
+            ],
+            "default_value":"BNGBlaster",
+            "target_key":"session_module",
+            "description":"Session module to use, e.g. BNGBlaster or UPF"
          }
       ]
    },
@@ -60,10 +74,12 @@
             "values":[
                "1.2.0",
                "1.2.1",
-               "1.3.0"
+               "1.3.0",
+               "1.4.0"
             ],
-            "default_value":"1.3.0",
+            "default_value":"1.4.0",
             "target_key":"p4sta_version",
+            "onchange_func": "p4sta_version_changed()",
             "description":"P4sta Version to use, e.g. 1.2.1 or 1.2.0"
          },
          {

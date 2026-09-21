@@ -128,6 +128,7 @@
 				document.getElementById('stamper_check').disabled = false;
 				document.getElementById('selected_stamper').disabled = false;
 			}
+			session_module_changed();
 		}
 
 		function box_ext_host_changed(){
@@ -148,6 +149,117 @@
 			}
 		}
 
+		function append_checkbox_group(div, opt){
+			var container = document.createElement("div");
+			container.className = "mb-3";
+
+			var title = document.createElement("p");
+			var bold = document.createElement('strong');
+			var node = document.createTextNode(opt["title"] + ": ");
+			bold.appendChild(node);
+			title.appendChild(bold);
+			if("description" in opt && opt["description"] !== ""){
+				var small = document.createElement("small");
+				small.className = "form-text text-muted";
+				small.textContent = opt["description"];
+				title.appendChild(small);
+			}
+			container.appendChild(title);
+
+			var selected_values = [];
+			if("selected_values" in opt){
+				selected_values = opt["selected_values"].map(value => JSON.stringify(value));
+			}
+
+			opt["values_to_select"].forEach((val, idx) => {
+				var checkbox_id = opt["target_key"] + "_" + idx;
+				var wrapper = document.createElement("div");
+				wrapper.className = "form-check";
+
+				var input = document.createElement("input");
+				input.type = "checkbox";
+				input.className = "form-check-input";
+				input.id = checkbox_id;
+				input.name = opt["target_key"];
+				input.value = JSON.stringify(val);
+				input.checked = selected_values.includes(input.value);
+
+				var label = document.createElement("label");
+				label.className = "form-check-label";
+				label.htmlFor = checkbox_id;
+				label.appendChild(document.createTextNode(val[0] + "." + val[1] + " "));
+				var code = document.createElement("code");
+				code.textContent = val[2].replace(/\\/g, "");
+				label.appendChild(code);
+
+				wrapper.appendChild(input);
+				wrapper.appendChild(label);
+				container.appendChild(wrapper);
+			});
+
+			div.appendChild(container);
+		}
+
+		var session_setup_values = {};
+		function session_module_changed(){
+			{% autoescape off %}
+			var all_session_module_cfg = {{all_session_module_cfg}};
+			var session_div = document.getElementById("session_module_specific_cfg");
+			if(session_div == null){
+				return;
+			}
+			session_div.innerHTML = "";
+			var session_module_select = document.getElementById("session_module");
+			if(session_module_select == null || session_module_select.disabled ||
+					!document.getElementById("enable_stamper").checked){
+				return;
+			}
+			var selected_session_module = session_module_select.value;
+			if(selected_session_module in all_session_module_cfg &&
+					"config" in all_session_module_cfg[selected_session_module] &&
+					"setup_specific" in all_session_module_cfg[selected_session_module]["config"]){
+				var module_cfg = all_session_module_cfg[selected_session_module];
+				var version = document.getElementById("p4sta_version");
+				if(version && module_cfg["compatible_p4sta_versions"] &&
+						!module_cfg["compatible_p4sta_versions"].includes(version.value)){
+					return;
+				}
+				var options = all_session_module_cfg[selected_session_module]["config"]["setup_specific"];
+				var header = document.createElement("p")
+				header.innerHTML = "<b><u>Session module specific config:</u></b>";
+				session_div.appendChild(header);
+				options.forEach(opt => {
+					if(opt["type"] == "checkbox-group"){
+						append_checkbox_group(session_div, opt);
+					} else if(opt["type"] == "input"){
+						var p = document.createElement("p");
+						var label = document.createElement("label");
+						label.htmlFor = opt["target_key"];
+						label.textContent = opt["title"] + ": ";
+						label.style.fontWeight = "bold";
+						p.appendChild(label);
+						var input = document.createElement("input");
+						input.id = opt["target_key"];
+						input.name = opt["target_key"];
+						input.type = "text";
+						input.className = "form-control";
+						input.style = "width:350px; display:inline";
+						input.placeholder = opt["description"] || "";
+						input.required = opt["required"] === true;
+						var value_key = selected_session_module + "." + opt["target_key"];
+						input.value = value_key in session_setup_values ?
+							session_setup_values[value_key] : (opt["value"] || "");
+						input.oninput = function(){
+							session_setup_values[value_key] = input.value;
+						};
+						p.appendChild(input);
+						session_div.appendChild(p);
+					}
+				});
+			}
+			{% endautoescape %}
+		}
+
 		function selected_stamper_changed(){
 			var selected_stamper = document.getElementById("selected_stamper").value;
 			{% autoescape off %}
@@ -162,7 +274,6 @@
 					header.innerHTML = "<b><u>Stamper-target specific config:</u></b>";
 					div.appendChild(header);
 					options.forEach(opt => {
-
 						
 						if(opt["type"] == "input"){
 							var p = document.createElement("p");
@@ -184,7 +295,6 @@
 								input.value=sde_from_cfg;
 							}
 							
-
 							p.appendChild(input)
 							div.appendChild(p);
 						} else if (opt["type"] == "drop-down") {
@@ -204,6 +314,14 @@
 							option.innerHTML = opt["default_value"];
 							select.appendChild(option);
 
+							if("onchange_func" in opt && opt["onchange_func"] != ""){
+								select.onchange = eval(`(${opt["onchange_func"]})`);
+							}
+							if(opt["target_key"] === "session_module"){
+								select.onchange = session_module_changed;
+							}
+
+
 							opt["values"].forEach(val => {
 								if (val !== opt["default_value"]){
 									var option = document.createElement("option");
@@ -215,8 +333,18 @@
 
 							p.appendChild(select);
 							div.appendChild(p);
+						} else if (opt["type"] == "checkbox-group") {
+							append_checkbox_group(div, opt);
 						}
 					});
+					var session_div = document.createElement("div");
+					session_div.id = "session_module_specific_cfg";
+					div.appendChild(session_div);
+					var version_select = document.getElementById("p4sta_version");
+					if(version_select){
+						version_select.addEventListener("change", session_module_changed);
+					}
+					session_module_changed();
 					div.appendChild(document.createElement("hr"));
 				}
 			} catch (e) {

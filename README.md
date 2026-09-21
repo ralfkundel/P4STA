@@ -20,7 +20,15 @@ The P4STA framework consists of:
 
 ## Changelog
 
+### v1.4.0
+- Introducing **Session P4STA**
+- P4STA integrates with [BNG Blaster](https://github.com/rtbrick/bngblaster): Software subscriber session establishment combined with P4STA multi-Tbit/s packet generation, mapping real PPPoE tunnels in the P4 packet pipeline.
+- Per-session analysis in the WebUI
+- UI improvements: faster and more dynamic experience
+- Many bugfixes and enhancements
+
 ### v1.3.0
+- Introducing **Instant P4STA**
 - New loadgen target: Tofino Packet Generator
 - Scapy-like packet templating in Web GUI
 - Introduction of additional ports for egress duplication with multiple Tbit/s on all ports
@@ -45,10 +53,12 @@ The P4STA framework consists of:
 P4STA supports different Stamper targets, currently P4-BMv2, Intel Tofino and Netronome SmartNICs. Please be aware, that new features are only developed for the Intel Tofino target. 
 For each target there exists a subfolder in "stamper_targets". Further targets can be easily installed by copying the corresponding driver.
 
-Currently supported Stamper Targets are:
+Originally supported Stamper Targets are:
 * [P4-bmv2](stamper_targets/bmv2/README.md) reference implementation
 * [Intel Tofino](stamper_targets/Wedge100B65/README.md)
 * [Netronome NFP-SmartNICs](stamper_targets/netronome/README.md)
+
+Starting from P4STA 1.3.0 only the Tofino target is supported due to the internal packet generator.
 
 # Installation
 P4STA needs to be run on Linux. For the management server Ubuntu 22.04 LTS is well tested but other versions should work as well (Python 3.8 or newer is required).
@@ -89,7 +99,9 @@ We highly recommonend to use the "status check" on the bottom of the configurati
 
 
 # Publications
-* 2025: "Instant P4STA: Beyond Tbit/s Network Function Evaluation with P4 Programmable Hardware" @IEEE/IFIP NOMS 2025 [Demo Paper, to appear in Proceedings](https://www.kom.tu-darmstadt.de/assets/b0c597a2-8fb5-4587-b179-ffc501aa6a76/SHK25.pdf)
+* 2026: "Session P4STA: Emulation-Driven Terabit Benchmarking for Access Networks" @IEEE 2026 NFV/SDN [Paper, to appear in proceedings](https://www.kom.tu-darmstadt.de/publications/SHK26)
+* 2026: "User Plane Performance in Beyond 5G Networks: Comprehensive Analysis and Evaluation" in IEEE Communications Magazine: [Article](https://www.sciencedirect.com/science/article/pii/S0140366425003548)
+* 2025: "Instant P4STA: Beyond Tbit/s Network Function Evaluation with P4 Programmable Hardware" @IEEE/IFIP NOMS 2025 [Demo Paper](https://ieeexplore.ieee.org/document/11073621)
 * 2022: "Network Testing Utilizing Programmable Network Hardware" in IEEE Communications Magazine: [Article](https://ieeexplore.ieee.org/abstract/document/9722801)
 * 2020: "P4STA: High Performance Packet Timestamping with Programmable Packet Processors"@ IEEE/IFIP NOMS: [Paper](https://ieeexplore.ieee.org/abstract/document/9110290)
 * 2020: "Microbursts in Software and Hardware-based Traffic Load Generation" @IEEE/IFIP NOMS: [Demo Paper](https://ieeexplore.ieee.org/abstract/document/9110305)
@@ -127,3 +139,5 @@ Stamper implementations vary due to hardware specific constraints and P4_14, P4_
 ![Figure Software Components](doc/img/softwareComponents.png)
 
 
+## Declaration
+We utilized ChatGPT for GUI enhancements and code quality improvements.

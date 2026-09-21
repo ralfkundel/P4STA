@@ -17,7 +17,7 @@
 <head>
 <script>
 $("#latency_interactive_btn").click(function() {
-	$("#output_dygraph").html('<p>Generating interactive graph ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+	$("#output_dygraph").html('<p>Generating interactive graph ...</p><img src="{% static 'images/spinner.svg' %}" width="50" height="50" />');
 	$.get("/dygraph/", function(data) {
 		var btn_div = document.getElementById("latency_interactive_btn_div");
 		var btn = document.getElementById("latency_interactive_btn");
@@ -34,6 +34,13 @@ $("#latency_interactive_btn").click(function() {
 </head>
 
 <body>
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+	<li class="nav-item"><a class="nav-link active" id="external-classic-tab" data-toggle="tab" href="#external-classic-results" role="tab" aria-controls="external-classic-results" aria-selected="true">Classic view</a></li>
+	<li class="nav-item"><a class="nav-link" id="external-session-tab" data-toggle="tab" href="#external-session-results" role="tab" aria-controls="external-session-results" aria-selected="false">By session identifier</a></li>
+</ul>
+<div class="tab-content">
+<div class="tab-pane fade show active" id="external-classic-results" role="tabpanel" aria-labelledby="external-classic-tab">
 
 {% if display == True %}
 
@@ -178,8 +185,39 @@ $("#latency_interactive_btn").click(function() {
 <p>Sure you started end stopped an external host session? As well it's important that you select at least one flow to dupliacte.</p>
 {% endif %}
 
+</div>
+<div class="tab-pane fade" id="external-session-results" role="tabpanel" aria-labelledby="external-session-tab">
+	<div id="external-session-content" aria-live="polite">Select this tab to load figures by session identifier.</div>
+</div>
+</div>
 
 <script>
+	(function () {
+		var panel = $('#external-session-content');
+		var loaded = false;
+		var pending = null;
+		function loadSessionResults(identifier) {
+			if (pending !== null) pending.abort();
+			panel.html('<p>Loading figures by session identifier ...</p><img src="{% static 'images/spinner.svg' %}" width="50" height="50" alt="Loading" />');
+			var parameters = {file_id: '{{ filename|escapejs }}'};
+			if (identifier !== undefined && identifier !== '') parameters.session_identifier = identifier;
+			pending = $.get('/subpage_analyze_external_session_results/', parameters, function (data) {
+				panel.html(data);
+				loaded = true;
+			}, 'html').fail(function (xhr, status) {
+				if (status === 'abort') return;
+				loaded = false;
+				panel.empty().append($('<p class="text-danger">').text(xhr.responseText || 'Could not load session figures.'));
+				panel.append($('<button type="button" class="btn btn-secondary" id="external-session-retry">').text('Retry'));
+			}).always(function () { pending = null; });
+		}
+		$('#external-session-tab').on('shown.bs.tab', function () {
+			if (!loaded && pending === null) loadSessionResults();
+		});
+		panel.on('change', '#external-session-identifier', function () { loadSessionResults(this.value); });
+		panel.on('click', '#external-session-retry', function () { loadSessionResults(); });
+	})();
+
 	function changeThroughput(status) {
 		if(status.checked){
 			document.getElementById('throughput_not_upscaled').hidden = true;

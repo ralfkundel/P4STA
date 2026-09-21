@@ -23,6 +23,8 @@ def main():
     global project_path
     global logger
     global current_live_stats
+    global current_session_run_id
+    global current_session_module
     core_conn = rpyc.connect('localhost', 6789, config={'allow_public_attrs': True})
     project_path = core_conn.root.get_project_path()
     P4STA_utils.set_project_path(project_path)
@@ -34,3 +36,5 @@ def main():
     # list is filled with throughput etc during test run
     # None => No run currently or stopped, [] = run started
     current_live_stats = None
+    current_session_run_id = None
+    current_session_module = None

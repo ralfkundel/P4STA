@@ -63,7 +63,18 @@ def fetch_target(request):
         else:
             target_cfg = globals.core_conn.root.fetch_target(target)
 
+        # results["supported_ext_hosts"] is the full list of all ext hosts
         results = P4STA_utils.flt(target_cfg)
+
+        # for GUI: create a list of all sup. ext host without current selected one + send back current selected one
+        if "current_sel_ext_host" in request.POST:
+            current_sel_ext_host = request.POST["current_sel_ext_host"]
+            if len(current_sel_ext_host) > 0:
+                results["supported_ext_hosts_without_selected"] = []
+                for ext_host in results["supported_ext_hosts"]:
+                    if ext_host != current_sel_ext_host:
+                        results["supported_ext_hosts_without_selected"].append(ext_host)
+
 
         return JsonResponse({"target": results})
     except:
@@ -268,6 +279,37 @@ def updateCfg(request):
                 except:
                     globals.logger.warning(traceback.format_exc())
 
+                # session control plane host case
+                try:
+                    if "session_cp_" + t_inp["target_key"] in request.POST:
+                        cfg["session_cp_" + t_inp["target_key"]] = str(
+                            request.POST["session_cp_" + t_inp["target_key"]])
+                    elif "restrict" not in t_inp \
+                            or t_inp["restrict"] == "session_cp":
+                        cfg["session_cp_" + t_inp["target_key"]] = ""
+                    if "default_value" in t_inp \
+                            and ("session_cp_" + t_inp["target_key"]) in cfg \
+                            and cfg["session_cp_" + t_inp["target_key"]] == "":
+                        cfg["session_cp_" + t_inp["target_key"]] = \
+                            t_inp["default_value"]
+                except:
+                    globals.logger.warning(traceback.format_exc())
+
+                try:
+                    if "session_cp2_" + t_inp["target_key"] in request.POST:
+                        cfg["session_cp2_" + t_inp["target_key"]] = str(
+                            request.POST["session_cp2_" + t_inp["target_key"]])
+                    elif "restrict" not in t_inp \
+                            or t_inp["restrict"] == "session_cp2":
+                        cfg["session_cp2_" + t_inp["target_key"]] = ""
+                    if "default_value" in t_inp \
+                            and ("session_cp2_" + t_inp["target_key"]) in cfg \
+                            and cfg["session_cp2_" + t_inp["target_key"]] == "":
+                        cfg["session_cp2_" + t_inp["target_key"]] = \
+                            t_inp["default_value"]
+                except:
+                    globals.logger.warning(traceback.format_exc())
+
         except Exception as e:
             globals.logger.error(traceback.format_exc())
 
@@ -374,6 +416,43 @@ def updateCfg(request):
                         to_pop.append(key)
                 for key in to_pop:
                     cfg.pop(key)
+        except:
+            globals.logger.warning(traceback.format_exc())
+
+        # session control plane port config
+        try:
+            if "session_cp_ssh" in request.POST:
+                cfg["session_cp"] = -1
+                cfg["session_cp_ssh"] = str(request.POST["session_cp_ssh"])
+                if "session_cp_user" in request.POST:
+                    cfg["session_cp_user"] = str(request.POST["session_cp_user"])
+                if "session_cp_if" in request.POST:
+                    cfg["session_cp_if"] = str(request.POST["session_cp_if"])
+                if "session_cp_ip" in request.POST:
+                    cfg["session_cp_ip"] = str(request.POST["session_cp_ip"]).split(" ")[0].split("/")[0]
+                if "session_cp_mac" in request.POST:
+                    cfg["session_cp_mac"] = str(request.POST["session_cp_mac"])
+                if "session_cp_real" in request.POST:
+                    cfg["session_cp_real"] = str(request.POST["session_cp_real"])
+
+        except:
+            globals.logger.warning(traceback.format_exc())
+        
+        try:
+            if "session_cp2_ssh" in request.POST:
+                cfg["session_cp2"] = -1
+                cfg["session_cp2_ssh"] = str(request.POST["session_cp2_ssh"])
+                if "session_cp2_user" in request.POST:
+                    cfg["session_cp2_user"] = str(request.POST["session_cp2_user"])
+                if "session_cp2_if" in request.POST:
+                    cfg["session_cp2_if"] = str(request.POST["session_cp2_if"])
+                if "session_cp2_ip" in request.POST:
+                    cfg["session_cp2_ip"] = str(request.POST["session_cp2_ip"]).split(" ")[0].split("/")[0]
+                if "session_cp2_mac" in request.POST:
+                    cfg["session_cp2_mac"] = str(request.POST["session_cp2_mac"])
+                if "session_cp2_real" in request.POST:
+                    cfg["session_cp2_real"] = str(request.POST["session_cp2_real"])
+
         except:
             globals.logger.warning(traceback.format_exc())
 

@@ -789,8 +789,8 @@ parser SwitchEgressParser(packet_in packet, out headers_t hdr, out my_metadata_t
 		tofino_parser.apply(packet, eg_intr_md);
 		meta.l4_metadata.updateChecksum = 0;
 		meta.l4_metadata.do_multicast = 0;
-		meta.l4_metadata.updateChecksum = 0;
 		meta.header_offset = 0;
+		meta.session_identifier = 0;
 
 		transition parse_ethernet;
 	}
@@ -846,6 +846,7 @@ parser SwitchEgressParser(packet_in packet, out headers_t hdr, out my_metadata_t
 	state parse_outer_udpGtpu {
 		packet.extract(hdr.outer_udp);
 		packet.extract(hdr.gtpu);
+		meta.session_identifier = hdr.gtpu.teid;
 		// if parse_extension is not reached in case of 1w0; outer_ipv4 (20) + outer_udp (8) + gtpu (8) => 36 bytes
 		meta.header_offset = 36;
 		transition select(hdr.gtpu.ex_flag) {
@@ -895,6 +896,7 @@ parser SwitchEgressParser(packet_in packet, out headers_t hdr, out my_metadata_t
 	#ifdef PPPOE_ENCAP
 	state parse_pppoe {
         packet.extract(hdr.pppoe);
+		meta.sess_identifier = hdr.pppoe.sessionID;
 		meta.header_offset = 8;
         transition select(hdr.pppoe.protocol){
             16w0x0021: parse_ipv4;
@@ -1032,7 +1034,7 @@ control SwitchEgress(
 		hdr.ipv4.setValid();
 
 		// correct calc but slow at ext: hdr.ipv4.paketlen = hdr.ipv4.paketlen - 18; // -20 byte ip header + 2 byte ext_host_stats
-		hdr.ipv4.paketlen = 46; // 20 byte IPV4 header + 8 byte UDP + 2 byte p4sta metrics + 16 byte timestamps
+		hdr.ipv4.paketlen = 50; // 20 byte IPV4 header + 8 byte UDP + 6 byte p4sta metrics + 16 byte timestamps
 		// tcp/udp header len subsctraction of ipv4.paketlen is done in apply block
 		#else
 		hdr.ipv4.dstAddr = dstip;
@@ -1040,7 +1042,7 @@ control SwitchEgress(
 		hdr.ipv4.fragOffset = 0x0;
 		hdr.ipv4.flags = 0x0;
 		// correct calc but slow at ext: hdr.ipv4.paketlen = hdr.ipv4.paketlen + 2; // + 2 byte ext_host_stats
-		hdr.ipv4.paketlen = 46; // 20 byte IPV4 header + 8 byte UDP + 2 byte p4sta metrics + 16 byte timestamps
+		hdr.ipv4.paketlen = 50; // 20 byte IPV4 header + 8 byte UDP + 6 byte p4sta metrics + 16 byte timestamps
 		hdr.udp.setInvalid();
 		#endif
 
@@ -1085,7 +1087,7 @@ control SwitchEgress(
 		// // remove unnecessary bytes in packet
 		hdr.tcp.setInvalid(); // remove 160 bit (20 byte)
 		// correct calculation but slower at ext: hdr.ipv4.paketlen = hdr.ipv4.paketlen - 10; // -20 byte tcp header and + 8 byte new udp header + 2 byte ext hos tstats
-		hdr.ipv4.paketlen = 46;  // 20 byte IPV4 header + 8 byte UDP + 2 byte p4sta metrics + 16 byte timestamps
+		hdr.ipv4.paketlen = 50;  // 20 byte IPV4 header + 8 byte UDP + 6 byte p4sta metrics + 16 byte timestamps
 
 		hdr.exthost_udp.setValid();
 		hdr.exthost_udp.srcPort = dstport; // just random sending port
@@ -1222,12 +1224,13 @@ control SwitchEgress(
 			}
 			#endif
 			
-			
-
 			if (hdr.ext_host_stats.isValid()){
 
 				hdr.exthost_udp.len = hdr.ipv4.paketlen - 20; // we assume 20 byte IPv4 header instead of using ihl to save ressources
-				
+
+				// to preserve compatibility of new GO and DPDK Ext host, ext_host_stats header from 1.4.0 is already used in 1.3.0
+				hdr.ext_host_stats.sess_identifier = meta.session_identifier; // can be 0 if not set in parser, e.g. when no session protocol like gtpu is used
+
 				// update statistics length field here and not in action due to compiler bug breaking packets after stamping tstamp2, even to loadgen
 				// we want to tell ext host the original paket size as it is received by loadgens
 				if(hdr.vlan.isValid()){

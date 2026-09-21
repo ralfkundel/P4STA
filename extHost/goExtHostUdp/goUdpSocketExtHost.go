@@ -21,6 +21,8 @@ var timestamp2_list []uint64
 var packet_size_list []uint16
 var packet_counter uint64
 
+var session_identifier_list []uint32
+
 var name *string
 var save *bool
 var start_time time.Time
@@ -35,6 +37,26 @@ func write_csv_uint_list(filename string, to_write []uint64) {
 	for i := 0; i < len(to_write); i++ {
 		var tmp [1]string
 		tmp[0] = strconv.FormatUint(to_write[i], 10)
+		if err := w.Write(tmp[0:1]); err != nil {
+			fmt.Println(err)
+		}
+		w.Flush()
+		if w.Error() != nil {
+			fmt.Println(err)
+		}
+
+	}
+}
+
+func write_csv_uint32_list(filename string, to_write []uint32) {
+	file, err := os.Create(fmt.Sprintf("%s_%s.csv", filename, *name))
+	if err != nil {
+		fmt.Println(err)
+	}
+	w := csv.NewWriter(file)
+	for i := 0; i < len(to_write); i++ {
+		var tmp [1]string
+		tmp[0] = strconv.FormatUint(uint64(to_write[i]), 10)
 		if err := w.Write(tmp[0:1]); err != nil {
 			fmt.Println(err)
 		}
@@ -66,6 +88,8 @@ func save_data(tstamp1_only *string) {
 	fmt.Println("timestamp2 list length: ", len(timestamp2_list))
 	fmt.Println("packet_size_list list length: ", len(packet_size_list))
 	fmt.Println("packet_counter: ", packet_counter)
+
+	fmt.Println("session_identifier_list list length: ", len(session_identifier_list))
 
 	if *save {
 
@@ -118,6 +142,9 @@ func save_data(tstamp1_only *string) {
 				packet_size_list_64 = append(packet_size_list_64, uint64(packet_size_list[i]))
 			}
 			write_csv_uint_list("packet_sizes", packet_size_list_64)
+
+			write_csv_uint32_list("session_identifier_list", session_identifier_list)
+
 			overwrite_textfile("receiver_finished.log", "True")
 		}
 
@@ -187,6 +214,7 @@ func main() {
 	}
 
 	var paket_len_original uint16
+	var session_identifier uint32
 	var timestamp1 uint64
 	var timestamp2 uint64
 	var padding = []byte{0, 0} // to fill 6 byte timestamp into uint64
@@ -212,15 +240,28 @@ func main() {
 
 		// indicates p4sta timestamp starting with 0x0f10, the 2 prior bytes are ext host statistics header, parsed also now.
 		// if binary.BigEndian.Uint16(buf[2:4]) == 0x0f10 {   => TODO: dont know which is faster, conversion to Uint or bytes.Equal
-		if bytes.Equal([]byte{0x0f, 0x10}, buf[2:4]) {
+		if bytes.Equal([]byte{0x0f, 0x10}, buf[6:8]) {
 			paket_len_original = binary.BigEndian.Uint16(buf[0:2])
-			timestamp1 = binary.BigEndian.Uint64(append(padding, buf[4:10]...))
+			session_identifier = binary.BigEndian.Uint32(buf[2:6])
+			timestamp1 = binary.BigEndian.Uint64(append(padding, buf[8:14]...))
 			// empty .. buf[10:12]
-			timestamp2 = binary.BigEndian.Uint64(append(padding, buf[12:18]...))
+			timestamp2 = binary.BigEndian.Uint64(append(padding, buf[16:22]...))
 
 			timestamp1_list = append(timestamp1_list, timestamp1)
 			timestamp2_list = append(timestamp2_list, timestamp2)
 			packet_size_list = append(packet_size_list, paket_len_original)
+
+			session_identifier_list = append(session_identifier_list, session_identifier)
 		}
+		// if bytes.Equal([]byte{0x0f, 0x10}, buf[2:4]) {
+		// 	paket_len_original = binary.BigEndian.Uint16(buf[0:2])
+		// 	timestamp1 = binary.BigEndian.Uint64(append(padding, buf[4:10]...))
+		// 	// empty .. buf[10:12]
+		// 	timestamp2 = binary.BigEndian.Uint64(append(padding, buf[12:18]...))
+
+		// 	timestamp1_list = append(timestamp1_list, timestamp1)
+		// 	timestamp2_list = append(timestamp2_list, timestamp2)
+		// 	packet_size_list = append(packet_size_list, paket_len_original)
+		// }
 	}
 }

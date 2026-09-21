@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import datetime
+import inspect
 import importlib
 import json
 import multiprocessing
 import os
+from packaging.version import Version
 import rpyc
 from rpyc.utils.classic import obtain
 import shutil
@@ -48,6 +50,7 @@ class P4staCore(rpyc.Service):
     all_targets = {}
     all_extHosts = {}
     all_loadGenerators = {}
+    all_sessionModules = {}
     measurement_id = -1  # will be set when external host is started
     method_return = None
     logger = P4STA_logger.create_logger("#core")
@@ -67,7 +70,7 @@ class P4staCore(rpyc.Service):
         self.logger.info("Initialize P4STA core ...")
         P4STA_utils.set_project_path(project_path)
 
-        # Find installed Targets
+        # Find installed targets
         fullpath = os.path.join(project_path, "stamper_targets")
         dirs = [d for d in os.listdir(fullpath) if
                 os.path.isdir(os.path.join(fullpath, d))]
@@ -93,6 +96,7 @@ class P4staCore(rpyc.Service):
                     cfg["real_path"] = os.path.join(fullpath, dir)
                     self.all_extHosts.update({cfg["name"]: cfg})
 
+        # Find installed loadgenerators
         fullpath = os.path.join(project_path, "loadGenerators")
         dirs = [d for d in os.listdir(fullpath) if
                 os.path.isdir(os.path.join(fullpath, d))]
@@ -106,6 +110,20 @@ class P4staCore(rpyc.Service):
                     cfg["real_path"] = os.path.join(fullpath, dir)
                     self.all_loadGenerators.update({cfg["name"]: cfg})
         self.logger.debug("Available load generators: " + str(self.all_loadGenerators))
+
+        # Find installed session modules
+        fullpath = os.path.join(project_path, "session_modules")
+        dirs = [d for d in os.listdir(fullpath) if
+                os.path.isdir(os.path.join(fullpath, d))]
+        for dir in dirs:
+            config_path = os.path.join(fullpath, dir, "module_cfg.json")
+            if os.path.isfile(config_path):
+                # we found a session module
+                with open(config_path, "r") as f:
+                    cfg = json.load(f)
+                    cfg["real_path"] = os.path.join(fullpath, dir)
+                    self.all_sessionModules.update({cfg["name"]: cfg})
+        self.logger.debug("Available session modules: " + str(self.all_sessionModules))
 
         self.check_first_run()
 
@@ -146,6 +164,7 @@ class P4staCore(rpyc.Service):
         first_run = False
 
     def write_install_script(self, first_time_cfg, p4sta_version=""):
+        print("write_install_script with first_time_cfg = " + str(first_time_cfg) + " and p4sta_version = " + str(p4sta_version))
         install_script = []
         if "stamper_user" in first_time_cfg:
             stamper_name = first_time_cfg["selected_stamper"]
@@ -158,6 +177,20 @@ class P4staCore(rpyc.Service):
                 user_name=first_time_cfg["stamper_user"],
                 ip=first_time_cfg["stamper_ssh_ip"],
                 target_specific_dict=target_specific_dict))
+            if target_specific_dict != {}:
+                if "p4sta_version" in target_specific_dict and target_specific_dict["p4sta_version"] != "":
+                    p4sta_version = Version(target_specific_dict["p4sta_version"])
+                    if p4sta_version >= Version("1.4.0"):
+                        install_script.append("echo 'Detected p4sta version " + str(p4sta_version) + " => also install session module'")
+                        session_module_name = target_specific_dict["session_module"]
+                        if session_module_name != "NONE":
+                            session_module_obj = self.get_sessionModule_obj(session_module_name)
+                            if session_module_obj is not None:
+                                install_script.extend(session_module_obj.get_server_install_script(
+                                    user_name=first_time_cfg["session_cp_user"],
+                                    ip=first_time_cfg["session_cp_ssh"])
+                                )
+
             install_script.append("")
         if "ext_host_user" in first_time_cfg:
             ext_host_name = first_time_cfg["selected_extHost"]
@@ -240,8 +273,7 @@ class P4staCore(rpyc.Service):
         return get_ext_host_obj
 
     def get_current_extHost_obj(self):
-        return self.get_extHost_obj(
-            P4STA_utils.read_current_cfg()["selected_extHost"])
+        return self.get_extHost_obj(P4STA_utils.read_current_cfg()["selected_extHost"])
 
     # returns an instance of current selected load generator object
     def get_loadgen_obj(self, name):
@@ -266,7 +298,35 @@ class P4staCore(rpyc.Service):
         loadgen_obj.setRealPath(loadgen_description["real_path"])
 
         return loadgen_obj
+    
+    def get_sessionModule_obj(self, name):
+        try:
+            # module_description = self.all_sessionModules[name]
+            module_path = self.all_sessionModules[name]["real_path"]
+            config_path = os.path.join(module_path, "module_cfg.json")
 
+            with open(config_path, "r") as f:
+                module_description = json.load(f)
+
+            module_description["real_path"] = module_path
+            self.all_sessionModules[name] = module_description
+            
+
+            path_to_driver = (os.path.join(module_description["real_path"],
+                                        module_description["driver"]))
+
+            spec = importlib.util.spec_from_file_location("SessionModuleImpl", path_to_driver)
+            foo = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(foo)
+            cfg = P4STA_utils.read_current_cfg()
+            session_module_obj = foo.SessionModuleImpl(module_description, self.logger, cfg["stamper_ssh"], cfg["program"])
+            session_module_obj.setRealPath(module_description["real_path"])
+
+            return session_module_obj
+        except Exception as e:
+            self.logger.error(traceback.format_exc())
+            return None
+    
     def get_all_extHost(self):
         lst = []
         for extH in self.all_extHosts.keys():
@@ -289,6 +349,12 @@ class P4staCore(rpyc.Service):
         lst = []
         for loadgen in self.all_loadGenerators.keys():
             lst.append(loadgen)
+        return lst
+    
+    def get_all_sessionModules(self):
+        lst = []
+        for module in self.all_sessionModules.keys():
+            lst.append(module)
         return lst
 
     def get_target_cfg(self, target_name="", version=""):
@@ -496,7 +562,6 @@ class P4staCore(rpyc.Service):
             if target == None:
                 target = self.get_stamper_target_obj(cfg["selected_target"])
             if hasattr(target, 'update_portmapping') and callable(target.update_portmapping):
-                self.logger.warning("tofino_grpc_obj => " + str(tofino_grpc_obj))
                 if tofino_grpc_obj != None and "p4sta_version" in cfg and cfg["p4sta_version"] not in ["", "1.0.0", "1.2.0", "1.2.1"]:
                     cfg = target.update_portmapping(cfg, tofino_grpc_obj)
                 else:
@@ -1027,7 +1092,12 @@ class P4staCore(rpyc.Service):
 
         cfg = P4STA_utils.read_current_cfg()
         target = self.get_stamper_target_obj(cfg["selected_target"])
-        lines_pm, running, dev_status = target.stamper_status(cfg)
+        if "tofino_grpc_obj" in inspect.signature(
+                target.stamper_status).parameters:
+            lines_pm, running, dev_status = target.stamper_status(
+                cfg, self.tofino_grpc_obj)
+        else:
+            lines_pm, running, dev_status = target.stamper_status(cfg)
 
         threads = list()
         for loadgen_group in cfg["loadgen_groups"]:
@@ -1096,7 +1166,12 @@ class P4staCore(rpyc.Service):
         file_id = str(P4staCore.measurement_id)
         cfg = P4STA_utils.read_current_cfg()
         target = self.get_stamper_target_obj(cfg["selected_target"])
-        lines_pm, running, dev_status = target.stamper_status(cfg)
+        if "tofino_grpc_obj" in inspect.signature(
+                target.stamper_status).parameters:
+            lines_pm, running, dev_status = target.stamper_status(
+                cfg, self.tofino_grpc_obj)
+        else:
+            lines_pm, running, dev_status = target.stamper_status(cfg)
         
         # later overwritten when run loadgens is executed (for custom run name)
         self.copy_cfg_to_results()
@@ -1259,6 +1334,10 @@ class P4staCore(rpyc.Service):
         
 
     def set_interface(self, ssh_user, ssh_ip, iface, iface_ip, namespace=""):
+        if type(iface_ip) == str:
+            if iface_ip.find("/") == -1: # no netmask found
+                iface_ip = iface_ip + "/24" # default to /24
+
         if namespace == "":
             line = subprocess.run(
                 [project_path + "/core/scripts/setIP.sh", ssh_user, ssh_ip,
@@ -1271,8 +1350,7 @@ class P4staCore(rpyc.Service):
                 stdout=subprocess.PIPE).stdout.decode("utf-8")
 
         # error = return True; worked = return False
-        return not (line.find("worked") > -1 and line.find(
-            "ifconfig_success") > -1)
+        return not (line.find("worked") > -1 and line.find("ip_success") > -1)
 
     def execute_ssh(self, user, ip_address, arg):
         return P4STA_utils.execute_ssh(user, ip_address, arg)
@@ -1427,7 +1505,83 @@ class P4staCore(rpyc.Service):
        
         self.logger.debug("get_ext_host_live_status: " + str(ret_dict))
         return ret_dict
+    
+    # # Session related functions
+    # def establish_session(self, module_name):
+    #     # all = self.get_all_sessionModules()
+    #     mod = self.get_sessionModule_obj(module_name)
+    #     mod.establish_session(self.tofino_grpc_obj)
+    #     pass # TODO!!
 
+    def check_session_module_live_version(self, module_name):
+        cfg = P4STA_utils.read_current_cfg()
+        mod = self.get_sessionModule_obj(module_name)
+        return mod.check_live_version(cfg["session_cp_user"], cfg["session_cp_ssh"])
+    
+    def sess_cfg_helper(self, sess_cfg):
+        cfg = P4STA_utils.read_current_cfg()
+        if "module_name" not in sess_cfg:
+            self.logger.error("No module name provided in session config!")
+            return
+        mod = self.get_sessionModule_obj(sess_cfg["module_name"])
+
+        return mod, cfg
+
+    def start_run_session_module(self, sess_cfg):
+        mod, cfg = self.sess_cfg_helper(sess_cfg)
+        self.tofino_grpc_obj, ret_dict = mod.establish_sessions(self.tofino_grpc_obj, sess_cfg)
+
+        return ret_dict
+
+    # run_ids = list[int], None = get all sessions
+    def get_run_status_session_module(self, sess_cfg, run_ids=None):
+        mod, cfg = self.sess_cfg_helper(sess_cfg)
+        ret = mod.get_session_info(run_ids)
+
+        return ret
+    
+    # returns a unified dict suiting most types of sessions (PPPoE, PDU, ..) for representation in run loadgenerator GUI (start/skip monitoring button)
+    # example:
+    # {
+    #     "state": "established",
+    #     "ipv4_address": "10.1.0.13",
+    #     "session_id": 123,
+    #     "sub_mac": "02:00:00:00:00:01",
+    #     "outer_vlan": 111,
+    #     "inner_vlan": 7,
+    #     "tx_packets": 0,
+    #     "rx_packets": 0,
+    #     "tx_bytes": 0,
+    #     "rx_bytes": 0
+    # }
+    def get_session_data_unified(self, sess_cfg, run_id=None):
+        mod, cfg = self.sess_cfg_helper(sess_cfg)
+        ret = mod.get_session_data_unified()
+
+        return ret
+    
+    def get_num_established_sessions(self, sess_cfg):
+        try:
+            mod, cfg = self.sess_cfg_helper(sess_cfg)
+            ret = mod.get_num_established_sessions()
+
+            return ret
+        except Exception as e:
+            return -1
+
+    def stop_run_session_module(self, sess_cfg, run_id): #TODO: run id required or remove?
+        mod, cfg = self.sess_cfg_helper(sess_cfg)
+        ret, self.tofino_grpc_obj = mod.teardown_sessions(self.tofino_grpc_obj, sess_cfg)
+
+        return ret
+
+    def set_session_traffic_profile(self, module_name, traffic_config):
+        mod = self.get_sessionModule_obj(module_name)
+
+        ret = mod.set_traffic_profile(self.tofino_grpc_obj, traffic_config)
+
+        return ret
+ 
 
 if __name__ == '__main__':
     core = P4staCore()

@@ -1,0 +1,51 @@
+{% if session_results.available %}
+<div class="row">
+	<div class="col-md-8"><h5><b>External host results by session identifier</b></h5></div>
+	<div class="col-md-4"><b>File ID:</b> {{ filename }} <a class="btn btn-primary float-right" href="/downloadExtResults/" role="button">Download</a></div>
+</div>
+<div class="form-group">
+	<label for="external-session-identifier"><b>Session identifier</b></label>
+	<select class="form-control" id="external-session-identifier" style="max-width: 500px;">
+		<option value="" {% if session_results.selected_identifier == None %}selected{% endif %}>Compare session identifiers</option>
+		{% for identifier in session_results.identifiers %}
+		<option value="{{ identifier }}" {% if identifier == session_results.selected_identifier %}selected{% endif %}>{{ identifier }}</option>
+		{% endfor %}
+	</select>
+</div>
+<p>{{ session_results.identifiers|length }} session identifier{{ session_results.identifiers|length|pluralize }} in this measurement.
+	IPDV compares consecutive captured packets within each session; its first sample is zero.
+	PDV uses the minimum latency of the same session. Times share the measurement's earliest timestamp 2.</p>
+{% if session_results.limited %}
+<p class="alert alert-info">The comparison traces show the first {{ session_results.shown_identifiers|length }} identifiers to keep the figures readable. The mean latency overview includes all sessions. Select any identifier above to view its results.</p>
+{% endif %}
+<div class="table-responsive">
+	<table class="table table-sm table-striped">
+		<thead><tr><th>Session identifier</th><th>Captured packets</th><th>Captured MB</th><th>Average latency</th><th>Minimum latency</th><th>Maximum latency</th><th>Latency std. deviation</th><th>Average absolute IPDV</th><th>Average PDV</th></tr></thead>
+		<tbody>
+		{% for row in session_rows %}
+		<tr><td>{{ row.identifier }}</td><td>{{ row.num_packets }}</td><td>{{ row.total_megabytes }}</td>
+			<td>{{ row.average_latency.0.0 }} {{ row.average_latency.1 }}</td>
+			<td>{{ row.min_latency.0.0 }} {{ row.min_latency.1 }}</td>
+			<td>{{ row.max_latency.0.0 }} {{ row.max_latency.1 }}</td>
+			<td>{{ row.latency_std_deviation.0.0|floatformat:2 }} {{ row.latency_std_deviation.1 }}</td>
+			<td>{{ row.average_abs_ipdv.0.0|floatformat:2 }} {{ row.average_abs_ipdv.1 }}</td>
+			<td>{{ row.average_pdv.0.0|floatformat:2 }} {{ row.average_pdv.1 }}</td></tr>
+		{% endfor %}
+		</tbody>
+	</table>
+</div>
+<p>Throughput and packet rate use shared 100 ms intervals, including the final interval.
+	Upscaled figures multiply the captured rates by {{ session_results.threshold }} (the measurement's sampling factor).</p>
+{% for figure in session_results.figures %}
+<hr/>
+<h5><b>{{ figure.title }}</b></h5>
+{% if figure.description %}<p>{{ figure.description }}</p>{% endif %}
+<div class="row">
+	{% for plot in figure.plots %}
+	<div class="{% if figure.full_width %}col-md-12{% else %}col-md-6{% endif %}"><a href="{{ MEDIA_URL }}{{ filename }}/generated/{{ plot.filename }}" target="_blank" rel="noopener"><img src="{{ MEDIA_URL }}{{ filename }}/generated/{{ plot.filename }}" alt="{{ plot.title }} by session identifier" loading="lazy" style="width: 100%;" /></a></div>
+	{% endfor %}
+</div>
+{% endfor %}
+{% else %}
+<p class="alert alert-info">{{ session_results.message }}</p>
+{% endif %}

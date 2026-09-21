@@ -19,6 +19,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     xterm \
     ethtool \
     htop \
+    python3-pip \
  && rm -rf /var/lib/apt/lists/* \
  && chmod +x /ENTRYPOINT.sh
 
@@ -26,7 +27,7 @@ RUN apt-get update && apt-get install -y python3 sudo inetutils-ping openssh-ser
 
 RUN git clone https://github.com/p4lang/behavioral-model.git; ls; echo $PWD
 
-RUN cd behavioral-model && ./install_deps_ubuntu_22.04.sh && ./autogen.sh && ./configure --disable-logging-macros && make -j`nproc` && make install
+RUN cd behavioral-model && git checkout f6bbfafa95c9ba1d690d88563a5057048ad9b2bb && ./install_deps_ubuntu_22.04.sh && ./autogen.sh && ./configure --disable-logging-macros && make -j`nproc` && make install
 
 EXPOSE 6633 6653 6640
 

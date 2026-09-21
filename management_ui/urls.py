@@ -20,6 +20,7 @@ import management_ui.views_dir.analyze as analyze
 import management_ui.views_dir.configure as configure
 import management_ui.views_dir.deploy as deploy
 import management_ui.views_dir.run as run
+import management_ui.views_dir.run_session_module as run_session_module
 import management_ui.views_dir.setup_devices as setup_devices
 
 from management_ui import globals
@@ -28,88 +29,103 @@ from management_ui import globals
 globals.main()
 
 
-# 'job_' => does not render html template but returns json
+# 'job_' and '/api/' => does not render html template and returns json
 urlpatterns = [
-    # base path returns configuration page
-    path('', configure.configure_page, name='index'),
+     # base path returns configuration page
+     path('', configure.configure_page, name='index'),
 
-    # main pages
-    path('analyze/', analyze.page_analyze),
-    path('configuration/', configure.configure_page),
-    path('deploy/', deploy.page_deploy),
-    path('run/', run.page_run),
-    path('setup_devices/', setup_devices.setup_devices),
+     # main pages
+     path('analyze/', analyze.page_analyze),
+     path('configuration/', configure.configure_page),
+     path('deploy/', deploy.page_deploy),
+     path('run/', run.page_run),
+     path('setup_devices/', setup_devices.setup_devices),
 
-    # helper functions for setup_devices
-    path('skip_setup_redirect_to_config/', setup_devices.
-         skip_setup_redirect_to_config),
-    path('run_setup_script/', setup_devices.run_setup_script),
-    path('stop_shellinabox_redirect_to_config/',
-         setup_devices.stop_shellinabox_redirect_to_config),
+     # helper functions for setup_devices
+     path('skip_setup_redirect_to_config/', setup_devices.
+          skip_setup_redirect_to_config),
+     path('run_setup_script/', setup_devices.run_setup_script),
+     path('stop_shellinabox_redirect_to_config/',
+          setup_devices.stop_shellinabox_redirect_to_config),
 
-    # non-ajax related GET or POST's (e.g. <a> or form submit)
-    path('deleteData/', analyze.delete_data),
-    path('downloadAllResults/', analyze.download_all_zip),
-    path('downloadExtResults/', analyze.download_external_results),
-    path('downloadLoadgenResults/', analyze.download_loadgen_results),
-    path('downloadStamperResults/', analyze.download_stamper_results),
-    path('createConfig/', configure.create_new_cfg_from_template),
-    path('openConfig/', configure.open_selected_config),
-    path('deleteConfig/', configure.delete_selected_config),
-    path('saveConfig/', configure.save_config_as_file),
+     # non-ajax related GET or POST's (e.g. <a> or form submit)
+     path('deleteData/', analyze.delete_data),
+     path('downloadAllResults/', analyze.download_all_zip),
+     path('downloadExtResults/', analyze.download_external_results),
+     path('downloadLoadgenResults/', analyze.download_loadgen_results),
+     path('downloadStamperResults/', analyze.download_stamper_results),
+     path('createConfig/', configure.create_new_cfg_from_template),
+     path('openConfig/', configure.open_selected_config),
+     path('deleteConfig/', configure.delete_selected_config),
+     path('saveConfig/', configure.save_config_as_file),
 
-    # ajax
-    # page_analyze.html
-    path('subpage_analyze_external_results/', analyze.external_results),
-    path('subpage_analyze_loadgen_results/', run.read_loadgen_results_again),
-    path('subpage_analyze_stamper_results/', analyze.stamper_results),
+     # ajax
+     # page_analyze.html
+     path('subpage_analyze_external_results/', analyze.external_results),
+     path('subpage_analyze_external_session_results/', analyze.external_session_results),
+     path('subpage_analyze_loadgen_results/', run.read_loadgen_results_again),
+     path('subpage_analyze_stamper_results/', analyze.stamper_results),
 
-    # page_config.html
-    path('job_fetch_iface/', configure.fetch_iface),
-    path('job_fetch_target/', configure.fetch_target),
-    path('job_set_iface/', configure.set_iface),
-    # also used in output_external_started.html
-    path('status_overview/', configure.status_overview),
+     # page_config.html
+     path('job_fetch_iface/', configure.fetch_iface),
+     path('job_fetch_target/', configure.fetch_target),
+     path('job_set_iface/', configure.set_iface),
+     # also used in output_external_started.html
+     path('status_overview/', configure.status_overview),
 
-    # page_deploy.html
-    path('subpage_deploy_stamper_status/', deploy.stamper_status),
-    path('subpage_deploy_stop_stamper_software/', deploy.stop_stamper_software),
+     # page_deploy.html
+     path('subpage_deploy_stamper_status/', deploy.stamper_status),
+     path('subpage_deploy_stop_stamper_software/', deploy.stop_stamper_software),
 
-    # page_run.html
-    path('subpage_run_ping/', run.ping),
-    path('subpage_run_start_external/', run.start_external),
-    path('subpage_run_skip_external/', run.skip_external),
-    path('subpage_run_stop_external/', run.stop_external),
-    path('subpage_run_stop_external_background/', run.stop_external_background),
-    path('subpage_run_stop_without_external/', run.stop_without_external),
+     # page_run.html
+     path('subpage_run_ping/', run.ping),
+     path('subpage_run_start_external/', run.start_external),
+     path('subpage_run_skip_external/', run.skip_external),
+     path('subpage_run_stop_external/', run.stop_external),
+     path('subpage_run_stop_external_background/', run.stop_external_background),
+     path('subpage_run_stop_without_external/', run.stop_without_external),
 
-    # setup_page.html
-    path('job_setup_ssh_checker/', setup_devices.setup_ssh_checker),
+     # page_run session module, e.g. output_bngblaster.html + calls from output_external...html
+     path("api/session/version/", run_session_module.session_version, name="session_version"),
+     path("api/session/runs/start/", run_session_module.session_start, name="session_start"),
+     path("api/session/runs/<str:run_id>/status/", run_session_module.session_status, name="session_status"),
+     path("api/session/runs/<str:run_id>/stop/", run_session_module.session_stop, name="session_stop"),
 
-    # output_external_started.html
-    path('subpage_run_run_loadgens/', run.run_loadgens_first),
-    path('subpage_run_run_loadgens_integrated/', run.run_loadgens_first_integrated_generator),
-    path('subpage_run_packet_templates_config/', run.packet_templates_config),
-    path('subpage_run_live_metrics_page/', run.live_metrics_page),
-    path('subpage_run_live_metrics/', run.live_metrics), #json api
-    path('subpage_run_ext_host_live_status/', run.get_ext_host_live_status), #json api
-    
-    # page_deploy.html => output_stamper_software_status.html
-    path('subpage_deploy_deploy_device/', deploy.deploy),
-    path('subpage_deploy_show_ports/', deploy.stamper_ports),
-    path('subpage_deploy_host_iface_status/', deploy.host_iface_status),
-    path('subpage_deploy_start_stamper_software/', deploy.start_stamper_software),
-    path('subpage_deploy_get_stamper_startup_log/', deploy.get_stamper_startup_log),
-    path('subpage_deploy_reboot/', deploy.reboot),
-    path('subpage_deploy_refresh_links/', deploy.refresh_links),
+     path('api/session/config/set/', run_session_module.session_config_file),
+     path('api/session/config/get/', run_session_module.session_config_file),
+     path('api/session/config/reset/', run_session_module.session_config_file_reset),
+     # path('subpage_run_bngblaster_config/', run_session_module.session_config_file),
 
-    # page_run.html => output_external_started.html
-    path('subpage_run_reset/', run.reset),
+     path('api/session/trafficprofile/set/', run_session_module.set_traffic_profile),
+     path('api/session/trafficprofile/preview/', run_session_module.preview_traffic_profile),
 
-    # output_status_overview.html
-    path('job_delete_namespace/', configure.delete_namespace),
+     # setup_page.html
+     path('job_setup_ssh_checker/', setup_devices.setup_ssh_checker),
 
-    # output_external_results.html
-    path('dygraph/', analyze.dygraph)
+     # output_external_started.html
+     path('subpage_run_run_loadgens/', run.run_loadgens_first),
+     path('subpage_run_run_loadgens_integrated/', run.run_loadgens_first_integrated_generator),
+     path('subpage_run_packet_templates_config/', run.packet_templates_config),
+     path('subpage_run_live_metrics_page/', run.live_metrics_page),
+     path('subpage_run_live_metrics/', run.live_metrics), #json api
+     path('subpage_run_ext_host_live_status/', run.get_ext_host_live_status), #json api
+
+     # page_deploy.html => output_stamper_software_status.html
+     path('subpage_deploy_deploy_device/', deploy.deploy),
+     path('subpage_deploy_show_ports/', deploy.stamper_ports),
+     path('subpage_deploy_host_iface_status/', deploy.host_iface_status),
+     path('subpage_deploy_start_stamper_software/', deploy.start_stamper_software),
+     path('subpage_deploy_get_stamper_startup_log/', deploy.get_stamper_startup_log),
+     path('subpage_deploy_reboot/', deploy.reboot),
+     path('subpage_deploy_refresh_links/', deploy.refresh_links),
+
+     # page_run.html => output_external_started.html
+     path('subpage_run_reset/', run.reset),
+
+     # output_status_overview.html
+     path('job_delete_namespace/', configure.delete_namespace),
+
+     # output_external_results.html
+     path('dygraph/', analyze.dygraph)
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -24,7 +24,7 @@
 			
 			$(document).ready(function(){ 
 			$("#external_results, #all").click(function() {
-				$("#output_results").html('<p>Loading External Host results ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$("#output_results").html('<p>Loading External Host results ...</p><img src="{% static 'images/spinner.svg' %}" width="50" height="50" />');
 				$.get("/subpage_analyze_external_results/", function(data) {
 					$("#output_results").html(data);
 				}, "html");
@@ -36,7 +36,7 @@
 			
 			$(document).ready(function(){ 
 			$("#loadgen_results, #all").click(function() {
-				$("#output_loadgen_results").html('<p>Loading Loadgen results ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$("#output_loadgen_results").html('<p>Loading Loadgen results ...</p><img src="{% static 'images/spinner.svg' %}" width="50" height="50" />');
 				$.get("/subpage_analyze_loadgen_results/", function(data) {
 					$("#output_loadgen_results").html(data);
 				}, "html");
@@ -45,7 +45,7 @@
 			
 			$(document).ready(function(){ 
 			$("#stamper_results, #all").click(function() {
-				$("#output_stamper_results").html('<p>Loading Stamper results ...</p><img src="{% static 'images/spinner.svg' %}" width="150" height="150" />');
+				$("#output_stamper_results").html('<p>Loading Stamper results ...</p><img src="{% static 'images/spinner.svg' %}" width="50" height="50" />');
 				$.get("/subpage_analyze_stamper_results/", function(data) {
 					$("#output_stamper_results").html(data);
 				}, "html");

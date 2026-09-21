@@ -17,9 +17,9 @@ sys.path.append("tests/ptf")
 sys.path.append("stamper_targets/Wedge100B65/")
 sys.path.append("core/")
 try:
-    from cfg import cfg
+    # from cfg import cfg
     # import tofino1_65p_stamper_v1_2_1 as stamper
-    import tofino1_65p_stamper_v1_3_0 as stamper
+    import tofino1_65p_stamper_v1_4_0 as stamper
     import p4sta_ptf_base_tcp
     import p4sta_ptf_base_udp
     import p4sta_ptf_encap_tcp
@@ -138,11 +138,33 @@ cfg = {
     "multicast": "1",
     "stamper_ssh": "0.0.0.0",
     "stamper_user": "root",
-    "program": "tofino_stamper_v1_3_0",
-    "sde": "/opt/bf-sde-9.13.0",
+    "program": "tofino_stamper_v1_4_0",
+    "sde": "/opt/bf-sde-9.13.4",
     "selected_extHost": "GoExtHostUdp",
     "selected_loadgen": "iperf3",
     "selected_target": "tofino_model",
+    "session_cp": 7, #TODO: for later, port 7 is not added yet
+    "session_cp_an": "default",
+    "session_cp_fec": "NONE",
+    "session_cp_if": "",
+    "session_cp_ip": "",
+    "session_cp_mac": "",
+    "session_cp_real": "",
+    "session_cp_shape": "",
+    "session_cp_speed": "10G",
+    "session_cp_ssh": "0.0.0.0",
+    "session_cp_user": "root",
+    "session_cp2": 7, #TODO: for later, port 7 is not added yet
+    "session_cp2_an": "default",
+    "session_cp2_fec": "NONE",
+    "session_cp2_if": "",
+    "session_cp2_ip": "",
+    "session_cp2_mac": "",
+    "session_cp2_real": "",
+    "session_cp2_shape": "",
+    "session_cp2_speed": "10G",
+    "session_cp2_ssh": "0.0.0.0",
+    "session_cp2_user": "root",
     "stamp_tcp": "checked",
     "stamp_udp": "checked"
 }
@@ -212,10 +234,30 @@ class TOF_L3_Dut1ToGroup1_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_Dut1ToGroup1):
         cfg["forwarding_mode"] = "3"
         target_tofino.deploy(cfg)
 
-## Skipping UDP test cases for now
+# UDP
+class TOF_L1_Dut1ToGroup1_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_Dut1ToGroup1):
+    def setUp(self):
+        p4sta_ptf_encap_udp.Encap_Dut1ToGroup1.setUp(self)
+        cfg["forwarding_mode"] = "1"
+        target_tofino.deploy(cfg)
+
+class TOF_L2_Dut1ToGroup1_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_Dut1ToGroup1):
+    def setUp(self):
+        p4sta_ptf_encap_udp.Encap_Dut1ToGroup1.setUp(self)
+        cfg["forwarding_mode"] = "2"
+        target_tofino.deploy(cfg)
+
+class TOF_L3_Dut1ToGroup1_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_Dut1ToGroup1):
+    def setUp(self):
+        p4sta_ptf_encap_udp.Encap_Dut1ToGroup1.setUp(self)
+        cfg["forwarding_mode"] = "3"
+        target_tofino.deploy(cfg)
+
 
 ################ IP only tests, to verify GTP or PPPoE compiled P4 still stamps normal IP packets correctly
 ### Group1ToDut1
+
+# TCP
 class TOF_L1_Group1ToDut1_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_IPonly_Group1ToDut1):
     def setUp(self):
         p4sta_ptf_encap_tcp.Encap_IPonly_Group1ToDut1.setUp(self)
@@ -234,8 +276,31 @@ class TOF_L3_Group1ToDut1_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_IPonly_Group1ToDut
         cfg["forwarding_mode"] = "3"
         target_tofino.deploy(cfg)
 
+# UDP
+class TOF_L1_Group1ToDut1_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_IPonly_Group1ToDut1):
+    def setUp(self):
+        p4sta_ptf_encap_udp.Encap_IPonly_Group1ToDut1.setUp(self)
+        cfg["forwarding_mode"] = "1"
+        target_tofino.deploy(cfg)
+
+class TOF_L2_Group1ToDut1_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_IPonly_Group1ToDut1):
+    def setUp(self):
+        p4sta_ptf_encap_udp.Encap_IPonly_Group1ToDut1.setUp(self)
+        cfg["forwarding_mode"] = "2"
+        target_tofino.deploy(cfg)
+
+class TOF_L3_Group1ToDut1_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_IPonly_Group1ToDut1):
+    def setUp(self):
+        p4sta_ptf_encap_udp.Encap_IPonly_Group1ToDut1.setUp(self)
+        cfg["forwarding_mode"] = "3"
+        target_tofino.deploy(cfg)
+
+
+
 ################ IP only tests, to verify GTP or PPPoE compiled P4 still stamps normal IP packets correctly
 ### Dut2ToGroup2
+
+#TCP
 class TOF_L1_IPOnly_Dut2ToGroup2_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_IPonly_Dut2ToGroup2):
     def setUp(self):
         p4sta_ptf_encap_tcp.Encap_IPonly_Dut2ToGroup2.setUp(self, l1=True)
@@ -251,6 +316,25 @@ class TOF_L2_IPOnly_Dut2ToGroup2_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_IPonly_Dut2
 class TOF_L3_IPOnly_Dut2ToGroup2_ENCAP_TCP(p4sta_ptf_encap_tcp.Encap_IPonly_Dut2ToGroup2):
     def setUp(self):
         p4sta_ptf_encap_tcp.Encap_IPonly_Dut2ToGroup2.setUp(self)
+        cfg["forwarding_mode"] = "3"
+        target_tofino.deploy(cfg)
+
+#UDP
+class TOF_L1_IPOnly_Dut2ToGroup2_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_IPonly_Dut2ToGroup2):
+    def setUp(self):
+        p4sta_ptf_encap_udp.Encap_IPonly_Dut2ToGroup2.setUp(self, l1=True)
+        cfg["forwarding_mode"] = "1"
+        target_tofino.deploy(cfg)
+
+class TOF_L2_IPOnly_Dut2ToGroup2_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_IPonly_Dut2ToGroup2):
+    def setUp(self):
+        p4sta_ptf_encap_udp.Encap_IPonly_Dut2ToGroup2.setUp(self)
+        cfg["forwarding_mode"] = "2"
+        target_tofino.deploy(cfg)
+
+class TOF_L3_IPOnly_Dut2ToGroup2_ENCAP_UDP(p4sta_ptf_encap_udp.Encap_IPonly_Dut2ToGroup2):
+    def setUp(self):
+        p4sta_ptf_encap_udp.Encap_IPonly_Dut2ToGroup2.setUp(self)
         cfg["forwarding_mode"] = "3"
         target_tofino.deploy(cfg)
 

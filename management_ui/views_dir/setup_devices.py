@@ -23,13 +23,53 @@ from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.utils.datastructures import MultiValueDictKeyError
 from pathlib import Path
+from packaging.version import Version
 
 # custom python modules
 from core import P4STA_utils
 
 # globals
 from management_ui import globals
+
+
+def get_all_session_module_cfgs():
+    session_modules_path = Path(__file__).resolve().parents[2] / "session_modules"
+    session_module_cfgs = {}
+    for config_path in session_modules_path.glob("*/module_cfg.json"):
+        with open(config_path, "r") as f:
+            cfg = json.load(f)
+            cfg["real_path"] = str(config_path.parent)
+            session_module_cfgs[cfg["name"]] = cfg
+    return session_module_cfgs
+
+
+def parse_checkbox_group_values(request, cfg):
+    allowed_values = {
+        tuple(value) for value in cfg.get("values_to_select", [])
+    }
+    selected_values = []
+    for value in request.POST.getlist(cfg["target_key"]):
+        selected_value = json.loads(value)
+        if len(allowed_values) > 0 and tuple(selected_value) not in allowed_values:
+            globals.logger.warning(
+                "Ignoring invalid checkbox-group value for " +
+                cfg["target_key"] + ": " + value)
+            continue
+        selected_values.append(selected_value)
+    return selected_values
+
+
+def write_session_module_cfg(module_cfg):
+    module_cfg_path = Path(module_cfg["real_path"]) / "module_cfg.json"
+    cfg_to_write = {
+        key: value for key, value in module_cfg.items()
+        if key != "real_path"
+    }
+    with open(module_cfg_path, "w") as f:
+        json.dump(cfg_to_write, f, indent="\t")
+        f.write("\n")
 
 
 def setup_devices(request):
@@ -44,19 +84,61 @@ def setup_devices(request):
             setup_devices_cfg["target_specific_dict"] = {}
             if "config" in target_cfg and "stamper_specific" in target_cfg["config"]:
                 for cfg in target_cfg["config"]["stamper_specific"]:
-                    if cfg["type"] == "input" and cfg["target_key"] in request.POST:
-                        setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = request.POST[cfg["target_key"]]
-                    if cfg["type"] == "info":
-                        setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = cfg["target_value"]
-                    if cfg["type"] == "drop-down":
-                        # special case for p4sta_version
-                        if cfg["target_key"] == "p4sta_version":
-                            if "p4sta_version" in request.POST:
-                                for version in cfg["values"]:
-                                    if version == request.POST["p4sta_version"]:
-                                        p4sta_version = request.POST["p4sta_version"]
-                        setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = request.POST[cfg["target_key"]]
+                    try:
+                        if cfg["type"] == "input" and cfg["target_key"] in request.POST:
+                            setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = request.POST[cfg["target_key"]]
+                        if cfg["type"] == "info":
+                            setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = cfg["target_value"]
+                        if cfg["type"] == "drop-down":
+                            # special case for p4sta_version
+                            if cfg["target_key"] == "p4sta_version":
+                                if "p4sta_version" in request.POST:
+                                    for version in cfg["values"]:
+                                        if version == request.POST["p4sta_version"]:
+                                            p4sta_version = request.POST["p4sta_version"]
+                            setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = request.POST[cfg["target_key"]]
+                        if cfg["type"] == "checkbox-group":
+                            selected_values = parse_checkbox_group_values(
+                                request, cfg)
+                            setup_devices_cfg["target_specific_dict"][cfg["target_key"]] = selected_values
+                    except MultiValueDictKeyError:
+                        pass # if key is not in POST data, just skip it
+                    except Exception as e:
+                        globals.logger.error("Error processing target specific config for key " + cfg["target_key"] + ": " + str(e))
+                        globals.logger.error(traceback.format_exc())
 
+            session_module_name = setup_devices_cfg[
+                "target_specific_dict"].get("session_module")
+            if session_module_name is not None and session_module_name != "NONE" \
+                    and p4sta_version and Version(p4sta_version) >= Version("1.4.0"):
+                try:
+                    session_module_cfg = get_all_session_module_cfgs()[
+                        session_module_name]
+                    if "config" in session_module_cfg and \
+                            "setup_specific" in session_module_cfg["config"]:
+                        session_module_cfg_changed = False
+                        for cfg in session_module_cfg["config"]["setup_specific"]:
+                            if cfg["type"] == "input":
+                                value = request.POST.get(cfg["target_key"], "").strip()
+                                if cfg.get("required", False) and not value \
+                                        and "create_setup_script_button" in request.POST:
+                                    return HttpResponse(
+                                        cfg["title"] + " is required.", status=400)
+                                setup_devices_cfg[cfg["target_key"]] = value
+                            elif cfg["type"] == "checkbox-group":
+                                selected_values = parse_checkbox_group_values(
+                                    request, cfg)
+                                setup_devices_cfg["target_specific_dict"][
+                                    cfg["target_key"]] = selected_values
+                                cfg["selected_values"] = selected_values
+                                session_module_cfg_changed = True
+                        if session_module_cfg_changed:
+                            write_session_module_cfg(session_module_cfg)
+                except Exception as e:
+                    globals.logger.error(
+                        "Error processing session module setup config for " +
+                        session_module_name + ": " + str(e))
+                    globals.logger.error(traceback.format_exc())
 
         if request.POST.get("enable_ext_host") == "on" and "ext_host_user" in request.POST:
             setup_devices_cfg["ext_host_user"] = request.POST["ext_host_user"]
@@ -86,6 +168,12 @@ def setup_devices(request):
                 cfg = globals.core_conn.root.open_cfg_file(path)
                 cfg["stamper_ssh"] = request.POST["stamper_ip"]
                 cfg["stamper_user"] = request.POST["stamper_user"]
+                # Access and network interfaces share the session module host.
+                for suffix in ("ssh", "user"):
+                    key = "session_cp_" + suffix
+                    if key in setup_devices_cfg:
+                        cfg[key] = setup_devices_cfg[key]
+                        cfg["session_cp2_" + suffix] = setup_devices_cfg[key]
                 if request.POST.get(
                         "enable_ext_host") == "on" \
                         and "ext_host_user" in request.POST:
@@ -93,32 +181,6 @@ def setup_devices(request):
                     cfg["ext_host_ssh"] = request.POST["ext_host_ip"]
                     cfg["selected_extHost"] = request.POST["selected_extHost"]
                 cfg["selected_loadgen"] = request.POST["selected_loadgen"]
-
-                # DEPRECATED: take loadgen cfg from stamper template
-                # add all loadgens to loadgen group 1 and 2
-                # cfg["loadgen_groups"] = [
-                #     {"group": 1, "loadgens": [], "use_group": "checked"},
-                #     {"group": 2, "loadgens": [], "use_group": "checked"}]
-                # grp1 = setup_devices_cfg["loadgens"][
-                #        len(setup_devices_cfg["loadgens"]) // 2:]
-                # grp2 = setup_devices_cfg["loadgens"][
-                #        :len(setup_devices_cfg["loadgens"]) // 2]
-                # id_c = 1
-                # for loadgen in grp1:
-                #     cfg["loadgen_groups"][0]["loadgens"].append(
-                #         {"id": id_c, "loadgen_iface": "", "loadgen_ip": "",
-                #          "loadgen_mac": "", "real_port": "",
-                #          "p4_port": "", "ssh_ip": loadgen["loadgen_ssh_ip"],
-                #          "ssh_user": loadgen["loadgen_user"]})
-                #     id_c = id_c + 1
-                # id_c = 1
-                # for loadgen in grp2:
-                #     cfg["loadgen_groups"][1]["loadgens"].append(
-                #         {"id": id_c, "loadgen_iface": "", "loadgen_ip": "",
-                #          "loadgen_mac": "", "real_port": "",
-                #          "p4_port": "", "ssh_ip": loadgen["loadgen_ssh_ip"],
-                #          "ssh_user": loadgen["loadgen_user"]})
-                #     id_c = id_c + 1
 
                 if globals.core_conn.root.check_first_run():
                     # only overwrite when first run
@@ -150,17 +212,26 @@ def setup_devices(request):
 
         all_target_cfg = {}
         for stamper in params["stampers"]:
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++" + str(stamper))
             # directly converting to json style because True
             # would be uppercase otherwise => JS needs "true"
-            all_target_cfg[stamper] = P4STA_utils.flt(
-                globals.core_conn.root.get_stamper_target_obj(
-                    target_name=stamper).target_cfg)
+            stamper_obj = globals.core_conn.root.get_stamper_target_obj(target_name=stamper)
+            print(stamper_obj)
+            all_target_cfg[stamper] = P4STA_utils.flt(stamper_obj.target_cfg)
+
+        all_session_module_cfg = P4STA_utils.flt(get_all_session_module_cfgs())
 
         if not globals.core_conn.root.check_first_run():
             params["current_cfg"] = P4STA_utils.read_current_cfg()
-        
+
+        for module_cfg in all_session_module_cfg.values():
+            for opt in module_cfg.get("config", {}).get("setup_specific", []):
+                if opt["type"] == "input":
+                    opt["value"] = params.get("current_cfg", {}).get(
+                        opt["target_key"], "")
 
         params["all_target_cfg"] = json.dumps(all_target_cfg)
+        params["all_session_module_cfg"] = json.dumps(all_session_module_cfg)
         return render(request, "middlebox/setup_page.html", {**params})
 
 

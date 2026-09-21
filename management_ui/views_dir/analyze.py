@@ -19,6 +19,7 @@ import zipfile
 
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.views.decorators.http import require_GET
 
 # custom python modules
 from analytics import analytics
@@ -121,10 +122,20 @@ def delete_by_id(file_id):
 # reads stamper results json and returns html object for /ouput_info/
 def stamper_results(request):
     if P4STA_utils.is_ajax(request):
+        file_id = globals.selected_run_id
         try:
-            sw = globals.core_conn.root.stamper_results(
-                globals.selected_run_id)
-            sw = P4STA_utils.flt(sw)
+            for attempt in range(3):
+                sw = globals.core_conn.root.stamper_results(file_id)
+                sw = P4STA_utils.flt(sw)
+                if sw is not None:
+                    break
+                if attempt < 2:
+                    globals.logger.warning("No stamper results returned for measurement "
+                                           + str(file_id) + "; retrying in 0.5 seconds.")
+                    time.sleep(0.5)
+            if sw is None:
+                raise ValueError("The core returned no stamper results for measurement "
+                                 + str(file_id) + ". Check the core log for this request.")
             if "error" in sw:
                 raise Exception(sw["error"])
             return render(request, "middlebox/output_stamper_results.html", sw)
@@ -217,6 +228,41 @@ def external_results(request):
                                                   traceback.format_exc()))})
 
 
+@require_GET
+def external_session_results(request):
+    # Bind AJAX requests to the displayed measurement, not the mutable global
+    # selection (another browser tab may have selected a different dataset).
+    file_id = request.GET.get("file_id", "")
+    if not file_id.isdecimal():
+        return HttpResponse("Invalid measurement ID.", status=400)
+    cfg = P4STA_utils.read_result_cfg(file_id)
+    if cfg is None:
+        return HttpResponse("Measurement not found.", status=404)
+    try:
+        results = analytics.session_main(
+            file_id, cfg["multicast"], P4STA_utils.get_results_path(file_id),
+            globals.logger, request.GET.get("session_identifier"))
+        rows = []
+        for summary in results.get("summaries", []):
+            rows.append({
+                "identifier": summary["identifier"],
+                "num_packets": summary["num_packets"],
+                "total_megabytes": round(summary["total_bytes"] / 1000000, 4),
+                "average_latency": analytics.find_unit(summary["avg_latency"]),
+                "min_latency": analytics.find_unit(summary["min_latency"]),
+                "max_latency": analytics.find_unit(summary["max_latency"]),
+                "latency_std_deviation": analytics.find_unit(summary["latency_std_deviation"]),
+                "average_abs_ipdv": analytics.find_unit(summary["avg_abs_ipdv"]),
+                "average_pdv": analytics.find_unit(summary["avg_pdv"]),
+            })
+        return render(request, "middlebox/output_external_session_results.html",
+                      {"session_results": results, "session_rows": rows,
+                       "filename": file_id})
+    except Exception:
+        globals.logger.error(traceback.format_exc())
+        return HttpResponse("Could not generate session figures. Check the measurement CSV files.", status=500)
+
+
 def get_ext_host_zip_list():
     globals.core_conn.root.external_results(globals.selected_run_id)
     fid = str(globals.selected_run_id)
@@ -252,9 +298,25 @@ def get_ext_host_zip_list():
                   "results/" + fid + "/raw_packet_counter_" + fid + ".csv"])
     files.append([folder + "/output_external_host_" + fid + ".txt",
                   "results/" + fid + "/output_external_host_" + fid + ".txt"])
+
+    try:
+        files.append([folder + "/session_identifier_list_" + fid + ".csv",
+                  "results/" + fid + "/session_identifier_list_" + fid + ".csv"])
+    except:
+        print(traceback.format_exc())
     
     # only_timestamp1_list_xxx.csv
     result_cfg = P4STA_utils.read_result_cfg(fid)
+    try:
+        session_results = analytics.session_main(
+            fid, result_cfg["multicast"], folder, globals.logger)
+        if session_results.get("available"):
+            cache_dir = session_results["cache_dir"]
+            for name in sorted(os.listdir(os.path.join(folder, "generated", cache_dir))):
+                files.append([os.path.join(folder, "generated", cache_dir, name),
+                              "results/" + fid + "/generated/" + cache_dir + "/" + name])
+    except Exception:
+        globals.logger.error("Could not include session figures: " + traceback.format_exc())
     # check if second ext hos was configured
     if "second_ext_host_ssh" in result_cfg:
             try:

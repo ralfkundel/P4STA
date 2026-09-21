@@ -797,4 +797,4 @@ if __name__ == '__main__':
     else:
         thr.call_method(args.method, args.args, args.p4_action_args)
 else:
-    print("bmv2_thrift loaded as module...")
+    pass #print("bmv2_thrift loaded as module...")

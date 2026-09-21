@@ -1118,7 +1118,7 @@ class TargetImpl(AbstractTarget):
         self.logger.debug(str(lines))
         try:
             if len(lines) > 0 and lines[0].isdigit() and int(lines[0]) > 0:
-                dev_status = "Yes! PID: " + str(lines[0])
+                dev_status = "Running. PID: " + str(lines[0])
                 try:
                     start = lines[2].find("compile/") + 8
                     end = lines[2].find(".conf")

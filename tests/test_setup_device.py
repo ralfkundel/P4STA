@@ -58,7 +58,7 @@ def connect(args):
                         'selected_extHost': ['GoExtHostUdp'],
                         'enable_stamper': ['on'],
                         'selected_stamper': ['Stordis_BF6064XT'],
-                        "sde": ["/opt/bf-sde-9.13.0"],
+                        "sde": ["/opt/bf-sde-9.13.4"],
                         "p4sta_version": "1.2.1",
                         "compile_flag": "NONE",
                         'ext_host_ip': [ip_bf_sde],

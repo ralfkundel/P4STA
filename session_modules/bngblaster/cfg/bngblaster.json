@@ -1,0 +1,23 @@
+{
+    "interfaces": {
+        "access": [
+            {
+                "__comment__": "PPPoE Client",
+                "interface": "ens1",
+                "type": "pppoe",
+		"vlan-mode": "N:1"
+            }
+        ]
+    },
+    "pppoe": {
+        "reconnect": true
+    },
+    "ppp": {
+        "lcp": {
+            "keepalive-interval": 0
+        }
+    },
+    "dhcpv6": {
+        "enable": false
+    }
+}

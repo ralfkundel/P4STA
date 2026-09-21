@@ -89,8 +89,13 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
         
         if loadgen_cfg != None and "tofino_grpc_obj" in loadgen_cfg:
             tofino_grpc_obj = loadgen_cfg["tofino_grpc_obj"]
-            # in current state connection is always new established (in set_connection())
-            tofino_grpc_obj.teardown()
+            if tofino_grpc_obj is not None and \
+                    tofino_grpc_obj.connection_established and \
+                    tofino_grpc_obj.p4_connected:
+                self.logger.debug("Reusing passed tofino gRPC connection")
+            elif tofino_grpc_obj is not None:
+                tofino_grpc_obj.teardown()
+                tofino_grpc_obj = None
         else:
             tofino_grpc_obj = None
             self.logger.debug("#core IntegratedGeneration.py run_loadgens(): tofino_grpc_obj is None - creating...")
@@ -131,8 +136,8 @@ class LoadGeneratorImpl(AbstractLoadgenerator):
                     m = 1
                 self.lib.libcfg["mcast_duplication_multis"].append(m)
 
-
-        tofino_grpc_obj = self.lib.set_connection()
+        if tofino_grpc_obj is None:
+            tofino_grpc_obj = self.lib.set_connection()
         tofino_grpc_obj = self.lib.start_packet_generation(packet_list, tofino_grpc_obj)
 
         self.logger.info("Started packet generation ..")

@@ -1,0 +1,36 @@
+{
+  "interfaces": {
+    "access": [
+      {
+        "interface": "enp4s0f1",
+        "type": "pppoe",
+        "vlan-mode": "N:1",
+        "qinq": true,
+        "outer-vlan": 111,
+        "inner-vlan": 7
+      }
+    ]
+  },
+  "pppoe": {
+    "reconnect": true
+  },
+  "ppp": {
+    "authentication": {
+      "username": "user10@rtbrick.com",
+      "password": "test",
+      "protocol": "PAP"
+    },
+    "lcp": {
+      "keepalive-interval": 10
+    },
+    "ipcp": {
+      "enable": true
+    },
+    "ip6cp": {
+      "enable": false
+    }
+  },
+  "dhcpv6": {
+    "enable": false
+  }
+}
